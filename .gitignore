@@ -4,7 +4,11 @@ __pycache__/
 *$py.class
 *.so
 .Python
+# 构建与验证暂存忽略。只放行 flow/build/filelists/ 的手写编译清单。
 build/
+!/flow/build/
+/flow/build/*
+!/flow/build/filelists/
 dist/
 *.egg-info/
 .eggs/
@@ -26,22 +30,10 @@ htmlcov/
 coverage.xml
 .hypothesis/
 
-# --- Project outputs (regenerable; never commit) ---
-# 临时/私有输出目录一律忽略：每个用户自己跑 `adi-run-all --results-dir <dir>`
-# 生成，结果不应进版本库（体积大且强依赖随机种子与依赖版本）。
+# 本机结果写入临时目录。冻结的历史模型输出保存在 docs/_history/model_results/。
 results/
 outputs/
 *.png
-
-# ---------------------------------------------------------------------------
-# 例外：tools/results/ 是**公开发布的参考输出**，不是临时产物。
-# 它被 CI 的 "Determinism" job 当作字节级可复现基准，也是 README 中
-# 全部数字与 7 张图的来源。若忽略它，读者 clone 后无法对照论文结论，
-# 也无法发现"输出 schema 漂移"这一已知技术债（见 CHANGELOG）。
-# 反向规则必须写在 `results/` 与 `*.png` 之后才生效。
-# ---------------------------------------------------------------------------
-!tools/results/
-!tools/results/**
 # --- 文档配图始终跟踪 ---
 !docs/**/*.png
 
@@ -78,6 +70,10 @@ refs/
 references/
 literature/
 *.pdf
+# 自有历史复现报告保留原路径，分发排除规则由 pyproject.toml 定义。
+!/docs/_history/report/reproduction_report.pdf
+# 本工程绘制的数字 IP 图册；摘要随图源清单核验。
+!/docs/algorithms/digital-ip-atlas.pdf
 # This report and its figures are authored in this repository's audit; keep
 # the third-party reference PDFs under refs/ and the broad *.pdf guard above.
 !docs/reports/rtl_patent_audit_20260930/**/*.pdf
@@ -111,3 +107,23 @@ references/*
 !references/PKU_VLSI2025_C32_1_SLIDES.pdf
 !references/CICC2026_13_6_PAPER.pdf
 !references/CICC2026_13_6_SLIDES.pdf
+
+# Verification staging (compiled artefacts, never evidence)
+verification/build/
+verification/reports/waveforms/
+# ---- 仿真产物 ----
+simv
+simv_*
+obj_dir/
+csrc/
+csrc*/
+*.vcd
+*.fsdb
+*.vpd
+*.fst
+simv.daidir/
+*.log
+*.svf
+!/docs/audit/artifacts/sched18.svf
+d3d4_mout.txt
+.workbuddy/

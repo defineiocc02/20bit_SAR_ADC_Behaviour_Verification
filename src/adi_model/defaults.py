@@ -1,725 +1,559 @@
-"""集中、可覆盖且标明推断来源的工程默认入口。
-
-本默认层按用户授权提供工程参数；底层 Config 与物理算子仍检查显式缺项。20 bit 表示输出码宽，
-不表示 20 bit ENOB。数字系数只来自名义设计，不读取制造后的电容，
-也不伪造 FrozenCalibration、训练样本数或拟合诊断。验证只覆盖声明的工程样本域，不能外推原芯片性能。
-
-参考 ±3 V 是差分等效坐标，不是晶体管单端负电源。基础整数译码、随机资源计划和热噪声相位假设，
-不是原芯片公开的完整控制器、3DDEM 或开关网络。
-"""
+# =============================================================================
+# 文件名     : defaults.py
+# 模块名     : adc_digital_ip_v21 的 Python 公共入口
+# 功能       : 对受理样本复现实际片号、两端扰动、逐位写门、DEM、权重和与出码。
+# 设计说明   : 默认使用理想外部宏、名义加载表及 B8 外部相位激励。一次调用从
+#              复位与完整配置已提交开始。逐拍反压与物理片权另由生产 RTL 测试。
+# =============================================================================
+"""生产数字 IP 的事务参考。默认不需要 EDA；专利 Fig.11 行为研究有独立的显式导入。"""
 
 from __future__ import annotations
 
-import math
-from dataclasses import asdict, dataclass, field, replace
-from numbers import Real
+from dataclasses import dataclass, fields, replace
+from hashlib import sha256
+from math import floor, isfinite
+from numbers import Integral, Real
 
 import numpy as np
+from numpy.typing import ArrayLike
 
-from .config import Config, ConfigError
-from .dac_arch import NominalCodebook, SplitChip
-from .dem import SamplingConnections, SplitSwitchCommand, SplitSwitchGeometry
-from .dither import (
-    FIG19_FRACTIONAL_WEIGHTS_Q,
-    Fig19DitherProgram,
-    Fig19StaticSpec,
-    complete_flash3_sar6_prefix_table,
+from adi_model._arrays import readonly
+from adi_model.control.dither_word import DEFAULT_DITHER_SEED, DitherWordGenerator
+from adi_model.dem_dither import SUB, pre
+from adi_model.digital_conversion import (
+    ADC2_MIN,
+    ADC2_SPAN,
+    LSB20,
+    Q30,
+    VFS,
+    conversion_mask,
+    nominal_weights_q30,
+    reconstruct,
+    sar_conversion,
+    weight_sums,
 )
-from .fixed_point import CodeStream, FixedPointFormat, FixedPointReconstructor
-from .mapper import Mapper
-from .pipeline import run_pipeline
-from .serialization import result_document
-from .sim import SimResult
-from .slice_pool import PhysicalSlicePool
-from .timing import SlicePlan
-from .weight_calibration import CalibrationSpec
+from adi_model.sched18_rtl import SEED_DEFAULT, Scheduler18Rtl, prng_step
+from adi_model.simulation.config import ConfigError
 
 DEFAULT_SEED = 20261105
-AMENDMENT_SHA256 = "d709a5f2ad657cd0990ea4bc8b7e2a5889a055be2a0793ad898190d26ae6a4da"
-FIG19_BINDING_REASON = (
-    "US10505561 Fig19 seven-slice example interpreted as common voltage ports on this 18/8 model; "
-    "Q32 ratio/sign/target binding are explicit engineering assumptions, not fabricated-chip disclosure"
-)
 
 
-def _positive(value, name: str, *, zero: bool = False) -> float:
-    if not isinstance(value, Real) or isinstance(value, bool):
-        raise ConfigError(f"{name} must be a finite real value")
-    try:
-        number = float(value)
-    except (TypeError, ValueError, OverflowError) as error:
-        raise ConfigError(f"{name} must be a finite real value") from error
-    if not math.isfinite(number):
-        raise ConfigError(f"{name} must be a finite real value")
-    if number < 0 if zero else number <= 0:
-        raise ConfigError(f"{name} must be {'nonnegative' if zero else 'positive'}")
-    return number
+# 布尔值在 Python 中属于 int 的子类。用 True 当作标签或片号会让错误输入看似
+# 已经通过握手，因此在缩成端口位宽之前先判类型。
+def _integer(value, name: str, lo: int, hi: int | None = None) -> int:
+    """在截断为引脚位宽前校验；布尔和小数不能当作控制字或样本数。"""
+    if isinstance(value, (bool, np.bool_)) or not isinstance(value, Integral):
+        raise ConfigError(f"{name} must be an integer")
+    result = int(value)
+    if result < lo or (hi is not None and result > hi):
+        raise ConfigError(f"{name} out of range")
+    return result
 
 
-def _seed(value, name: str) -> int:
-    if isinstance(value, bool) or not isinstance(value, int | np.integer) or value < 0:
-        raise ConfigError(f"{name} must be a nonnegative integer")
-    return int(value)
+# 采样率要求大于零；标准差可以恰为零。两种用途都不允许 NaN，
+# 因为单纯的上下界比较无法发现它，量化器随后也无法给出有效箱号。
+def _finite(value, name: str, *, positive: bool = False) -> float:
+    if isinstance(value, (bool, np.bool_)) or not isinstance(value, Real) or not isfinite(value):
+        raise ConfigError(f"{name} must be finite")
+    if value < 0 or (positive and value == 0):
+        raise ConfigError(f"{name} out of range")
+    return float(value)
 
 
+# 1. 固定数字合同与可显式改变的宏输入。所有制造/噪声项默认为零。
 @dataclass(frozen=True)
 class DefaultParameters:
-    """默认名义值与工程试验假设；覆盖一项不会暗中重推其他物理输入。
+    """fs 以 Hz 计，噪声/限幅以 V 计，失配为标准差。物理表为 Ceff/Cf，加载表为整数 Q30。"""
 
-    默认 Cu/Cb/Cf 基于 20.5 pF 节点解释、63+8 几何、beta=1/8 与 Gnom=32 推导。
-    替换其中一项即定义自己的名义网络，其余值保持明确、可见；不声称覆盖后的网络仍等于原芯片。
-
-    电容为 F，temperature_k 为 K，ra_noise_rms_v 位于 RA 输出节点，单位为 Vrms；
-    失配 std 为相对标准差。底层电荷与译码器使用该名义规格，位宽仍只是整数算术约定。
-    """
-
-    n_main: int = 63
-    n_sub: int = 8
-    unit_cap_f: float = 4.00390625e-14
-    bridge_cap_f: float = 4.575892857142857e-14
-    feedback_cap_f: float = 6.40625e-13
-    main_parasitic_f: float = 0.0
-    sub_parasitic_f: float = 0.0
-    sadc_cap_f: float = 2.5625e-12
-    adc2_n_bits: int = 12
-    adc2_v_min: float = -0.037500000000000006
-    adc2_v_max: float = 0.41250000000000003
+    adc2_n_bits: int = 13
+    adc2_v_min: float = -0.1875
+    adc2_v_max: float = 0.5625
     endpoint_policy: str = "half_open"
-    ra_clip_v: float = 0.5
-    temperature_k: float = 300.0
-    chi: float = 2.0
-    ra_noise_rms_v: float = 0.001
-    unit_mismatch_std: float = 0.001
-    bridge_mismatch_std: float = 0.001
+    fs: float = 40e6
+    v_fs: float = 3.0
+    n_main: int = 16
+    n_sub: int = 4
+    n_slices: int = 18
+    n_active: int = 8
+    b1: int = 9
+    scheduler_seed: int = SEED_DEFAULT
+    b_q24: int = 0
+    unit_mismatch_std: float = 0.0
+    bridge_mismatch_std: float = 0.0
     feedback_mismatch_std: float = 0.0
-    format: FixedPointFormat = field(
-        default_factory=lambda: FixedPointFormat(30, 32, 64, 48, 96, 20)
-    )
+    sampling_noise_rms_v: float = 0.0
+    ra_noise_rms_v: float = 0.0
+    ra_clip_v: float | None = None
+    enable_sampling_noise: bool = True
+    ra_enable_noise: bool = True
+    dem_enable: bool = True
+    dither_enable: bool = True
+    device_weights: ArrayLike | None = None
+    weights_q30: ArrayLike | None = None
 
     def __post_init__(self):
-        """检查固定整数几何和会实际生成器件的显式参数。"""
-        for name in ("n_main", "n_sub"):
-            value = getattr(self, name)
-            if type(value) is not int or value < 1:
-                raise ConfigError(f"{name} must be a positive integer")
-        if (self.n_main + 1) * self.n_sub != 512:
-            raise ConfigError("the default segmented decoder needs (n_main+1)*n_sub=512")
-        for name in ("unit_cap_f", "bridge_cap_f", "feedback_cap_f"):
-            _positive(getattr(self, name), name)
-        for name in (
-            "main_parasitic_f",
-            "sub_parasitic_f",
+        # 这些值对应生产引脚和配置地址宽度；不同几何需要自己的物理研究。
+        # 在生成第一笔之前拒绝不兼容的几何，以免旧系数仅因行数相同而被接受。
+        dims = (
+            (self.adc2_n_bits, 13),
+            (self.n_main, 16),
+            (self.n_sub, 4),
+            (self.n_slices, 18),
+            (self.n_active, 8),
+            (self.b1, 9),
+        )
+        for value, fixed in dims:
+            _integer(value, "production geometry or width", fixed, fixed)
+        if (self.v_fs, self.adc2_v_min, self.adc2_v_max, self.endpoint_policy) != (
+            VFS,
+            ADC2_MIN,
+            ADC2_MIN + ADC2_SPAN,
+            "half_open",
+        ):
+            raise ConfigError("voltage window differs from adc_digital_ip_v21")
+        object.__setattr__(self, "fs", _finite(self.fs, "fs", positive=True))
+        _integer(self.scheduler_seed, "scheduler_seed", 0, 0xFFFF_FFFF)
+        _integer(self.b_q24, "b_q24", -(1 << 26), (1 << 26) - 1)
+        for key in (
             "unit_mismatch_std",
             "bridge_mismatch_std",
             "feedback_mismatch_std",
+            "sampling_noise_rms_v",
+            "ra_noise_rms_v",
         ):
-            _positive(getattr(self, name), name, zero=True)
-        if not isinstance(self.format, FixedPointFormat):
-            raise ConfigError("format must be an explicit FixedPointFormat")
+            object.__setattr__(self, key, _finite(getattr(self, key), key))
+        if self.ra_clip_v is not None:
+            object.__setattr__(self, "ra_clip_v", _finite(self.ra_clip_v, "ra_clip_v", positive=True))
+        for key in ("enable_sampling_noise", "ra_enable_noise", "dem_enable", "dither_enable"):
+            if type(getattr(self, key)) is not bool:
+                raise ConfigError(f"{key} must be a boolean")
 
 
+# 实际电容和加载字是两组输入。向数字侧提供真实器件的系数只允许显式选择，
+# 否则“未校准”和“已知系数校准”会在建立模型时意外变成同一工况。
+# 每行由物理片号寻址，不能按本次八个逻辑槽的位置替换制造值。
+def _weights(p: DefaultParameters, seed: int) -> tuple[np.ndarray, np.ndarray]:
+    nominal = nominal_weights_q30()
+    # 每字先按传入的整数类型检查上下界，再转换存储。
+    # 浮点数即使看起来是整数也可能已经丢失最低位，不能默认为寄存器字。
+    configured = np.asarray(nominal if p.weights_q30 is None else p.weights_q30)
+    if (
+        configured.shape != (18, 20)
+        or configured.dtype.kind not in "iu"
+        or np.any(configured < 0)
+        or np.any(configured >= 1 << 40)
+        or np.any(configured[:, 16:] > 128 * Q30)
+    ):
+        raise ConfigError(
+            "weights_q30 requires 18x20 unsigned 40-bit integers; check sub-weight range"
+        )
+    physical = nominal / Q30
+    mismatch = (p.unit_mismatch_std, p.bridge_mismatch_std, p.feedback_mismatch_std)
+    # 显式物理表已经包含实际器件，不能再对它进行第二次随机制造。
+    # 加载表仍可独立指定，用来验证已知校正或故意失配的对照。
+    if p.device_weights is not None:
+        if any(mismatch):
+            raise ConfigError("specify either device_weights or fabrication deviations")
+        a = np.asarray(p.device_weights)
+        if a.shape != (18, 20) or a.dtype.kind not in "fiu":
+            raise ConfigError("device_weights requires 18x20 physical Ceff/Cf values")
+        physical = np.asarray(a, dtype=float)
+    elif any(mismatch):
+        # 先制造实际电容，再由同一片的桥和子阵列计算 beta。数字加载表独立保存。
+        rand = np.random.default_rng(np.random.SeedSequence([seed, 0]))
+        cf = 16 * (1 + rand.normal(0, p.feedback_mismatch_std))
+        main = 4 * (1 + rand.normal(0, p.unit_mismatch_std, (18, 16)))
+        sub = np.asarray(SUB) * (1 + rand.normal(0, p.unit_mismatch_std, (18, 4)))
+        cb = (8 / 7) * (1 + rand.normal(0, p.bridge_mismatch_std, (18, 1)))
+        if cf <= 0 or np.any(main <= 0) or np.any(sub <= 0) or np.any(cb <= 0):
+            raise ConfigError("sampled nonpositive physical capacitance")
+        physical = np.column_stack((main, sub * cb / (cb + sub.sum(axis=1, keepdims=True)))) / cf
+    if not np.all(np.isfinite(physical)) or np.any(physical <= 0):
+        raise ConfigError("physical weights must be finite and positive")
+    # 复制后冻结表的底层字节，调用方后续改写原 ndarray 不会影响在途样本。
+    return readonly(physical), readonly(configured, np.int64)
+
+
+# 2. 每一行对应一个输入样本。无有效出码的异常行仍保存标签、原因和已发出的命令。
+# 输入保留两列：波形源给定的干净电压与指定宏噪声后的采样电压。
+# 这样改变噪声假设时仍可以重建相同的外部激励。
+@dataclass(frozen=True)
+class InputSamples:
+    input_clean_v: np.ndarray
+    input_v: np.ndarray
+
+
+# 数组的第一维始终按接受顺序排列。sample_id 从零计数，顶层 tag 从一开始。
+# 八个槽的 pre 为四位开关字，post 为二十位开关字；槽 s 的物理片号取同一行 ids[s]。
+# event_count 范围内的 −1 为关闭写门的比较，范围外的 −1 用于定长填充。
+# 非法转换命令不会产生最终 post 或后级返回，须连同 out_valid 阅读这些列。
+@dataclass(frozen=True)
+class DigitalTrace:
+    sample: InputSamples
+    sample_id: np.ndarray
+    tag: np.ndarray
+    qid: np.ndarray
+    word: np.ndarray
+    h: np.ndarray
+    v: np.ndarray
+    half: np.ndarray
+    coin: np.ndarray
+    sadc_mask: np.ndarray
+    lower_eighths: np.ndarray
+    upper: np.ndarray
+    coarse: np.ndarray
+    k: np.ndarray
+    adc2_code: np.ndarray
+    acquisition_ids: np.ndarray
+    pre_slots: np.ndarray
+    post_slots: np.ndarray
+    event_k: np.ndarray
+    event_count: np.ndarray
+    g_q30: np.ndarray
+    wm_q30: np.ndarray
+    wp_q30: np.ndarray
+    out_valid: np.ndarray
+    out_err: np.ndarray
+    sadc_over: np.ndarray
+    ra_sat: np.ndarray
+    adc2_over: np.ndarray
+    rdac_over: np.ndarray
+
+    @property
+    def analog_overflow(self) -> np.ndarray:
+        """全部输入样本的节点与码域异常并集；逐节点明细随记录返回。"""
+        return self.sadc_over | self.ra_sat | self.adc2_over | self.rdac_over
+
+
+# 输出码按正向整数网格解释，电压量只用于诊断。
+# 在模拟越窗时仍可能得到合法数字码，所以保留两个独立的标志集合。
+@dataclass(frozen=True)
+class DigitalCodes:
+    code: np.ndarray
+    clipped_low: np.ndarray
+    clipped_high: np.ndarray
+    analog_overflow: np.ndarray
+
+    @property
+    def voltage(self) -> np.ndarray:
+        """工程有符号舍入的 20 位网格，0x80000 对应差分 0 V。"""
+        return self.code.astype(float) * LSB20 - VFS
+
+
+# CLI 的 NPZ 和库结果从相同数组导出。两者可通过样本号对齐，
+# 不会把标志为异常的一笔从一个视图单独删除。
 @dataclass(frozen=True)
 class DefaultRun:
-    """默认运行的raw、20bit码与推断表；codes保留模拟/数字裁剪标志。"""
-
-    raw: SimResult
-    codes: CodeStream
+    raw: DigitalTrace
+    codes: DigitalCodes
     metadata: dict
 
-
-def _segmented_mask(geometry, codes, states, slice_ids) -> SplitSwitchCommand:
-    if np.any(states != 0):
-        raise ConfigError("the inferred basic decoder has no source-validated unit DEM states")
-    main_count, sub_count = codes // geometry.n_sub, codes % geometry.n_sub
-    main = np.arange(geometry.n_main)[None, None, :] < main_count[:, None, None]
-    sub = np.arange(geometry.n_sub)[None, None, :] < sub_count[:, None, None]
-    shape = (len(codes), geometry.n_active)
-    return SplitSwitchCommand(
-        np.broadcast_to(main, (*shape, geometry.n_main)).copy(),
-        np.broadcast_to(sub, (*shape, geometry.n_sub)).copy(),
-    )
+    def arrays(self) -> dict[str, np.ndarray]:
+        """返回适合 NPZ 发布的记录列，每列的第一维均为原始样本数。"""
+        # 与原有 codes.npz 的码和标志列兼容，另外公开同笔的开关、权重和 ADC2 码。
+        arrays = {f.name: getattr(self.raw, f.name) for f in fields(self.raw) if f.name != "sample"}
+        arrays.update(input_clean_v=self.raw.sample.input_clean_v, input_v=self.raw.sample.input_v)
+        arrays.update({f.name: getattr(self.codes, f.name) for f in fields(self.codes)})
+        return arrays
 
 
-def _all_signal(geometry, sample_ids, slice_ids, control) -> SamplingConnections:
-    if control is not None:
-        raise ConfigError(
-            "default acquisition is explicitly allSIGNAL without hidden dither control"
-        )
-    return SamplingConnections(
-        np.zeros((*slice_ids.shape, geometry.n_main), dtype=np.int64),
-        np.zeros((*slice_ids.shape, geometry.n_sub), dtype=np.int64),
-    )
-
-
-def _schedule(seed: int):
-    def binding(n: int, n_slices: int, n_active: int) -> SlicePlan:
-        generator = np.random.Generator(np.random.PCG64(seed))
-        conv = np.empty((n, n_active), dtype=np.int64)
-        acq = np.empty_like(conv)
-        group = np.arange(n_active, dtype=np.int64)
-        for index in range(n):
-            conv[index] = group
-            idle = np.setdiff1d(np.arange(n_slices, dtype=np.int64), group)
-            group = generator.choice(idle, size=n_active, replace=False)
-            acq[index] = group
-        return SlicePlan(
-            conv,
-            acq,
-            np.arange(n, dtype=np.int64) - 1,
-            np.ones(n, dtype=bool),
-            "INFERRED uniform8-of-idle10; not original-chip PRNG",
-            {"seed": seed},
-        )
-
-    return binding
+# 强制字可按笔给出，也可在同一记录内用 None 切回片内字。
+# 四个 DEM 输入来自上游，其取值范围不同；先检查整份激励，再启动本次数字序列。
+def _controls(n: int, words, dem):
+    # 整批没有外部字时始终使用片内下一状态；一批混合请求可以只有个别样本强制。
+    # 两种选择都只推进一个状态，因此不会使后续样本错位。
+    if words is None:
+        forced = None
+    else:
+        values = list(words)
+        if len(values) != n:
+            raise ConfigError("dither_words must have one word or None per accepted sample")
+        forced = [None if w is None else _integer(w, "dither word", 0, 63) for w in values]
+    if dem is None:
+        return forced, None
+    phases = np.asarray(dem)
+    if (
+        phases.shape != (n, 4)
+        or phases.dtype.kind not in "iu"
+        or np.any(phases < 0)
+        or np.any(phases > [7, 7, 1, 1])
+    ):
+        raise ConfigError("dem_controls must be n x (h:0..7, v:0..7, half:0..1, coin:0..1)")
+    return forced, phases
 
 
 class DefaultModel:
-    """同一制造实现上的可重放默认模型；run_id分开计划与噪声。
+    """每次 simulate 复位数字字源和片池。相同 seed/run_id 重放同一制造及宏激励。"""
 
-    仅制造流读nominal值并生成actual器件。nominal_decoder在制造抽样之前从名义电容构造；
-    它不是拟合模型。unit/bridge sigma为工程压力，非PDK参数。
-    """
-
+    # 创建器件时只消耗制造用随机流。加载表被复制成独立不可变数组，
+    # 防止调用者在一次运行期间改写系数、破坏样本的身份。
     def __init__(self, *, seed: int, parameters: DefaultParameters, config_overrides: dict | None):
-        """建立集中默认bundle，不启动训练或波形仿真。"""
-        self.seed = _seed(seed, "seed")
+        self.seed = _integer(seed, "seed", 0)
         if not isinstance(parameters, DefaultParameters):
-            raise ConfigError("parameters must be DefaultParameters")
+            raise ConfigError("expected production DefaultParameters")
         self.parameters = parameters
-        p = parameters
-        self._config_overrides = {} if config_overrides is None else dict(config_overrides)
-        if "seed" in self._config_overrides:
-            raise ConfigError(
-                "use the top-level seed/run_id instead of overriding the partitioned noise seed"
-            )
-        cfg = Config(
-            dac_n_main=p.n_main,
-            dac_n_sub=p.n_sub,
-            sadc_thresholds_v=tuple(np.linspace(-3.0, 3.0, 513)),
-            sadc_endpoint_policy=p.endpoint_policy,
-            adc2_n_bits=p.adc2_n_bits,
-            adc2_v_min=p.adc2_v_min,
-            adc2_v_max=p.adc2_v_max,
-            adc2_codebook="uniform_midrise",
-            adc2_endpoint_policy=p.endpoint_policy,
-            ra_v_clip=p.ra_clip_v,
-            ra_enable_noise=True,
-            ra_out_noise_rms=p.ra_noise_rms_v,
-            ra_noise_distribution="gaussian_white",
-            c_sadc=p.sadc_cap_f,
-            enable_sampling_noise=True,
-            sampling_noise_distribution="gaussian_white",
-            temperature_k=p.temperature_k,
-            chi=p.chi,
-            seed=self._child_seed(2, 0),
-            dem_enable=False,
-            dither_enable=False,
-        )
-        cfg = replace(cfg, **self._config_overrides)
-        _positive(cfg.v_fs, "v_fs")
-        if "v_fs" in self._config_overrides and "sadc_thresholds_v" not in self._config_overrides:
-            cfg = replace(cfg, sadc_thresholds_v=tuple(np.linspace(-cfg.v_fs, cfg.v_fs, 513)))
-        if cfg.dem_enable:
-            raise ConfigError(
-                "the inferred basic decoder has no implemented source unit DEM binding"
-            )
-        if (
-            cfg.dyn_input_settling
-            or cfg.dyn_ref_settling
-            or cfg.dyn_crosstalk
-            or cfg.conversion is not None
-        ):
-            raise ConfigError(
-                "default_model is a static baseline; detailed dynamics need explicit run_pipeline circuit inputs"
-            )
-        geometry = SplitSwitchGeometry(p.n_main, p.n_sub, cfg.n_slices, cfg.n_active, 0, 511)
-        cfg.check_legal(geometry=geometry)
-        self.cfg = cfg
-        self.geometry = geometry
-        beta = p.bridge_cap_f / (p.bridge_cap_f + p.n_sub * p.unit_cap_f + p.sub_parasitic_f)
-        c_slice = p.unit_cap_f * (p.n_main + beta * p.n_sub)
-        self.nominal_beta = beta
-        self.nominal_active_cap_f = cfg.n_active * c_slice
-        self.nominal_gain = self.nominal_active_cap_f / p.feedback_cap_f
-        coarse = np.arange(512, dtype=np.int64)
-        drive_weight = p.unit_cap_f * (coarse // p.n_sub + beta * (coarse % p.n_sub))
-        voltage = -cfg.v_fs + 2 * cfg.v_fs * drive_weight / c_slice
-        self.codebook = NominalCodebook(0, 511, voltage)
-        self.mapper = Mapper(coarse, nominal_codebook=self.codebook)
-        weights = np.concatenate(
-            (
-                np.full((cfg.n_slices, p.n_main), p.unit_cap_f / p.feedback_cap_f),
-                np.full((cfg.n_slices, p.n_sub), beta * p.unit_cap_f / p.feedback_cap_f),
-            ),
-            axis=1,
-        )
-        self.nominal_decoder = FixedPointReconstructor.from_weights(
-            CalibrationSpec.from_config(cfg, geometry=geometry),
-            weights,
-            0.0,
-            format=p.format,
-        )
-        # 先构造名义数字模型，再抽取制造数据，避免实际电容进入名义系数。
-        fabrication = np.random.Generator(
-            np.random.PCG64(np.random.SeedSequence(self.seed, spawn_key=(0,)))
-        )
-        main = p.unit_cap_f * (
-            1 + fabrication.normal(0, p.unit_mismatch_std, (cfg.n_slices, p.n_main))
-        )
-        sub = p.unit_cap_f * (
-            1 + fabrication.normal(0, p.unit_mismatch_std, (cfg.n_slices, p.n_sub))
-        )
-        bridge = p.bridge_cap_f * (1 + fabrication.normal(0, p.bridge_mismatch_std, cfg.n_slices))
-        feedback = p.feedback_cap_f
-        if p.feedback_mismatch_std:
-            feedback *= 1 + fabrication.normal(0, p.feedback_mismatch_std)
-        self.chip = SplitChip(
-            main,
-            sub,
-            bridge,
-            np.full(cfg.n_slices, p.sub_parasitic_f),
-            np.full(cfg.n_slices, p.main_parasitic_f),
-            feedback,
-        )
+        self._overrides = dict(config_overrides or {})
+        self.cfg = replace(parameters, **self._overrides)
+        self.device, self.loaded = _weights(self.cfg, self.seed)
 
-    def _child_seed(self, branch: int, run_id: int) -> int:
-        sequence = np.random.SeedSequence(self.seed, spawn_key=(branch, run_id))
-        return int(sequence.generate_state(1, dtype=np.uint64)[0])
+    @property
+    def nominal_gain(self) -> float:
+        """名义 8 片主阵列共 512Cu，共享 Cf=16Cu，电压增益为 32。"""
+        return 32.0
 
-    def inference_table(self) -> dict:
-        """返回当前有效值、默认依据与覆盖标记，不给制造真值分配披露等级。"""
-        p, cfg = self.parameters, self.cfg
-        rows = {}
-
-        def row(name, value, grade, reason, unit=""):
-            rows[name] = {"value": value, "grade": grade, "reason": reason, "unit": unit}
-
-        for name, value, default in (
-            ("fs_hz", cfg.fs, 40e6),
-            ("input_differential_peak_v", cfg.v_fs, 3.0),
-            ("stage1_bits", cfg.b1, 9),
-            ("output_bits", cfg.n_bits_target, 20),
-            ("nominal_residue_gain", cfg.g0, 32.0),
-            ("n_slices", cfg.n_slices, 18),
-            ("n_active", cfg.n_active, 8),
-        ):
-            row(
-                name,
-                value,
-                "DISCLOSED" if value == default else "USER_OVERRIDE",
-                "ISSCC2024 source anchor; overrides are a custom model",
-                {
-                    "fs_hz": "Hz",
-                    "input_differential_peak_v": "V",
-                    "stage1_bits": "bit",
-                    "output_bits": "bit",
-                    "nominal_residue_gain": "V/V",
-                    "n_slices": "count",
-                    "n_active": "count",
-                }[name],
-            )
-        row(
-            "active_capacitance_anchor_f",
-            20.5e-12,
-            "DISCLOSED_ANCHOR_WITH_NODE_ASSUMPTION",
-            "reported20.5pF mapped to nominal Cnorm, not an extracted input-load network",
-            "F",
-        )
-        row("n_main", p.n_main, "ASSUMED_GEOMETRY", "one explicit512-code segmented realization")
-        row("n_sub", p.n_sub, "ASSUMED_GEOMETRY", "not disclosed fabricated unit count")
-        row(
-            "unit_cap_f",
-            p.unit_cap_f,
-            "DERIVED_WITH_ASSUMPTION",
-            "default20.5pF/[8*(63+8/8)]; independent overrides remain explicit",
-            "F",
-        )
-        row(
-            "bridge_cap_f",
-            p.bridge_cap_f,
-            "DERIVED_WITH_ASSUMPTION",
-            "default8*Cu/7 with zero subnode parasitic",
-            "F",
-        )
-        row(
-            "feedback_cap_f",
-            p.feedback_cap_f,
-            "DERIVED_WITH_ASSUMPTION",
-            "default20.5pF/32",
-            "F",
-        )
-        row(
-            "beta_nominal",
-            self.nominal_beta,
-            "DERIVED_FROM_NOMINAL_INPUTS",
-            "Cb/(Cb+Nsub*Cu+Cp_sub)",
-        )
-        row(
-            "nominal_active_Cnorm_f",
-            self.nominal_active_cap_f,
-            "DERIVED_FROM_NOMINAL_INPUTS",
-            "8*(A+beta*B); not physical load or noise capacitance",
-            "F",
-        )
-        row(
-            "nominal_capacitance_gain",
-            self.nominal_gain,
-            "DERIVED_FROM_NOMINAL_INPUTS",
-            "Cnorm_nom/Cf_nom",
-        )
-        for name in ("main_parasitic_f", "sub_parasitic_f"):
-            row(
-                name,
-                getattr(p, name),
-                "NOMINAL_IDEALIZATION_NOT_DEVICE_MEASUREMENT",
-                "default0 is not device measurement",
-                "F",
-            )
-        row("sadc_cap_f", cfg.c_sadc, "DERIVED_MATCHED_SLICE_ASSUMPTION", "default20.5pF/8", "F")
-        thresholds = np.asarray(cfg.sadc_thresholds_v, dtype=float)
-        threshold_deviation_v = float(
-            np.max(np.abs(thresholds - np.linspace(-cfg.v_fs, cfg.v_fs, 513)))
-        )
-        row(
-            "sadc_thresholds",
-            {
-                "edge_count": len(thresholds),
-                "first_v": float(thresholds[0]),
-                "last_v": float(thresholds[-1]),
-            },
-            "IDEAL_QUANTIZER_ASSUMPTION",
-            "default uniform -Vfs..+Vfs; explicit overrides are retained in config_overrides",
-            "V at SADC input",
-        )
-        row(
-            "endpoint_policy", cfg.adc2_endpoint_policy, "NUMERICAL_CONVENTION", "half_open default"
-        )
-        row("adc2_codebook", cfg.adc2_codebook, "IDEAL_QUANTIZER_ASSUMPTION", "uniform_midrise")
-        row(
-            "adc2_n_bits",
-            cfg.adc2_n_bits,
-            "INFERRED_RESOLUTION_BUDGET",
-            "default12b; no targetDR back-solving",
-        )
-        row(
-            "adc2_window_v",
-            [cfg.adc2_v_min, cfg.adc2_v_max],
-            "INFERRED_HEADROOM",
-            "default[-0.1,+1.1]*32*(6/512)",
-            "V at RA output",
-        )
-        row(
-            "ra_clip_v",
-            cfg.ra_v_clip,
-            "ASSUMED_SWING",
-            "default0.5V is not disclosed device swing",
-            "V",
-        )
-        row("temperature_k", cfg.temperature_k, "ASSUMED_TEST_CONDITION", "default300K", "K")
-        row("chi", cfg.chi, "ASSUMED_DIFFERENTIAL_NOISE_MODEL", "default2")
-        row(
-            "ra_noise_rms_v",
-            cfg.ra_out_noise_rms,
-            "ASSUMED_NOISE_BUDGET",
-            "rounded1mV output budget, not inferred measured component",
-            "Vrms",
-        )
-        row(
-            "noise_distribution",
-            "gaussian_white",
-            "MODELING_ASSUMPTION",
-            "independent sampled sources",
-        )
-        row(
-            "sampling_Ceq",
-            "Cnorm^2/sum(Cmain+beta^2*Csub)",
-            "ASSUMED_SAMPLING_CHARGE_MODEL",
-            "independent main/sub sampled charge; actual values used only by plant",
-        )
-        for name in ("unit_mismatch_std", "bridge_mismatch_std", "feedback_mismatch_std"):
-            row(
-                name,
-                getattr(p, name),
-                "NOMINAL_BASELINE"
-                if name == "feedback_mismatch_std" and getattr(p, name) == 0
-                else "ASSUMED_SENSITIVITY",
-                "iid relative Gaussian stress when nonzero; not PDK data",
-                "relative RMS",
-            )
-        row(
-            "sadc_static_mismatch",
-            threshold_deviation_v,
-            "NOMINAL_BASELINE",
-            "max absolute configured threshold deviation from uniform[-Vfs,+Vfs]; not a random mismatch sigma",
-            "V at SADC input",
-        )
-        row(
-            "reference_coordinates",
-            [cfg.v_fs, -cfg.v_fs],
-            "DIFFERENTIAL_EQUIVALENT_COORDINATE",
-            "not single-ended transistor pin voltages",
-            "V",
-        )
-        row(
-            "sampled_reset",
-            [0.0, 0.0],
-            "ASSUMED_STATIC_RESET",
-            "differential top zero; sub coordinate cancels statically",
-            "V",
-        )
-        row(
-            "base_decoder",
-            "main=k//Nsub,sub=k%Nsub; canonical integer masks",
-            "INFERRED_BASIC_DECODER",
-            "not source3DDEM or binary-unary bridging",
-        )
-        row(
-            "schedule",
-            "uniform8-of-idle10 with explicit seed",
-            "BEHAVIORAL_SCHEDULING_ASSUMPTION",
-            "causal18/8/8/2; not original-chip PRNG",
-        )
-        row(
-            "fixed_point",
-            asdict(p.format),
-            "ENGINEERING_ARITHMETIC_CHOICE",
-            "Q30/Q32/64/48/96/20 default; not paper format",
-        )
-        row(
-            "fig19_optional_static_binding",
-            {
-                "voltage_fraction_bits": 32,
-                "step_q": 2**24,
-                "fractional_lower_weights_q": list(FIG19_FRACTIONAL_WEIGHTS_Q),
-                "equivalent_polarity": "subtract",
-            },
-            "ASSUMED_TARGET_PORT_EQUIVALENCE",
-            FIG19_BINDING_REASON,
-        )
-        row(
-            "seed",
-            self.seed,
-            "NUMERICAL_REPRODUCIBILITY_CONTROL",
-            "SeedSequence fabrication/schedule/noise partition",
-        )
-        row(
-            "sadc_endpoint_policy",
-            cfg.sadc_endpoint_policy,
-            "NUMERICAL_CONVENTION",
-            "half_open default",
-        )
-        default_parameters = asdict(DefaultParameters())
-        parameter_rows = {
-            "format": "fixed_point",
-            "adc2_v_min": "adc2_window_v",
-            "adc2_v_max": "adc2_window_v",
-        }
-        for name, value in asdict(p).items():
-            key = parameter_rows.get(name, name)
-            if value != default_parameters[name] and key in rows:
-                rows[key].setdefault("default_grade", rows[key]["grade"])
-                rows[key]["grade"] = "USER_OVERRIDE"
-        config_rows = {
-            "c_sadc": "sadc_cap_f",
-            "sadc_thresholds_v": "sadc_thresholds",
-            "sadc_endpoint_policy": "sadc_endpoint_policy",
-            "adc2_n_bits": "adc2_n_bits",
-            "adc2_v_min": "adc2_window_v",
-            "adc2_v_max": "adc2_window_v",
-            "adc2_endpoint_policy": "endpoint_policy",
-            "adc2_codebook": "adc2_codebook",
-            "ra_v_clip": "ra_clip_v",
-            "temperature_k": "temperature_k",
-            "chi": "chi",
-            "ra_out_noise_rms": "ra_noise_rms_v",
-        }
-        for field_name in self._config_overrides:
-            override_row = config_rows.get(field_name)
-            if override_row is not None and override_row in rows:
-                rows[override_row].setdefault("default_grade", rows[override_row]["grade"])
-                rows[override_row]["grade"] = "USER_OVERRIDE"
-                rows[override_row]["override_field"] = field_name
-        if "sadc_thresholds_v" in self._config_overrides:
-            rows["sadc_static_mismatch"].update(
-                default_grade="NOMINAL_BASELINE",
-                grade="USER_OVERRIDE",
-                override_field="sadc_thresholds_v",
-            )
-        return rows
-
+    # 3. 从同笔输入走到 tagged 输出
+    # 事务层每行代表一次接受；分支只依据本笔的物理片号、开关、已决比较及显式宏输入。
+    # 调度器在数字时钟上的停收或排空另外从 RTL 的实际 valid/ready 检查。
+    # 两个采样通道轮流接收低段；八片 RDAC 自身承受完整采样预置。
     def simulate(
-        self, input_fn, n_samples: int, *, run_id: int = 0, dither_words=None
+        self, input_fn, n_samples: int, *, run_id: int = 0, dither_words=None, dem_controls=None
     ) -> DefaultRun:
-        """以正常用户波形和N运行，并用独立名义定点系数输出20bit码。
-
-        Args:
-            input_fn: t[s]→差分输入[V]；正常范围[-3,+3)，越界仍保留flags。
-            n_samples: 正整数raw数。
-            run_id: 同一制造chip上的可重放计划/噪声编号。
-            dither_words: 可选(N,)显式六位字，启用Fig19静态等效端口；不生成隐藏PRNG。
-                v1要求调用方明确关闭噪声/动态/DEM，建议先用±2.0V验证；不夹非法早prefix。
-
-        Returns:
-            DefaultRun，含CodeStream、raw与本次推断/启用/未建机制表。
-
-        Side effects: 不改制造值或系数；同一seed/run_id每次重新建立电气状态。
-
-        Source: 用户授权的工程默认推断；不宣称原芯片或PDK性能复现。
-        """
-        run_id = _seed(run_id, "run_id")
-        if not callable(input_fn):
-            raise ConfigError("input_fn must be a callable t[s] to input[V] waveform")
-        if type(n_samples) is not int or not 1 <= n_samples <= 0xFFFF_FFFF:
-            raise ConfigError("n_samples must be a positive uint32-range count")
-        schedule_seed, noise_seed = self._child_seed(1, run_id), self._child_seed(2, run_id)
-        cfg = replace(self.cfg, seed=noise_seed)
-        program = None
-        mapper = self.mapper
-        if dither_words is not None:
-            if self._config_overrides.get("dither_enable") is False:
-                raise ConfigError(
-                    "explicit dither words conflict with dither_enable=False override"
-                )
-            if self.parameters.format.voltage_fraction_bits != 32:
-                raise ConfigError("Fig19 static v1 shared digital interface requires explicit Q32")
-            program = Fig19DitherProgram.from_words(
-                dither_words,
-                spec=Fig19StaticSpec(
-                    v_fs=cfg.v_fs,
-                    step_q=2**24,
-                    voltage_fraction_bits=32,
-                    fractional_lower_weights_q=FIG19_FRACTIONAL_WEIGHTS_Q,
-                    equivalent_polarity="subtract",
-                    provenance=FIG19_BINDING_REASON,
-                ),
-            )
-            cfg = replace(cfg, dither_enable=True)
-            mapper = Mapper(
-                np.arange(512, dtype=np.int64),
-                nominal_codebook=self.codebook,
-                event_codes_by_coarse=complete_flash3_sar6_prefix_table(),
-            )
-        elif cfg.dither_enable:
-            raise ConfigError("dither_enable requires explicit per-raw six-bit dither_words")
-        pool = PhysicalSlicePool(
-            cfg,
-            chip=self.chip,
-            nominal_codebook=self.codebook,
-            mask_binding=_segmented_mask,
-            acquisition_binding=_all_signal,
-            schedule_binding=_schedule(schedule_seed),
+        """以秒采样给定差分电压函数。显式六位字对应强制引脚，None 消费同一片内序列。"""
+        n = _integer(n_samples, "n_samples", 1, 0xFFFF_FFFF)
+        run_id = _integer(run_id, "run_id", 0)
+        cfg = self.cfg
+        forced, phases = _controls(n, dither_words, dem_controls)
+        if not cfg.dither_enable and forced is not None and any(w not in (None, 0) for w in forced):
+            raise ConfigError("nonzero forced words conflict with the zero-word control")
+        if not cfg.dem_enable and phases is not None and phases.any():
+            raise ConfigError("nonzero phases conflict with the fixed-phase control")
+        # 这里的时间是公共采样时刻。使用 fs 改变测试波形的采样位置，
+        # 不据此推断真实时钟能否塞入所有 SAR 事件或模拟建立。
+        t = np.arange(n, dtype=float) / cfg.fs
+        wave = np.asarray(input_fn(t))
+        if (
+            wave.dtype.kind not in "fiu"
+            or wave.shape not in ((), (n,))
+            or not np.isfinite(wave).all()
+        ):
+            raise ConfigError("input must produce finite scalar or per-sample voltages")
+        clean = np.broadcast_to(wave, (n,)).astype(float)
+        # 制造、采样和 RA 各用独立随机流。改变噪声不会改变调度或扰动序列。
+        sample_seed, ra_seed = np.random.SeedSequence([self.seed, run_id, 1]).spawn(2)
+        # 保留干净输入供误差评估。向采样节点加入噪声时不能改写调用方的波形数组。
+        sampled = clean.copy()
+        if cfg.enable_sampling_noise and cfg.sampling_noise_rms_v:
+            sampled += np.random.default_rng(sample_seed).normal(0, cfg.sampling_noise_rms_v, n)
+        noise = np.zeros(n)
+        if cfg.ra_enable_noise and cfg.ra_noise_rms_v:
+            noise = np.random.default_rng(ra_seed).normal(0, cfg.ra_noise_rms_v, n)
+        arr = {
+            k: np.zeros(n, dtype=np.int64)
+            for k in (
+                "word h v half coin sadc_mask lower_eighths upper coarse k adc2_code event_count "
+                "g_q30 wm_q30 wp_q30"
+            ).split()
+        }
+        for k in ("out_valid", "out_err", "sadc_over", "ra_sat", "adc2_over", "rdac_over"):
+            arr[k] = np.zeros(n, dtype=bool)
+        for k in ("acquisition_ids", "pre_slots", "post_slots"):
+            arr[k] = np.zeros((n, 8), dtype=np.int64)
+        arr["event_k"] = np.full((n, 8), -1, dtype=np.int64)
+        code = np.zeros(n, dtype=np.uint32)
+        low, high = np.zeros(n, dtype=bool), np.zeros(n, dtype=bool)
+        # 每次批处理对应一次独立复位和装表。
+        # 开始时的片池、扰动和两个上游相位状态分别初始化。
+        scheduler, rng = Scheduler18Rtl(cfg.scheduler_seed), DitherWordGenerator()
+        v_rng, bridge_rng = 0x2468ACE1, 0x9E3779B9
+        pack = 1 << np.arange(20, dtype=np.int64)
+        # 四个数是开关线的打包位序；求电荷使用器件表中相应的真实权重。
+        pack_pre = np.array([8, 4, 2, 1], dtype=np.int64)
+        for i in range(n):
+            # 受理时冻结旧 ACQ 的八个片号。step 把该组交给转换，新 ACQ 属于下一笔。
+            ids = scheduler.step()["conv"]
+            word = rng.step(
+                sample_accept=True,
+                sample_id=i + 1,
+                dither_enable=cfg.dither_enable,
+                force_word=None if forced is None else forced[i],
+            ).word
+            v_rng, bridge_rng = prng_step(v_rng), prng_step(bridge_rng)
+            h, v, half, coin = i & 7, v_rng & 7, (i >> 3) & 1, bridge_rng & 1
+            # 显式四元组直接代表受理时的外部引脚；生成期不读未来的 Vin 或码。
+            # 关闭 DEM 表示上游将相位与交换针脚置零，18 选 8 片池继续正常工作。
+            if phases is not None:
+                h, v, half, coin = map(int, phases[i])
+            if not cfg.dem_enable:
+                h = v = half = coin = 0
+            # pre 的四位字按本笔冻结的 v 在八槽间分摊小数，
+            # 同时按该笔 qid 选中 SADC。比较器只见低段的电压贡献。
+            pre_bits, _, upper, lower = pre(word, v)
+            pre_mask = np.asarray(pre_bits, dtype=np.uint8)
+            c, events = sar_conversion(float(sampled[i]), lower, upper)
+            k = c + upper
+            # 仅对范围内的实际命令记录写门。超过 520 会置事件错误，后续递增的前缀也不能写。
+            arr["event_k"][i, : len(events)] = [e if e <= 520 else -1 for e in events]
+            for key, value in (
+                ("word", word),
+                ("h", h),
+                ("v", v),
+                ("half", half),
+                ("coin", coin),
+                ("sadc_mask", ((word & 16) | (word & 7)) << 1),
+                ("lower_eighths", int(lower * 8)),
+                ("upper", upper),
+                ("coarse", c),
+                ("k", k),
+                ("event_count", len(events)),
+            ):
+                arr[key][i] = value
+            arr["acquisition_ids"][i] = ids
+            arr["pre_slots"][i] = pre_mask @ pack_pre
+            arr["sadc_over"][i] = sampled[i] < -VFS or sampled[i] >= VFS
+            if k > 520:
+                # 前级非法事件关闭物理写门，本笔无最终快照、ADC2 或退休码。
+                arr["rdac_over"][i] = True
+                continue
+            post = conversion_mask(k, h, v, half, coin)
+            arr["post_slots"][i] = post @ pack
+            # 外部宏看真实物理片，加载表只能进入数字重构。主阵列采 Vin，
+            # 子阵列采 pre 参考，转换后各自扣除实际 post 参考电荷。
+            pg, pm, pp = weight_sums(self.device[ids], post, pre_mask)
+            y = (float(sampled[i]) + VFS) * float(pg) - 6 * (float(pm) - float(pp)) + noise[i]
+            if cfg.ra_clip_v is not None and abs(y) > cfg.ra_clip_v:
+                arr["ra_sat"][i] = True
+                y = max(-cfg.ra_clip_v, min(cfg.ra_clip_v, y))
+            # 下限属于第一个码箱，上限已越窗。宏在越窗时回零原码并另送范围标志。
+            # 这与最后一次输出舍入恰好达到数字满量程是不同的事件。
+            in_window = ADC2_MIN <= y < ADC2_MIN + ADC2_SPAN
+            raw = floor((y - ADC2_MIN) * (8192 / ADC2_SPAN)) if in_window else 0
+            # 模拟响应已经形成后才读取已加载的数字表。
+            # 切换表只应改变重构结果，不能回头改变同一笔 ADC2 原码。
+            g, wm, wp = map(int, weight_sums(self.loaded[ids], post, pre_mask))
+            arr["adc2_code"][i], arr["adc2_over"][i] = raw, not in_window
+            arr["g_q30"][i], arr["wm_q30"][i], arr["wp_q30"][i] = g, wm, wp
+            # ADC2 range 随响应单列，重构的 out_err 表示数字域/截断错误。
+            arr["out_valid"][i] = True
+            code[i], low[i], high[i], arr["out_err"][i] = reconstruct(raw, g, wm, wp, cfg.b_q24)
+        # 索引、硬件事务标签和量化器号具有不同的起点与位宽。
+        # 即使本笔没有有效退休，输入行仍保留，下一行不挤占它的位置。
+        sample_id = np.arange(n, dtype=np.uint32)
+        trace = DigitalTrace(
+            sample=InputSamples(clean, sampled),
+            sample_id=sample_id,
+            tag=sample_id + np.uint32(1),
+            qid=sample_id & 1,
+            **arr,
         )
-        noise_cap = None
-        if cfg.enable_sampling_noise:
-            plan = pool.plan(n_samples)
-            ids = plan.conv
-            main, sub = self.chip.C_main[ids], self.chip.C_sub[ids]
-            beta = self.chip.C_bridge[ids] / (
-                self.chip.C_bridge[ids] + sub.sum(axis=-1) + self.chip.c_p_sub[ids]
-            )
-            norm = (main.sum(axis=-1) + beta * sub.sum(axis=-1)).sum(axis=-1)
-            charge_variance_factor = (main.sum(axis=-1) + beta**2 * sub.sum(axis=-1)).sum(axis=-1)
-            noise_cap = norm**2 / charge_variance_factor
-        raw = run_pipeline(
-            cfg,
-            input_fn,
-            n_samples,
-            pool=pool,
-            mapper=mapper,
-            sample_ids=np.arange(n_samples, dtype=np.int64),
-            dem_states=np.zeros(n_samples, dtype=np.int64),
-            sampled_top_v=0.0,
-            sampled_subnode_v=0.0,
-            reference_high_v=cfg.v_fs,
-            reference_low_v=-cfg.v_fs,
-            nominal_reference_high_v=cfg.v_fs,
-            nominal_reference_low_v=-cfg.v_fs,
-            static_charge_domain=True,
-            rdac_noise_cap_f=noise_cap,
-            dither_program=program,
-        )
-        assert raw.digital_observation is not None
-        codes = self.nominal_decoder.reconstruct(raw.digital_observation)
-        metadata = {
-            "profile": "INFERRED_STATIC_DEFAULT_V1",
-            "amendment_sha256": AMENDMENT_SHA256,
+        codes = DigitalCodes(code, low, high, trace.analog_overflow)
+        metadata = self._metadata(trace, codes, run_id, forced, phases)
+        return DefaultRun(trace, codes, metadata)
+
+    # 数字表以小端 Q30 整数字节求摘要，物理表以小端浮点数求摘要。
+    # 在不同文件布局或重放工具之间，可据此检查输入身份。
+    # 把 ADC2 越窗、有输入却无有效退休和数值限幅各自报告。
+    def _metadata(self, trace, codes, run_id, forced, phases):
+        cfg = self.cfg
+        return {
+            "profile": "adc_digital_ip_v21",
+            "digital_contract": "adc_digital_ip_v21",
+            "result_role": "DIGITAL_IP_TRANSACTION_REFERENCE",
             "source_reproduction": False,
-            "digital_coefficients": "NOMINAL_NOT_FITTED; nominalC/Cf only",
+            # 已知的真实权重仍是调用方提供的外部系数，不在本次运行内部反求。
+            "digital_coefficients": "NOMINAL_NOT_FITTED"
+            if cfg.weights_q30 is None
+            else "EXPLICIT_Q30_TABLE",
+            "loaded_weights_q30_sha256": sha256(
+                self.loaded.astype("<i8", copy=False).tobytes()
+            ).hexdigest(),
+            "physical_weights_sha256": sha256(
+                self.device.astype("<f8", copy=False).tobytes()
+            ).hexdigest(),
+            "precision_claim": "20-bit output format",
             "output_bits": 20,
-            "n_samples": n_samples,
-            "precision_claim": "code width only; no20bit ENOB or silicon claim",
+            "n_samples": len(codes.code),
             "seed": self.seed,
             "run_id": run_id,
-            "seed_partition": {
-                "fabrication_spawn_key": [0],
-                "schedule_spawn_key": [1, run_id],
-                "noise_spawn_key": [2, run_id],
-                "schedule_seed": schedule_seed,
-                "noise_seed": noise_seed,
-            },
-            "enabled": {
-                "sampling_noise": cfg.enable_sampling_noise,
-                "driver_noise": cfg.driver_noise_rms is not None and cfg.driver_noise_rms > 0,
-                "sadc_response_approximation": cfg.sampling_tau_mismatch not in (None, 0),
-                "ra_output_noise": cfg.ra_enable_noise,
-                "unit_mismatch": self.parameters.unit_mismatch_std != 0,
-                "bridge_mismatch": self.parameters.bridge_mismatch_std != 0,
-                "slice_resource_randomization": True,
-                "basic_segmented_decoder": True,
-                "unit_dem": False,
-                "source_dither": program is not None,
-                "feedback_mismatch": self.parameters.feedback_mismatch_std != 0,
-            },
-            "unmodeled": [
-                "complete source lower/upper capacitor/switch network",
-                "source3D unit DEM",
-                "input RC and chop switching",
-                "physical-slice timing/bandwidth/offset mismatch",
-                "RA/ADC2 nonlinearity",
-                "reference dynamics",
-                "FGA/CBIAS transistor noise transfer",
-                "bridge/reset sampling-noise covariance",
-                "PDK/layout/signoff",
-            ],
-            "inferences": self.inference_table(),
-            "dither_program": None
-            if program is None
-            else {
-                **program.spec.to_dict(),
-                "word_count": len(program.words),
-                "lower_max_q": int(program.lower_q.max()),
-                "total_max_q": int(program.total_q.max()),
-                "word_source": "explicit caller per-raw six-bit words",
-                "prefix_binding": "current complete-valid Flash3/SAR6 table; seven events including repeats",
-            },
-            "config_overrides": {name: cfg.to_dict()[name] for name in self._config_overrides},
             "raw_invalid": int(np.count_nonzero(codes.analog_overflow)),
             "final_clip_low": int(np.count_nonzero(codes.clipped_low)),
             "final_clip_high": int(np.count_nonzero(codes.clipped_high)),
-            "numpy_version": np.__version__,
+            "digital_errors": int(np.count_nonzero(trace.out_err)),
+            "retired": int(np.count_nonzero(trace.out_valid)),
+            "enabled": {
+                "sampling_noise": bool(cfg.enable_sampling_noise and cfg.sampling_noise_rms_v),
+                "ra_output_noise": bool(cfg.ra_enable_noise and cfg.ra_noise_rms_v),
+                "unit_dem": cfg.dem_enable,
+                "onchip_word_advances": True,
+                "force_word_used": forced is not None
+                and any(w is not None for w in forced)
+                or not cfg.dither_enable,
+            },
+            "unmodeled": [
+                "clock-edge handshakes and stalls",
+                "transistor settling and silicon performance",
+            ],
+            "inferences": self.inference_table(explicit_phases=phases is not None),
         }
-        return DefaultRun(raw, codes, result_document(metadata))
+
+    # 上游的相位激励与芯片内部字源分开记录。
+    # 论文披露三种片角色，实际的种子、位序与箱中心属于这份工程设计。
+    def inference_table(self, *, explicit_phases: bool = False) -> dict:
+        """返回实际单位、宏假设和控制输入来源；可在运行前检查配置。"""
+        cfg = self.cfg
+        return {
+            "fs_hz": {
+                "value": cfg.fs,
+                "grade": "USER_OVERRIDE"
+                if "fs" in self._overrides or cfg.fs != 40e6
+                else "SAMPLE_STIMULUS",
+            },
+            "adc2": {
+                "bits": 13,
+                "window_v": [ADC2_MIN, ADC2_MIN + ADC2_SPAN],
+                "grade": "ENGINEERING_CONTRACT",
+            },
+            "pool": {"slices": 18, "active": 8, "spare": 2, "grade": "DISCLOSED"},
+            "pool_seed": {
+                "value": int(cfg.scheduler_seed) or SEED_DEFAULT,
+                "grade": "ENGINEERING_CONTRACT",
+            },
+            "configuration": {
+                "weight_words": 360,
+                "b_q24": int(cfg.b_q24),
+                "alpha": 1,
+                "grade": "ENGINEERING_CONTRACT",
+            },
+            "dither": {
+                "seed": DEFAULT_DITHER_SEED,
+                "upper_sign": "+",
+                "sampling_weight_sign": "-",
+                "grade": "ENGINEERING_CONTRACT",
+            },
+            "phase_inputs": {
+                "source": (
+                    "fixed zero"
+                    if not cfg.dem_enable
+                    else "explicit"
+                    if explicit_phases
+                    else "B8 upstream stimulus"
+                ),
+                "grade": "EXTERNAL_CONTROL",
+            },
+            "macro": {
+                "model": "capacitor charge with half-open ADC2 bins",
+                "unit_mismatch_std": cfg.unit_mismatch_std,
+                "bridge_mismatch_std": cfg.bridge_mismatch_std,
+                "feedback_mismatch_std": cfg.feedback_mismatch_std,
+                "ra_clip_v": cfg.ra_clip_v,
+                "sample_noise_rms_v": cfg.sampling_noise_rms_v
+                if cfg.enable_sampling_noise
+                else 0.0,
+                "ra_noise_rms_v": cfg.ra_noise_rms_v if cfg.ra_enable_noise else 0.0,
+                "grade": "ENGINEERING_ASSUMPTION",
+            },
+        }
 
 
+# 3. 包顶层、命令行和库调用均走同一构造器。
+# 旧 Fig.11 实验使用其专利几何及减法坐标；公共构造器只实例化生产事务模型。
+# 输入若使用另一种格式或位宽，交给参数守卫明确拒绝。
 def default_model(
     *,
     seed: int = DEFAULT_SEED,
     parameters: DefaultParameters | None = None,
     config_overrides: dict | None = None,
 ) -> DefaultModel:
-    """构造可运行的集中默认模型，未提供的合理值均在推断表中可见。
-
-    Args:
-        seed: 数值重放种子，不是工艺参数。
-        parameters: 可覆盖的明确名义值/压力/格式，None选集中工程默认。
-        config_overrides: 显式Config字段覆盖；不支持旧架构/未实现功能回退。
-
-    Returns:
-        DefaultModel；制造值只影响plant，名义系数不由它们生成。
-
-    Side effects: 消费独立制造SeedSequence一次，不训练、不运行输入波形。
-    """
+    """创建唯一生产参考。制造种子、外部宏偏差及加载表均可独立指定。"""
     return DefaultModel(
         seed=seed,
         parameters=DefaultParameters() if parameters is None else parameters,
@@ -727,37 +561,22 @@ def default_model(
     )
 
 
+# 一笔固定输入可直接用 dc_input 送入。补齐所有样本后一次性返回数组，
+# 以同样的初始条件重放相同的标签、字和物理开关。
 def simulate(
     input_fn,
     n_samples: int,
     *,
     seed: int = DEFAULT_SEED,
+    run_id: int = 0,
     parameters: DefaultParameters | None = None,
     config_overrides: dict | None = None,
-    run_id: int = 0,
     dither_words=None,
+    dem_controls=None,
 ) -> DefaultRun:
-    """只给波形与N即可得到20bit码及推断记录的正常用户入口。
-
-    Args:
-        input_fn: t[s]→差分输入[V]的可调用波形。
-        n_samples: 正整数raw数。
-        seed: 制造/计划/噪声的根数值种子。
-        parameters: 可覆盖的集中工程假设。
-        config_overrides: 明确Config字段覆盖，不恢复被删除算法。
-        run_id: 同一制造根种子下独立且可重放的计划/噪声编号。
-        dither_words: 可选显式六位字；只启用有明确假设、范围拒绝和真实采样注入的Fig19静态等效模型。
-
-    Returns:
-        DefaultRun；codes.code是20bit offset-binary整数，保留全部flags。
-
-    Side effects: 建立独立默认模型并运行一次，不拟合系数或改变全局状态。
-    """
+    """以差分电压函数运行 n 笔；返回初始复位状态下逐笔可复核的码和开关。"""
     return default_model(
         seed=seed, parameters=parameters, config_overrides=config_overrides
     ).simulate(
-        input_fn,
-        n_samples,
-        run_id=run_id,
-        dither_words=dither_words,
+        input_fn, n_samples, run_id=run_id, dither_words=dither_words, dem_controls=dem_controls
     )

@@ -1,0 +1,2 @@
+behavior fingerprint matches the baseline (all *_sha256 fields equal)
+fp_exit=0

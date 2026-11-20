@@ -1,64 +1,62 @@
-# 当前实现、验证范围与下一步
+# 项目状态与证据边界
 
-首页按三项交付物和扩展介绍；本页按四组工作组织。[数字状态表](digital_status_matrix.md)逐模块登记证据，[原文对照](current_digital_source_map.md)区分披露与工程选择，[ABI2合同](rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md)给出经复核的字段、事件和算术。
+当前生产数字 IP 的顶层为 [adc_digital_ip_v21.sv](../rtl/v21/adc_digital_ip_v21.sv)。ADC2 为 **13 位、0.75 V**，窗口为 `[-0.1875, +0.5625) V`。默认 Python 与本顶层使用同一套符号、字源、物理片号和定点出码规则。开关位序、码域和定点表示由同一份数字接口合同索引。[工程合同](CONTRACT_CURRENT.md) · [模型图与配置](figures/behavioral/README.md)
 
-转换控制和随机化横跨行为模型与RTL；训练属于静态校准流程，固定系数重构同时进入RTL。DSP与CAAZ单列扩展。
+复现范围按分支和 Git 提交定位。软件包与硬件模块分别命名，后端参考端按本次检出的生产 filelist 读取。当前覆盖和历史结果的归属见[工作树实测](audit/TREE_AUDIT_REPORT.md#current-tree-review)。
 
-## 默认与低层配置
+## 源码和回归
 
-| 入口 | 实际职责 | 边界 |
-| :--- | :--- | :--- |
-| `simulate()`／`default_model()`／`adi-simulate` | 集中工程默认；返回raw、名义20位码、异常和推断表 | 默认没有训练；默认关闭dither、单元DEM和CAAZ |
-| `Config()` | 9位目标的低层规格；缺少ADC2、门限、网络或活跃噪声输入时拒绝 | 不回填七位／unary、旧DR噪声或旧扰动方案 |
-| `Config.rtl_structural()` | 选择`rtl16`执行接口，调用方补全参数 | 不自动提供物理几何、码制、开关或模拟宏 |
-| 外部source binding | 用实际码／word／state／slice决定mask和两采集端口项；显式导出8文件包 | 哈希与合法性检查不证明原芯片物理正确；未绑定能力拒绝 |
+| 部分 | 证据与适用范围 |
+| --- | --- |
+| D1 调度 | `sched18` 的历史回归覆盖 4,096 拍逐位对比及 20,000 拍片选统计。机理图的 Python 镜像也与 4,096 行冻结向量逐行一致。 |
+| D2 已决事件 | v21 用 `sar_evt_v21`。历史 I2 和 I1/I2 有逐事件验收。历史独立链的 `follower_rt` 已退役。 |
+| D3/D4 掩码与分路扰动 | 本地 Verilator 检查 133,376 种 DEM 掩码与 512 种 SADC/RDAC 预置。生产字源连续 1,024 笔覆盖全部 64 个字，实际 SADC 和 RDAC 开关产生的理想宏响应全部还原正确。[生成与去扰](audit/TREE_AUDIT_REPORT.md#dither-word-audit) |
+| D5 定点与权重 | S3 对本笔的 X 做 32 位有符号截断检查，溢出时返回本笔的错误标志。本地 Verilator 运行了 8,209 笔冻结输入和 21 笔带标签事务，出码与标志全部符合期望。另有 6 个内部边界与错误传播探针通过。[重构回归记录](audit/todo/README.md#recon-s3) |
+| D6 归属与配置 | 顶层接口测试的 124 项检查通过。A 释放、B 晋升、C 受理时，沿前和沿后采集与转换片选的交集都为零。另覆盖反压、空闲时提前预置、停收排空及恢复等待。[交接与重构的原报告复核](audit/ISSUE_10.md) |
 
-40 MS/s是默认raw时间轴，20位是输出码宽；16相位若各占一拍，对应640 MHz预算。当前没有目标工艺时序或模拟精度签核。
+`tools/verify_v21.sh` 登记 11 个 RTL 用例，以及整数证明与从 RTL 抽取的算术检查。运行结果以本次工具输出为准。VC Formal 的属性证明另行记录。[RTL 入口](../rtl/README.md) · [证明台账](v21/PROOF_LEDGER.md) · [D3/D4 旧 IP 验收](_history/d3d4/ACCEPTANCE_STATUS.md)
 
-## 三项交付物对应的四组工作
+默认 Python 与生产 RTL 对五组共 1,792 笔逐标签比较，36 个记录字段全部匹配。该对拍由 `d97afa1` 的 CI 执行并通过。[该提交的运行记录](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/44500594977) 固定输入组另核对实际 CLI 写出的完整 NPZ。每个 ADC2 步进折合名义输入 0.50 LSB20。Fig.11 研究模型的旧饱和记录保留在原工况。[可复现命令与原文差别](audit/AUDIT_ALGO_VS_SOURCE.md)
 
-| 工作组 | 实际完成的实现 | 当前证据边界 | 下一步 |
-| :--- | :--- | :--- | :--- |
-| **转换控制与物理信号链** | 行为模型的独立SADC、18/8物理池、RA／ADC2；RTL的9位SAR、16相位、采集与重构归属 | 当前DUT指定有限窗有实际采集、mask、已决事件和calobs v2同池对拍 | 真实关闭沿、非交叠、参考／RA／ADC2建立及宏时序 |
-| **随机化与失配机制** | 资源计划和实际mask接口；Fig.19六位字与双采集端口静态等效，逐事件检查 | 64字同池有限窗已核；近负端早prefix非法已定位并拒绝；源3D DEM未实现 | 完整物理开关／dither失配噪声、有效端点、逐slice孔径／带宽与补偿 |
-| **位权训练与定点重构** | 独立参考、SVD秩检查、schema2固定模型与受检整数重构；DUT回装固定系数 | 当前Python与DUT＋同池重放分别有独立留出；中幅激励不足被拒；默认名义系数未训练 | 真实参考和观察输送、含噪／漂移／非线性适用性 |
-| **输出、DSP与可选扩展** | 15模块并行DSP；CAAZ显式输入等效AZ及数字pair | DSP handoff003有14场景和5严格profile；仅限定数字域。CAAZ另有现行8包数字配对；主学习用例与DSP系统仍关闭 | 整链滤波选择、输出元数据、真实数据PHY／CNV、停采park后保记录软件复位；CAAZ＋DSP与模拟宏仍OPEN |
+工作树的 CI 配置包含顶层展开、权重配置、连续采样与两项重构回归。21 笔逐标签对拍与 8,209 笔冻结向量已在本地 Verilator 运行。GitHub 历史运行按其提交解释。[CI 配置](../.github/workflows/ci.yml) · [本地复现入口](../flow/sim/README.md)
 
-## 校准与扰动的证据
+## 综合、布局与形式等价
 
-训练使用ADC2原码、实际slice／mask、信号系数／已知电压项和独立参考，不读取模拟电容、真实增益或保持电压。可辨识性不足时拒绝拟合。有效权重是C/Cf，不能由此唯一反求绝对电容。Frozen模型schema2与定点寄存器镜像的独立schema1分开；两者均须携带完整规格。
+- **v21 整核。** 历史记录曾有旧 RTL 的整核网表。现有资料没有与当前 RTL 配套的整核网表、门级等价或签核结果。旧 Formality 记录的 20 个失败点对应旧网表。单模块在 25 ns 约束下的结果不足以证明整核 40 MS/s 吞吐。[综合阻塞记录](v21/SYNTH_STALL.md) · [旧 Formality 记录](v21/FORMAL_STATUS.md)
+- **部分模块。** 归档后端汇总有 7 个独立模块记录 router DRC 为 0、Formality 为 `SUCCEEDED`，合计 2,189 个通过点。`dem_phase_rr`、`dem_phase_gen`、`follower_rt` 的结果属于模块，三者均未接入 v21 顶层，原件随历史提交保留。另有 2 个模块 router DRC 未归零、4 个在冻结输入和给定预算内未完成。DC 的 13 行包含 `recon_v21` 强制 alpha 旁路的诊断配置。[后端总表](audit/ALL_13_MODULES_FINAL.md) · [报告和存证](audit/README.md)
+- **物理边界。** 模块记录使用推导技术 LEF，保留记录中的 DEF 无 PG 路由几何。尚无 foundry DRC、LVS、多角或 IR/EM 签核。早期面积算术和 160,951 µm² 与 D5 面积占比 95.8% 已撤回，原因是 `recon_v21 → recip_rnd_v21 → recip_q60` 层级重复计数。“四模块物理不可行”也已撤回。[复核更正](audit/ALL_13_MODULES_FINAL.md)
 
-| 当前实验 | 实际记录与结论 | 可查入口 |
-| :--- | :--- | :--- |
-| 无dither Python静态 | 当前全跨度正例／中幅反例绑定工具及36个loaded源码。4096全跨度训练rank1279、512独立留出仅[−2.6,+2.7] V，RMS85.829→2.07577 µV；512整数码一致、异常／clip为0；中幅rank1224拒绝 | [逐点与收据](readme/data/source_bound_static_calibration.json)、[重跑命令](REPRODUCING.md#3-静态校准重新训练固定与留出) |
-| DUT静态训练、回装与留出 | `full_typechecked_001`用4096个word0观测片外训练，rank1279；同一非均匀池、同512留出、64字各8次，RMS97.04090→1.99287 µV。最终checker5cfb重放训练、名义与固定留出；512固定码与实际DUT及独立整数oracle一致 | [逐点、5类CSV摘要与同版收据](readme/data/source_bound_rtl_calibration.json)、[实际重跑](REPRODUCING.md#5-显式导出与rtl组件执行) |
-| Fig.19早事件反例 | −2.9 V／word32最终k=4合法，前三个候选−4被拒，不加载非法mask；命名负例6个目标中4笔退休，ID3／6不退休 | [事件及图](readme/data/source_bound_fig19_evidence.json)、[ABI2端点合同](rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md#2-两采集端口与同笔归属) |
+## 持续采样率
 
-正常留出为515条程序／514笔物理采样／512笔目标退休，3条程序尾不退休；status／sticky／fault与结果flags为0。同池重放核对3598个已决事件（含两笔实际尾采样），以及采集mask、全物理总线、OBS先于对应OUT、同笔有序采集／转换ID。另有25个trace损坏、25个来源／标量／文件边界损坏被拒。DUT原manifest的PENDING字段保留原字节，以后续真实收据建立关联。有限窗口与真实停机、排空和模拟idle分别验收。
+**同一份生产顶层在理想宏握手下，已连续按 25 ns 间隔收样和出码。** 本地 Verilator 定向测试用真实调度器和完整的 360 字名义权重表。192 笔输入分为普通转换、保护门限拒绝后继续转换、保护门限接受三类，每类 64 笔。两组快时钟试验均得到 192 个有序标签和 192 个不同的正常 20 位码，所有相邻的 191 个采样、捕获和输出间隔均为 25 ns。[生产清单](../flow/build/filelists/files_adc_v21.f) · [端口测试](../tb/v21/sample_cadence.cpp)
 
-calobs v2的位宽由schema、word／state和几何决定。Fig.19实例为733位；旧748位及固定29.92 Gbit/s不能沿用。报文不含配置epoch、捕获FIFO、ready或外部传输，真实带宽和缺样仍由系统解决。
+| 内部数字时钟 | 要求的公共采样间隔 | 顶层实测 | 从采样到本笔最后一次数字开关写入，最慢值 |
+| --- | --- | --- | --- |
+| 25 ns（40 MHz，当前约束） | 25 ns | 第一笔余差到捕获时仍未获授权 | — |
+| 1.5625 ns（640 MHz，理想时钟） | 25 ns | 192/192 笔，码与标志全部正确 | 17.1875 ns |
+| 0.625 ns（1.6 GHz，理想时钟） | 25 ns | 192/192 笔，码与标志全部正确 | 6.875 ns |
 
-已测组合是Fig.19受限静态等效、18/8因果计划、固定非均匀池与冻结权重。切片选择安排物理资源，不等于单元DEM，也不补偿时偏／带宽。v1拒绝单元DEM、动态、转换随机噪声与额外非零RA扰动；真实共享AZ组合、专用dither电容和开关失配／噪声网络仍无证据。±2 V指已测点和指定激励，逐事件整数域检查不证明模拟建立。
+**片内扰动闭环。** 正常端口 `dither_force_i=0`，实际受理字依次为 45、7、17、40。1,024 笔片内序列覆盖所有 64 个字，固定输入全部返回 410304。强制全字 192 笔及生产/强制混合 192 笔均逐标签正确。混合场景的受扰输入还跨越 Flash 分区和 512 门限。只断开理想 SADC 的低段，96/192 笔 ADC2 越窗。单一已知物理子权重的纠正使同批细码原有的 24 笔 ±32 码误差归零。顶层仿真使用真实数字输出引脚驱动理想 SADC 与 ADC2，宏的模拟建立和芯片实测仍需另行检验。[顶层试验](../tb/v21/sample_cadence.cpp)
 
-CAAZ默认关闭。现行8包指定组件有56OBS、54RAW、4个数字配对；独立13周期配对单元另有325字段核对。[组件复现](REPRODUCING.md#caaz数字组件)不证明CBIAS保持或H/K相等；未来slice／单元DEM改变信号增益后，AZ归一化传递须重新核对。CICC2026连续时间后级、LSB重复和SINC² tracking averaging未实现，输出SINC与预跟踪各有自己的职责。
+**宏假设。** 每个逐位判决在指定数字沿前有效，捕获沿的 hold 确认同时到达，ADC2 在下一次公共捕获沿返回上一笔的 13 位原码。刻意撤去一次应到的原码后，上一笔仍占有返回槽，第 4 笔错过捕获。在 25 ns 主时钟下把公共周期放宽为 13 拍（325 ns）时，三类样本混合的 192 笔全部通过；缩为 12 拍时，第 2 笔的保护门限回退路径错过捕获。
 
-DSP的真实系统场景核到控制错误13／7／8触发独立conversion_fault；上游持续故障期间restart仍阻断，真实epoch clear＋完整重载恢复。185次20位比较／214握手限指定数字合同。无raw不造reject ID；并非任意未上报缺样的检测器。整链只对拍unity／OFFSET0和bypass；独立滤波内核oracle不证明filter_sel1/2/3的整链数值路由。
+**实现预算。** 普通事务至少占一个启动沿和七个提交沿，单计事件级在 25 ns 时钟下最多 5 MS/s。最后开关写入后，还要登记权重和、捕获余差、等待两个安静周期并交接片组。论文描述前级转换约 7 ns。表中的 6.875 ns 只量到 RTL 数字写门，模拟宏接收命令和实际开关建立还需时间。[事件与安静窗](../rtl/v21/acq_conv_ctx.sv) · [捕获门控](../rtl/v21/adc_digital_ip_v21.sv) · [论文原文，第 182 页](../references/ISSCC2024_PAPER.pdf)
 
-## 按依赖排序的未闭合项
+**物理实现待验收。** 当前顶层已提供两套 SADC 的低段预置与写使能。下一步要确定比较判决最迟到达、RDAC 写入及建立、ADC2 返回和 hold 的时限，再核对本版从判决到物理开关寄存器的路径。旧网表曾报告事件序号寄存器至开关寄存器的单段到达时间为 2.839 ns。640 MHz 和 1.6 GHz 是本次零延迟仿真的激励，现有 25 ns 时钟约束和归档时序均不能签署这些频率。[时钟约束](../flow/synth/v21/dc_synth_v21.tcl) · [旧网表路径 ②](_history/v21_legacy/TIMING_BUDGET_FINAL_superseded.md)
 
-以下按[机制账本](../mechanism_inventory.json)归并13项待证记录。具备完整本机来源时，静态来源与登记门禁为67通过、0失败、13未就绪；它核标识、引用和登记状态，不执行模型／RTL或审读文献语义。组件通过不自动关闭整条验收要求。
+使用本机 Verilator 和 clang++，可用 `VERILATOR` 指定工具路径。在仓库根运行可重建十二个场景，输出目录内的 `summary.csv` 列出成功与错过的捕获，`samples.csv` 保存每笔的实际时钟沿、标签、原码和出码。输入源码及清单随同保存。
 
-| 类型 | 下一步 | 所需证据 |
-| :--- | :--- | :--- |
-| 余量、随机化与交织（M05／P02／P12） | 定义来源支持的负端处理，落实源3D／bridge矩阵；联合评价电容、时偏、失调、带宽及其补偿 | 保留逐事件越界与拒绝；同一失配池、输入和带宽的SFDR、SNDR、使用统计及失败域 |
-| 连续采集与预跟踪（P01／P04／P09） | 补SADC／RDAC相位和初始网络、真实驱动／AUX背栅自举；落实历史码连续预置与介电吸收记忆 | 同条件短／完整周期采集与噪声对照、开关节点波形及数据归属 |
-| 参考及残差动态（M13／P03／P05） | 建立真实参考缓冲电流、峰值与功耗，比较器延迟、阈值积分／负载补偿，以及RA／ADC2建立 | 带实际载荷和时序的闭环记录；总电荷或合法RDAC码不替代电流／功耗 |
-| 真实观察输送（P13） | 明确独立参考误差、实际捕获带宽、FIFO／ready、配置代次与缺样协议 | 实物可读数据完成校准，证明参考准确度和读出完整性 |
-| 温漂、AZ与物理（P07／P08／P10） | 补低频／温漂／PVT模型、MC置信与收敛；验证CBIAS保持、H/K和噪声传递 | 当前目标网表／PDK、SPICE／PEX及实际宏时序；目标综合／STA和CDC/RDC分别验收 |
-| 停采及输出扩展 | 建立停采→排空→park→独立模拟idle；完成DSP整链滤波、元数据、PHY和真实CAAZ组合 | 系统非空记录跨软件复位正例，以及对应宏、滤波窗口和数据协议证据 |
+~~~bash
+rate_dir="$(mktemp -d)"
+bash tools/pyenv.sh --run tools/run_open_rtl.py --simulator verilator \
+  --tops v21_sample_cadence --out "$rate_dir/results"
+cat "$rate_dir/results/v21_sample_cadence/summary.csv"
+~~~
 
-## 历史结果怎样使用
+## 设计依据
 
-af8功能合同、9bdf文档保留的图与JSON保持原字节；实际执行身份由各记录的源码SHA和输入确定。中间Python003、RTL001／002和旧checker不作当前通过结论。001／002尾部SOURCE13不会因逐结果flags为0而消失；先前012／013、005与其重放收据仍保留原身份。当前DUT使用连续合法程序与明确尾记录，仅在有限窗内核验。
+[A] ISSCC 2024 9.8 论文 p.182 和讲稿 p.29–35 给出 18 片池、8 片采集与 8 片转换、独立量化器、RDAC follower、DEM 与残差相位的依据。[论文与讲稿](../references/README.md)
 
-[历史数据](readme/data/README.md)、[旧可执行档案](history/EXECUTABLE_ARCHIVES.md)、[ADR0021](adr/0021-structural-contract-calibration.md)和[旧算术合同](rtl/RTL_ARITHMETIC_CONTRACT.md)保留原语境。旧FPGA、BMC、代理结果及旧CI不升级为当前源或工艺签核。
+[P] US10516408B2 对照独立量化器与 follower，US10511316B2 Fig.19–21 对照横纵选择和保留列，US10505561B2 Fig.19 对照分路扰动。[机制专题](mechanisms/README.md)
+
+[E] 本工程定义 `3+3+3`、guard、桥接权重、ADC2 窗口与事务接口。现行 [U] 项与设计约束按[工程合同](CONTRACT_CURRENT.md)及[待办](audit/todo/README.md)追踪。历史结论可按原版追溯。[旧状态快照](_history/v21_status/STATUS_d5a1576.md)

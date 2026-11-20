@@ -1,0 +1,76 @@
+extensions/__init__.py:1:1: D104 Missing docstring in public package
+extensions/caaz/__init__.py:1:1: D104 Missing docstring in public package
+extensions/caaz/model/__init__.py:1:1: D104 Missing docstring in public package
+extensions/caaz/tests/__init__.py:1:1: D104 Missing docstring in public package
+extensions/caaz/tests/test_chopping_az.py:16:5: D103 Missing docstring in public function
+extensions/caaz/tests/test_chopping_az.py:56:5: D103 Missing docstring in public function
+extensions/caaz/tests/test_chopping_az.py:67:5: D103 Missing docstring in public function
+extensions/caaz/tests/test_chopping_az.py:90:5: D103 Missing docstring in public function
+extensions/caaz/tests/test_chopping_az.py:109:5: D103 Missing docstring in public function
+extensions/caaz/tests/test_chopping_az.py:126:5: D103 Missing docstring in public function
+extensions/caaz/tests/test_chopping_az.py:146:5: D103 Missing docstring in public function
+extensions/caaz/tests/test_chopping_az.py:169:5: D103 Missing docstring in public function
+extensions/caaz/tests/test_chopping_az.py:192:5: D103 Missing docstring in public function
+extensions/caaz/tests/test_chopping_az.py:216:5: D103 Missing docstring in public function
+extensions/caaz/tests/test_chopping_az.py:243:5: D103 Missing docstring in public function
+extensions/caaz/tests/test_chopping_az.py:262:5: D103 Missing docstring in public function
+extensions/caaz/tests/test_chopping_az.py:277:5: D103 Missing docstring in public function
+extensions/caaz/tests/test_chopping_az.py:295:5: D103 Missing docstring in public function
+extensions/caaz/tests/test_chopping_az.py:316:5: D103 Missing docstring in public function
+extensions/caaz/tests/test_chopping_az.py:324:5: D103 Missing docstring in public function
+src/adi_model/__init__.py:91:5: F811 Redefinition of unused `DigitalObservation` from line 79
+src/adi_model/__init__.py:93:5: F811 Redefinition of unused `FrozenCalibration` from line 80
+src/adi_model/behavioral/ra_az.py:29:9: D105 Missing docstring in magic method
+src/adi_model/calibration/mask_calibration.py:474:5: D417 Missing argument descriptions in the docstring for `fit_element_weights`: `reference_high_v`, `reference_low_v`
+src/adi_model/contracts/events.py:16:9: D107 Missing docstring in `__init__`
+src/adi_model/contracts/events.py:19:9: D102 Missing docstring in public method
+src/adi_model/contracts/events.py:22:9: D102 Missing docstring in public method
+src/adi_model/contracts/events.py:26:9: D102 Missing docstring in public method
+src/adi_model/contracts/events.py:32:9: D105 Missing docstring in magic method
+src/adi_model/contracts/profiles.py:31:9: D105 Missing docstring in magic method
+src/adi_model/contracts/specs.py:45:9: D105 Missing docstring in magic method
+src/adi_model/contracts/specs.py:95:9: D105 Missing docstring in magic method
+src/adi_model/contracts/specs.py:124:9: D105 Missing docstring in magic method
+src/adi_model/contracts/specs.py:147:9: D105 Missing docstring in magic method
+src/adi_model/contracts/specs.py:167:9: D105 Missing docstring in magic method
+src/adi_model/contracts/specs.py:188:9: D105 Missing docstring in magic method
+src/adi_model/contracts/specs.py:224:9: D105 Missing docstring in magic method
+src/adi_model/contracts/task_types.py:28:9: D105 Missing docstring in magic method
+src/adi_model/contracts/task_types.py:46:9: D105 Missing docstring in magic method
+src/adi_model/control/dem3d.py:194:5: D417 Missing argument descriptions in the docstring for `unary_rotation_masks`: `codes`, `slice_ids`, `states`
+src/adi_model/control/dem3d.py:241:5: D417 Missing argument descriptions in the docstring for `nominal_conservation`: `reference_high_v`, `reference_low_v`
+src/adi_model/control/dither_port.py:135:5: D417 Missing argument descriptions in the docstring for `code_shift_residual`: `reference_high_v`, `reference_low_v`
+src/adi_model/control/dither_port.py:218:5: D417 Missing argument descriptions in the docstring for `range_ledger`: `v_high`, `v_low`
+src/adi_model/control/dither_port.py:309:5: D417 Missing argument descriptions in the docstring for `digital_descramble`: `reference_high_v`, `reference_low_v`
+src/adi_model/control/follower.py:182:5: D417 Missing argument descriptions in the docstring for `run_follower`: `reference_high_v`, `reference_low_v`
+src/adi_model/control/follower.py:298:5: D417 Missing argument descriptions in the docstring for `run_trial_sar`: `pool`, `reference_high_v`, `reference_low_v`, `slice_ids`, `state`
+src/adi_model/control/follower.py:353:5: D417 Missing argument descriptions in the docstring for `audit_causality`: `code_max`, `code_min`
+src/adi_model/simulation/pipeline_engine.py:64:5: D417 Missing argument description in the docstring for `execute_pipeline`: `dither_port`
+tests/unit/test_dem3d.py:71:12: C401 Unnecessary generator (rewrite as a `set` comprehension)
+tests/unit/test_dem3d.py:73:12: C401 Unnecessary generator (rewrite as a `set` comprehension)
+tests/unit/test_mask_calibration.py:119:8: F841 Local variable `n_slices` is assigned to but never used
+tools/behavior_fingerprint.py:33:1: E402 Module level import not at top of file
+tools/behavior_fingerprint.py:35:1: E402 Module level import not at top of file
+tools/behavior_fingerprint.py:36:1: E402 Module level import not at top of file
+tools/run_p4_ablation.py:180:5: F841 Local variable `t` is assigned to but never used
+tools/run_review_figures.py:22:1: E402 Module level import not at top of file
+tools/run_review_figures.py:524:22: C408 Unnecessary `dict` call (rewrite as a literal)
+tools/run_review_figures.py:525:31: C408 Unnecessary `dict` call (rewrite as a literal)
+tools/run_review_figures.py:526:21: C408 Unnecessary `dict` call (rewrite as a literal)
+tools/run_review_figures.py:527:34: C408 Unnecessary `dict` call (rewrite as a literal)
+tools/run_review_figures.py:528:29: C408 Unnecessary `dict` call (rewrite as a literal)
+tools/run_review_figures.py:531:38: C408 Unnecessary `dict` call (rewrite as a literal)
+tools/run_review_figures.py:535:24: C408 Unnecessary `dict` call (rewrite as a literal)
+tools/run_review_figures.py:537:27: C408 Unnecessary `dict` call (rewrite as a literal)
+tools/run_review_figures.py:539:31: C408 Unnecessary `dict` call (rewrite as a literal)
+tools/run_review_figures.py:625:31: C408 Unnecessary `dict` call (rewrite as a literal)
+tools/run_review_figures.py:626:21: C408 Unnecessary `dict` call (rewrite as a literal)
+tools/run_review_figures.py:627:29: C408 Unnecessary `dict` call (rewrite as a literal)
+tools/run_review_figures.py:788:5: F841 Local variable `labels` is assigned to but never used
+tools/trace_one_sample.py:28:1: E402 Module level import not at top of file
+tools/trace_one_sample.py:30:1: E402 Module level import not at top of file
+tools/trace_one_sample.py:31:1: E402 Module level import not at top of file
+tools/trace_one_sample.py:32:1: E402 Module level import not at top of file
+tools/trace_one_sample.py:33:1: E402 Module level import not at top of file
+Found 74 errors.
+No fixes available (17 hidden fixes can be enabled with the `--unsafe-fixes` option).

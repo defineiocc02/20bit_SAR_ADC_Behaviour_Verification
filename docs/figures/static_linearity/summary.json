@@ -1,0 +1,1118 @@
+{
+  "scope": "v21 static charge contract and D5 integer oracle; full-code behavioral linearity",
+  "output_bits": 20,
+  "input_span_v": [
+    -3.0,
+    3.0
+  ],
+  "adc2_bits": 13,
+  "adc2_window_v": [
+    -0.1875,
+    0.5625
+  ],
+  "lsb20_v": 5.7220458984375e-06,
+  "states": 64,
+  "evaluation_seed": 317011,
+  "input_samples_per_mode": 536870912,
+  "hits_per_ideal_code": 512,
+  "training_and_expected_ra_noise_rms_v": 0.001,
+  "seed": 20261105,
+  "git_base_sha": "9e4f1fd5907c67ddf6e35406aec7bc0d1e7bf6b1",
+  "source_sha256": {
+    "tools/run_static_linearity.py": "5061c6e828cd159ee70fd840c4d5d26df500bee3ef0603061f168d3b9d2793a8",
+    "tools/algo_chain.py": "afb8c655de5e622f21601ffece0c0f7b7472b803765f6e44163857072e952bdd",
+    "tools/recon_oracle.py": "b88000085737ddbd426fa692b050a996772bdb90deb288f8fcf24416a8d6e7ce",
+    "src/adi_model/dem_dither.py": "2a9768279f6baeeabb4d7c86589dd894751d1cb8da572264727288b2023f2d1e",
+    "src/adi_model/sched18_rtl.py": "6cd74ee76bf5cd42a82ad787783a566e165d96423d6c4c9321bd858a8f8a3e67",
+    "src/adi_model/calibration/mask_calibration.py": "961eeae92007a9b5f60c304df12c64e139d3c1dc6c8152ce5a61dc321b9bb1c1"
+  },
+  "python": "3.12.14",
+  "numpy": "2.5.5",
+  "scipy": "1.18.1",
+  "cases": [
+    {
+      "relative_mismatch_sigma": 0.0001,
+      "seed": 20261105,
+      "training": {
+        "training_samples": 65536,
+        "training_states": 1024,
+        "rank": 357,
+        "columns": 360,
+        "observable_condition": 221.80119936637794,
+        "residual_rms_node_uV": 997.44385601638,
+        "coarse_lut_min_observations": 92
+      },
+      "scalar_reference_points": 192,
+      "direct_ramp_samples": 1048576,
+      "ideal": {
+        "dnl_min": 0.0,
+        "dnl_max": 0.0,
+        "inl_min": 0.0,
+        "inl_max": 0.0,
+        "missing_interior": 0,
+        "worst_dnl_code": 1,
+        "worst_inl_transition": 1
+      },
+      "modes": {
+        "fixed": {
+          "adc2_raw_min_max_without_noise": [
+            2020,
+            6171
+          ],
+          "gaussian_adc2_overflow_fraction": 0.0,
+          "decoders": {
+            "nominal": {
+              "exact": {
+                "dnl_min": -0.33424195996882844,
+                "dnl_max": 0.5119959502199543,
+                "inl_min": -2.13515756000031,
+                "inl_max": 3.131142818788845,
+                "missing_interior": 0,
+                "worst_dnl_code": 131073,
+                "worst_inl_transition": 802816
+              },
+              "counted": {
+                "dnl_min": -0.3359374183635898,
+                "dnl_max": 0.515625186323101,
+                "inl_min": -2.1350624919276533,
+                "inl_max": 3.135803673464453,
+                "missing_interior": 0,
+                "worst_dnl_code": 131073,
+                "worst_inl_transition": 802816
+              },
+              "min_count_interior": 340,
+              "max_count_interior": 776,
+              "count_total": 536870912,
+              "count_minus_exact_max_DNL": 0.01167491827565903,
+              "count_minus_exact_max_INL": 0.021211263258419127,
+              "coarse_boundary_checks": {
+                "total": 32704,
+                "reversed": 5221,
+                "largest_drop": 14
+              },
+              "ra_noise_expected": {
+                "dnl_min": -0.42747353031639923,
+                "dnl_max": 0.26936081891759334,
+                "inl_min": -3.905903675415585,
+                "inl_max": 3.6672739084015404,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 53229
+              },
+              "ra_noise_excluding_64_rail_codes": {
+                "dnl_min": -0.09133938550805698,
+                "dnl_max": 0.2693563986670875,
+                "inl_min": -2.239857237460096,
+                "inl_max": 2.768552461715425,
+                "missing_interior": 0,
+                "worst_dnl_code": 786431,
+                "worst_inl_transition": 815124
+              }
+            },
+            "fitted": {
+              "exact": {
+                "dnl_min": -0.1779186028083395,
+                "dnl_max": 0.07929928353420013,
+                "inl_min": -0.16299654066488292,
+                "inl_max": 0.22129847703399927,
+                "missing_interior": 0,
+                "worst_dnl_code": 917504,
+                "worst_inl_transition": 518033
+              },
+              "counted": {
+                "dnl_min": -0.18359381082711712,
+                "dnl_max": 0.08398429423672238,
+                "inl_min": -0.16210949330703894,
+                "inl_max": 0.2270285177903937,
+                "missing_interior": 0,
+                "worst_dnl_code": 917504,
+                "worst_inl_transition": 518033
+              },
+              "min_count_interior": 418,
+              "max_count_interior": 555,
+              "count_total": 536870912,
+              "count_minus_exact_max_DNL": 0.021032803119531485,
+              "count_minus_exact_max_INL": 0.023060454353191297,
+              "coarse_boundary_checks": {
+                "total": 32704,
+                "reversed": 2477,
+                "largest_drop": 1
+              },
+              "ra_noise_expected": {
+                "dnl_min": -0.42747353241374597,
+                "dnl_max": 0.02340949365268563,
+                "inl_min": -1.9933399227414565,
+                "inl_max": 1.5740207426793327,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 2030
+              },
+              "ra_noise_excluding_64_rail_codes": {
+                "dnl_min": -0.023958240084489435,
+                "dnl_max": 0.023406086135791204,
+                "inl_min": -0.15228471110824188,
+                "inl_max": 0.22132155456971506,
+                "missing_interior": 0,
+                "worst_dnl_code": 524288,
+                "worst_inl_transition": 518033
+              }
+            },
+            "coarse_lut": {
+              "exact": {
+                "dnl_min": -0.4621227551782686,
+                "dnl_max": 0.5626637929982388,
+                "inl_min": -1.082802558663612,
+                "inl_max": 2.859140133608323,
+                "missing_interior": 0,
+                "worst_dnl_code": 2048,
+                "worst_inl_transition": 432137
+              },
+              "counted": {
+                "dnl_min": -0.46679638834620263,
+                "dnl_max": 0.5664076796569433,
+                "inl_min": -1.0809518258305189,
+                "inl_max": 2.8534677739244687,
+                "missing_interior": 0,
+                "worst_dnl_code": 2048,
+                "worst_inl_transition": 432215
+              },
+              "min_count_interior": 273,
+              "max_count_interior": 802,
+              "count_total": 536870912,
+              "count_minus_exact_max_DNL": 0.01073636570644343,
+              "count_minus_exact_max_INL": 0.022139069681988532,
+              "coarse_boundary_checks": {
+                "total": 32704,
+                "reversed": 11095,
+                "largest_drop": 10
+              },
+              "ra_noise_expected": {
+                "dnl_min": -0.4274731905579656,
+                "dnl_max": 0.15196155006781398,
+                "inl_min": -2.838879868818779,
+                "inl_max": 3.3696293680411715,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 960535
+              },
+              "ra_noise_excluding_64_rail_codes": {
+                "dnl_min": -0.13486720220734938,
+                "dnl_max": 0.15195795371167975,
+                "inl_min": -1.1473562817497445,
+                "inl_max": 2.778819307324119,
+                "missing_interior": 0,
+                "worst_dnl_code": 401408,
+                "worst_inl_transition": 432153
+              }
+            }
+          }
+        },
+        "dem": {
+          "adc2_raw_min_max_without_noise": [
+            2020,
+            6179
+          ],
+          "gaussian_adc2_overflow_fraction": 0.0,
+          "decoders": {
+            "nominal": {
+              "exact": {
+                "dnl_min": -0.12771731448076717,
+                "dnl_max": 0.2714408525851093,
+                "inl_min": -0.8388693792101636,
+                "inl_max": 0.871570107063121,
+                "missing_interior": 0,
+                "worst_dnl_code": 4096,
+                "worst_inl_transition": 643084
+              },
+              "counted": {
+                "dnl_min": -0.12695291847513834,
+                "dnl_max": 0.2597659230056728,
+                "inl_min": -0.8373647645245269,
+                "inl_max": 0.8630900614268399,
+                "missing_interior": 0,
+                "worst_dnl_code": 4096,
+                "worst_inl_transition": 643198
+              },
+              "min_count_interior": 447,
+              "max_count_interior": 645,
+              "count_total": 536870912,
+              "count_minus_exact_max_DNL": 0.0116749295794365,
+              "count_minus_exact_max_INL": 0.020134145074446774,
+              "coarse_boundary_checks": {
+                "total": 32704,
+                "reversed": 5521,
+                "largest_drop": 11
+              },
+              "ra_noise_expected": {
+                "dnl_min": -0.4274734479814023,
+                "dnl_max": 0.0535934818614523,
+                "inl_min": -2.446634150715028,
+                "inl_max": 1.8900209336110358,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 61419
+              },
+              "ra_noise_excluding_64_rail_codes": {
+                "dnl_min": -0.0173230936193155,
+                "dnl_max": 0.05358988731877279,
+                "inl_min": -0.89503123676757,
+                "inl_max": 0.7057590990737846,
+                "missing_interior": 0,
+                "worst_dnl_code": 1032193,
+                "worst_inl_transition": 225258
+              }
+            },
+            "fitted": {
+              "exact": {
+                "dnl_min": -0.12631162957072406,
+                "dnl_max": 0.07929927365856004,
+                "inl_min": -0.16022568250618865,
+                "inl_max": 0.15800281954921847,
+                "missing_interior": 0,
+                "worst_dnl_code": 532480,
+                "worst_inl_transition": 532544
+              },
+              "counted": {
+                "dnl_min": -0.12500007986105577,
+                "dnl_max": 0.08398427606498671,
+                "inl_min": -0.16188632108097548,
+                "inl_max": 0.16203531806257698,
+                "missing_interior": 0,
+                "worst_dnl_code": 532480,
+                "worst_inl_transition": 172008
+              },
+              "min_count_interior": 448,
+              "max_count_interior": 555,
+              "count_total": 536870912,
+              "count_minus_exact_max_DNL": 0.017701838411145143,
+              "count_minus_exact_max_INL": 0.01940612304212766,
+              "coarse_boundary_checks": {
+                "total": 32704,
+                "reversed": 2459,
+                "largest_drop": 3
+              },
+              "ra_noise_expected": {
+                "dnl_min": -0.4274735365168366,
+                "dnl_max": 0.015597641520765704,
+                "inl_min": -1.9933544495667743,
+                "inl_max": 1.57297062962367,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 2030
+              },
+              "ra_noise_excluding_64_rail_codes": {
+                "dnl_min": -0.011962298854020004,
+                "dnl_max": 0.015594257998549965,
+                "inl_min": -0.16025615201870763,
+                "inl_max": 0.15954491177862243,
+                "missing_interior": 0,
+                "worst_dnl_code": 810329,
+                "worst_inl_transition": 532544
+              }
+            }
+          }
+        },
+        "dither": {
+          "adc2_raw_min_max_without_noise": [
+            2019,
+            6172
+          ],
+          "gaussian_adc2_overflow_fraction": 0.0,
+          "decoders": {
+            "nominal": {
+              "exact": {
+                "dnl_min": -0.021046618516830318,
+                "dnl_max": 0.03618689860024471,
+                "inl_min": -2.0267585468335723,
+                "inl_max": 2.9092382983347442,
+                "missing_interior": 0,
+                "worst_dnl_code": 1036801,
+                "worst_inl_transition": 799238
+              },
+              "counted": {
+                "dnl_min": -0.021484362241583788,
+                "dnl_max": 0.03906251354785906,
+                "inl_min": -2.0330707264988255,
+                "inl_max": 2.904952367778627,
+                "missing_interior": 0,
+                "worst_dnl_code": 1036801,
+                "worst_inl_transition": 799253
+              },
+              "min_count_interior": 501,
+              "max_count_interior": 532,
+              "count_total": 536870912,
+              "count_minus_exact_max_DNL": 0.006428041991303424,
+              "count_minus_exact_max_INL": 0.02489905193387254,
+              "coarse_boundary_checks": {
+                "total": 32760,
+                "reversed": 5204,
+                "largest_drop": 14
+              },
+              "ra_noise_expected": {
+                "dnl_min": -0.42879571766823776,
+                "dnl_max": 0.013024806254206878,
+                "inl_min": -3.7929580146226876,
+                "inl_max": 3.588476955009647,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 47599
+              },
+              "ra_noise_excluding_64_rail_codes": {
+                "dnl_min": -0.007627296151350715,
+                "dnl_max": 0.013021473568532116,
+                "inl_min": -2.0254601535386385,
+                "inl_max": 2.9077757102319475,
+                "missing_interior": 0,
+                "worst_dnl_code": 387329,
+                "worst_inl_transition": 799251
+              }
+            },
+            "fitted": {
+              "exact": {
+                "dnl_min": -0.05149411932572623,
+                "dnl_max": 0.0335496414725156,
+                "inl_min": -0.16172013393079274,
+                "inl_max": 0.1514788988897145,
+                "missing_interior": 0,
+                "worst_dnl_code": 524288,
+                "worst_inl_transition": 652621
+              },
+              "counted": {
+                "dnl_min": -0.05078125176806103,
+                "dnl_max": 0.03515624807186746,
+                "inl_min": -0.17113412370943684,
+                "inl_max": 0.1437687260572021,
+                "missing_interior": 0,
+                "worst_dnl_code": 524288,
+                "worst_inl_transition": 650821
+              },
+              "min_count_interior": 486,
+              "max_count_interior": 530,
+              "count_total": 536870912,
+              "count_minus_exact_max_DNL": 0.008758611063512278,
+              "count_minus_exact_max_INL": 0.024940296096253374,
+              "coarse_boundary_checks": {
+                "total": 32760,
+                "reversed": 2173,
+                "largest_drop": 1
+              },
+              "ra_noise_expected": {
+                "dnl_min": -0.42546889116661735,
+                "dnl_max": 0.015639008154474165,
+                "inl_min": -2.0297764791897444,
+                "inl_max": 1.5252476550806142,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 2033
+              },
+              "ra_noise_excluding_64_rail_codes": {
+                "dnl_min": -0.04009175587897518,
+                "dnl_max": 0.01563569247375929,
+                "inl_min": -0.1581829251217324,
+                "inl_max": 0.15108278225404723,
+                "missing_interior": 0,
+                "worst_dnl_code": 524288,
+                "worst_inl_transition": 652621
+              }
+            }
+          }
+        },
+        "both": {
+          "adc2_raw_min_max_without_noise": [
+            2020,
+            6180
+          ],
+          "gaussian_adc2_overflow_fraction": 0.0,
+          "decoders": {
+            "nominal": {
+              "exact": {
+                "dnl_min": -0.11090142359014066,
+                "dnl_max": 0.0376481758457996,
+                "inl_min": -0.9339439107604449,
+                "inl_max": 0.7079693950971934,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 206842
+              },
+              "counted": {
+                "dnl_min": -0.11132809023904489,
+                "dnl_max": 0.037109415567180726,
+                "inl_min": -0.9411479430266027,
+                "inl_max": 0.7044020762669464,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 206334
+              },
+              "min_count_interior": 455,
+              "max_count_interior": 531,
+              "count_total": 536870912,
+              "count_minus_exact_max_DNL": 0.005828751518263675,
+              "count_minus_exact_max_INL": 0.019881187134109912,
+              "coarse_boundary_checks": {
+                "total": 32760,
+                "reversed": 5564,
+                "largest_drop": 12
+              },
+              "ra_noise_expected": {
+                "dnl_min": -0.44019084822025123,
+                "dnl_max": 0.011206169225371543,
+                "inl_min": -2.512902620304712,
+                "inl_max": 1.8346481469711746,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 69101
+              },
+              "ra_noise_excluding_64_rail_codes": {
+                "dnl_min": -0.011512509293294393,
+                "dnl_max": 0.011202745536881276,
+                "inl_min": -0.8046621212918323,
+                "inl_max": 0.7784084355679062,
+                "missing_interior": 0,
+                "worst_dnl_code": 653054,
+                "worst_inl_transition": 206830
+              }
+            },
+            "fitted": {
+              "exact": {
+                "dnl_min": -0.04329730873661419,
+                "dnl_max": 0.03682430324665198,
+                "inl_min": -0.1742875856039131,
+                "inl_max": 0.06437179386687118,
+                "missing_interior": 0,
+                "worst_dnl_code": 665856,
+                "worst_inl_transition": 519303
+              },
+              "counted": {
+                "dnl_min": -0.042968741086934825,
+                "dnl_max": 0.03515625964066227,
+                "inl_min": -0.18010613569845307,
+                "inl_max": 0.07359313727790835,
+                "missing_interior": 0,
+                "worst_dnl_code": 665856,
+                "worst_inl_transition": 584195
+              },
+              "min_count_interior": 490,
+              "max_count_interior": 530,
+              "count_total": 536870912,
+              "count_minus_exact_max_DNL": 0.008215468296923545,
+              "count_minus_exact_max_INL": 0.01774781390119324,
+              "coarse_boundary_checks": {
+                "total": 32760,
+                "reversed": 2389,
+                "largest_drop": 3
+              },
+              "ra_noise_expected": {
+                "dnl_min": -0.426564475270227,
+                "dnl_max": 0.015597443692018542,
+                "inl_min": -1.9932605322424999,
+                "inl_max": 1.5432411447526933,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 1810
+              },
+              "ra_noise_excluding_64_rail_codes": {
+                "dnl_min": -0.014762262850047003,
+                "dnl_max": 0.015594096439090821,
+                "inl_min": -0.1538193095006661,
+                "inl_max": 0.09258610177478144,
+                "missing_interior": 0,
+                "worst_dnl_code": 550985,
+                "worst_inl_transition": 519303
+              }
+            },
+            "oracle": {
+              "exact": {
+                "dnl_min": -0.0274793466599641,
+                "dnl_max": 0.0302958972580456,
+                "inl_min": -0.07270361773580039,
+                "inl_max": 0.07895811891724805,
+                "missing_interior": 0,
+                "worst_dnl_code": 342016,
+                "worst_inl_transition": 153089
+              },
+              "counted": {
+                "dnl_min": -0.027343748188283112,
+                "dnl_max": 0.031250001920856585,
+                "inl_min": -0.07283311645304238,
+                "inl_max": 0.08036357978855954,
+                "missing_interior": 0,
+                "worst_dnl_code": 342016,
+                "worst_inl_transition": 153253
+              },
+              "min_count_interior": 498,
+              "max_count_interior": 528,
+              "count_total": 536870912,
+              "count_minus_exact_max_DNL": 0.0077993872474682036,
+              "count_minus_exact_max_INL": 0.01765770573030364,
+              "coarse_boundary_checks": {
+                "total": 32760,
+                "reversed": 0,
+                "largest_drop": 0
+              },
+              "ra_noise_expected": {
+                "dnl_min": -0.42695794501388107,
+                "dnl_max": 0.016050118496016896,
+                "inl_min": -1.9772274932628195,
+                "inl_max": 1.5677730769398124,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 4081
+              },
+              "ra_noise_excluding_64_rail_codes": {
+                "dnl_min": -0.008976134323616547,
+                "dnl_max": 0.016046772943695498,
+                "inl_min": -0.0735117572000539,
+                "inl_max": 0.07985675036254461,
+                "missing_interior": 0,
+                "worst_dnl_code": 322811,
+                "worst_inl_transition": 153102
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "relative_mismatch_sigma": 0.001,
+      "seed": 20261105,
+      "training": {
+        "training_samples": 65536,
+        "training_states": 1024,
+        "rank": 357,
+        "columns": 360,
+        "observable_condition": 221.80119936637794,
+        "residual_rms_node_uV": 997.4307930532716,
+        "coarse_lut_min_observations": 92
+      },
+      "scalar_reference_points": 192,
+      "direct_ramp_samples": 1048576,
+      "ideal": {
+        "dnl_min": 0.0,
+        "dnl_max": 0.0,
+        "inl_min": 0.0,
+        "inl_max": 0.0,
+        "missing_interior": 0,
+        "worst_dnl_code": 1,
+        "worst_inl_transition": 1
+      },
+      "modes": {
+        "fixed": {
+          "adc2_raw_min_max_without_noise": [
+            1769,
+            6420
+          ],
+          "gaussian_adc2_overflow_fraction": 0.0,
+          "decoders": {
+            "nominal": {
+              "exact": {
+                "dnl_min": -0.5481371124717566,
+                "dnl_max": 0.6146263364588245,
+                "inl_min": -21.221720578286263,
+                "inl_max": 33.2140583689468,
+                "missing_interior": 0,
+                "worst_dnl_code": 4097,
+                "worst_inl_transition": 802809
+              },
+              "counted": {
+                "dnl_min": -0.5468734073424503,
+                "dnl_max": 0.6171931841398757,
+                "inl_min": -21.219315170174138,
+                "inl_max": 33.21051620842371,
+                "missing_interior": 0,
+                "worst_dnl_code": 4097,
+                "worst_inl_transition": 802810
+              },
+              "min_count_interior": 232,
+              "max_count_interior": 828,
+              "count_total": 536870912,
+              "count_minus_exact_max_DNL": 0.009459471664877928,
+              "count_minus_exact_max_INL": 0.023102037267245912,
+              "coarse_boundary_checks": {
+                "total": 32704,
+                "reversed": 13274,
+                "largest_drop": 138
+              },
+              "ra_noise_expected": {
+                "dnl_min": -0.42762963973894663,
+                "dnl_max": 0.5016142234082408,
+                "inl_min": -23.014692411363086,
+                "inl_max": 33.30494897026728,
+                "missing_interior": 0,
+                "worst_dnl_code": 131080,
+                "worst_inl_transition": 802811
+              },
+              "ra_noise_excluding_64_rail_codes": {
+                "dnl_min": -0.3345022871653355,
+                "dnl_max": 0.5016014561671998,
+                "inl_min": -22.365171676024097,
+                "inl_max": 28.435619874049443,
+                "missing_interior": 0,
+                "worst_dnl_code": 131080,
+                "worst_inl_transition": 802811
+              }
+            },
+            "fitted": {
+              "exact": {
+                "dnl_min": -0.18490287363968427,
+                "dnl_max": 0.06528488319382819,
+                "inl_min": -0.20570494630690342,
+                "inl_max": 0.2388508724838217,
+                "missing_interior": 0,
+                "worst_dnl_code": 917504,
+                "worst_inl_transition": 425664
+              },
+              "counted": {
+                "dnl_min": -0.18554697512463136,
+                "dnl_max": 0.05273424558231099,
+                "inl_min": -0.20877141878527236,
+                "inl_max": 0.24063991854552957,
+                "missing_interior": 0,
+                "worst_dnl_code": 917504,
+                "worst_inl_transition": 425664
+              },
+              "min_count_interior": 417,
+              "max_count_interior": 539,
+              "count_total": 536870912,
+              "count_minus_exact_max_DNL": 0.01951855881061304,
+              "count_minus_exact_max_INL": 0.0246597829739974,
+              "coarse_boundary_checks": {
+                "total": 32704,
+                "reversed": 2757,
+                "largest_drop": 1
+              },
+              "ra_noise_expected": {
+                "dnl_min": -0.42763132082182775,
+                "dnl_max": 0.030942230977157648,
+                "inl_min": -2.027649986654103,
+                "inl_max": 1.5559865650074396,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 325
+              },
+              "ra_noise_excluding_64_rail_codes": {
+                "dnl_min": -0.01747661496391184,
+                "dnl_max": 0.03093880523406245,
+                "inl_min": -0.17134107360239326,
+                "inl_max": 0.26466984216156886,
+                "missing_interior": 0,
+                "worst_dnl_code": 851589,
+                "worst_inl_transition": 425664
+              }
+            },
+            "coarse_lut": {
+              "exact": {
+                "dnl_min": -0.3752249148257839,
+                "dnl_max": 0.8175705184338569,
+                "inl_min": -7.159363946713938,
+                "inl_max": 20.092690902710117,
+                "missing_interior": 0,
+                "worst_dnl_code": 2048,
+                "worst_inl_transition": 802853
+              },
+              "counted": {
+                "dnl_min": -0.3769490422728472,
+                "dnl_max": 0.8144650148229624,
+                "inl_min": -7.1440214182224295,
+                "inl_max": 20.091156523716926,
+                "missing_interior": 0,
+                "worst_dnl_code": 2048,
+                "worst_inl_transition": 802856
+              },
+              "min_count_interior": 319,
+              "max_count_interior": 929,
+              "count_total": 536870912,
+              "count_minus_exact_max_DNL": 0.009459500777473262,
+              "count_minus_exact_max_INL": 0.024530786987862818,
+              "coarse_boundary_checks": {
+                "total": 32704,
+                "reversed": 16259,
+                "largest_drop": 109
+              },
+              "ra_noise_expected": {
+                "dnl_min": -0.42762818553447146,
+                "dnl_max": 0.4172541731754915,
+                "inl_min": -8.53548649047969,
+                "inl_max": 19.812604455527623,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 802856
+              },
+              "ra_noise_excluding_64_rail_codes": {
+                "dnl_min": -0.32581631314153325,
+                "dnl_max": 0.41724392780463626,
+                "inl_min": -8.458462285627986,
+                "inl_max": 15.965087760437704,
+                "missing_interior": 0,
+                "worst_dnl_code": 16367,
+                "worst_inl_transition": 802856
+              }
+            }
+          }
+        },
+        "dem": {
+          "adc2_raw_min_max_without_noise": [
+            1777,
+            6498
+          ],
+          "gaussian_adc2_overflow_fraction": 0.0,
+          "decoders": {
+            "nominal": {
+              "exact": {
+                "dnl_min": -0.5481359141442528,
+                "dnl_max": 0.6146306184018671,
+                "inl_min": -7.60666788303468,
+                "inl_max": 11.109955583494399,
+                "missing_interior": 0,
+                "worst_dnl_code": 4097,
+                "worst_inl_transition": 643181
+              },
+              "counted": {
+                "dnl_min": -0.5468722054567386,
+                "dnl_max": 0.6171974736285362,
+                "inl_min": -7.612841808554482,
+                "inl_max": 11.111355849951249,
+                "missing_interior": 0,
+                "worst_dnl_code": 4097,
+                "worst_inl_transition": 643200
+              },
+              "min_count_interior": 232,
+              "max_count_interior": 828,
+              "count_total": 536870912,
+              "count_minus_exact_max_DNL": 0.007694747398240942,
+              "count_minus_exact_max_INL": 0.0212947462811659,
+              "coarse_boundary_checks": {
+                "total": 32704,
+                "reversed": 12584,
+                "largest_drop": 114
+              },
+              "ra_noise_expected": {
+                "dnl_min": -0.4290360431442646,
+                "dnl_max": 0.1935009666805505,
+                "inl_min": -9.335289603729901,
+                "inl_max": 10.571163292247267,
+                "missing_interior": 0,
+                "worst_dnl_code": 1048574,
+                "worst_inl_transition": 643192
+              },
+              "ra_noise_excluding_64_rail_codes": {
+                "dnl_min": -0.09738002692859071,
+                "dnl_max": 0.19349076571908896,
+                "inl_min": -8.930496306372438,
+                "inl_max": 7.030253482675923,
+                "missing_interior": 0,
+                "worst_dnl_code": 16379,
+                "worst_inl_transition": 225196
+              }
+            },
+            "fitted": {
+              "exact": {
+                "dnl_min": -0.12227712405997893,
+                "dnl_max": 0.05243361559285575,
+                "inl_min": -0.16079132275983687,
+                "inl_max": 0.16612219722438207,
+                "missing_interior": 0,
+                "worst_dnl_code": 319488,
+                "worst_inl_transition": 139264
+              },
+              "counted": {
+                "dnl_min": -0.13085943004272083,
+                "dnl_max": 0.05468743320658587,
+                "inl_min": -0.16244514811896613,
+                "inl_max": 0.16110233122729722,
+                "missing_interior": 0,
+                "worst_dnl_code": 397312,
+                "worst_inl_transition": 745473
+              },
+              "min_count_interior": 445,
+              "max_count_interior": 540,
+              "count_total": 536870912,
+              "count_minus_exact_max_DNL": 0.016883182881477943,
+              "count_minus_exact_max_INL": 0.022238329281936517,
+              "coarse_boundary_checks": {
+                "total": 32704,
+                "reversed": 2657,
+                "largest_drop": 5
+              },
+              "ra_noise_expected": {
+                "dnl_min": -0.42763130327095267,
+                "dnl_max": 0.0231285895725466,
+                "inl_min": -2.027640113827888,
+                "inl_max": 1.5881374729692093,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 325
+              },
+              "ra_noise_excluding_64_rail_codes": {
+                "dnl_min": -0.020100237871881088,
+                "dnl_max": 0.02312519768947907,
+                "inl_min": -0.10726076845942728,
+                "inl_max": 0.16104504780295875,
+                "missing_interior": 0,
+                "worst_dnl_code": 1006560,
+                "worst_inl_transition": 147413
+              }
+            }
+          }
+        },
+        "dither": {
+          "adc2_raw_min_max_without_noise": [
+            1764,
+            6427
+          ],
+          "gaussian_adc2_overflow_fraction": 0.0,
+          "decoders": {
+            "nominal": {
+              "exact": {
+                "dnl_min": -0.20055292462009766,
+                "dnl_max": 0.06216435969741707,
+                "inl_min": -20.487276512638587,
+                "inl_max": 29.008025795194957,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 799420
+              },
+              "counted": {
+                "dnl_min": -0.2031246274409816,
+                "dnl_max": 0.06445362265849286,
+                "inl_min": -20.48607744974835,
+                "inl_max": 28.994855533242365,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 799420
+              },
+              "min_count_interior": 408,
+              "max_count_interior": 545,
+              "count_total": 536870912,
+              "count_minus_exact_max_DNL": 0.00945943882614464,
+              "count_minus_exact_max_INL": 0.02589736781821178,
+              "coarse_boundary_checks": {
+                "total": 32760,
+                "reversed": 13306,
+                "largest_drop": 138
+              },
+              "ra_noise_expected": {
+                "dnl_min": -0.44137176919754195,
+                "dnl_max": 0.027087074609757567,
+                "inl_min": -21.936866038685753,
+                "inl_max": 29.70371754187284,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 799295
+              },
+              "ra_noise_excluding_64_rail_codes": {
+                "dnl_min": -0.019485778321439273,
+                "dnl_max": 0.027083571192312306,
+                "inl_min": -20.22478057146174,
+                "inl_max": 29.06999994392645,
+                "missing_interior": 0,
+                "worst_dnl_code": 1036810,
+                "worst_inl_transition": 799295
+              }
+            },
+            "fitted": {
+              "exact": {
+                "dnl_min": -0.03652367071033824,
+                "dnl_max": 0.029421729037227395,
+                "inl_min": -0.13002139456573839,
+                "inl_max": 0.20648494549409402,
+                "missing_interior": 0,
+                "worst_dnl_code": 944128,
+                "worst_inl_transition": 440645
+              },
+              "counted": {
+                "dnl_min": -0.03710938217410786,
+                "dnl_max": 0.02929686733112602,
+                "inl_min": -0.13572693325850851,
+                "inl_max": 0.2057013135689241,
+                "missing_interior": 0,
+                "worst_dnl_code": 571648,
+                "worst_inl_transition": 440645
+              },
+              "min_count_interior": 493,
+              "max_count_interior": 527,
+              "count_total": 536870912,
+              "count_minus_exact_max_DNL": 0.009337913523453922,
+              "count_minus_exact_max_INL": 0.02190567015595863,
+              "coarse_boundary_checks": {
+                "total": 32760,
+                "reversed": 2327,
+                "largest_drop": 1
+              },
+              "ra_noise_expected": {
+                "dnl_min": -0.42952535814470216,
+                "dnl_max": 0.023132066879679503,
+                "inl_min": -1.974895379018833,
+                "inl_max": 1.5467325827062564,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 2709
+              },
+              "ra_noise_excluding_64_rail_codes": {
+                "dnl_min": -0.009880083121015626,
+                "dnl_max": 0.02312867790747064,
+                "inl_min": -0.1206104364607464,
+                "inl_max": 0.22520915107100753,
+                "missing_interior": 0,
+                "worst_dnl_code": 939983,
+                "worst_inl_transition": 440645
+              }
+            }
+          }
+        },
+        "both": {
+          "adc2_raw_min_max_without_noise": [
+            1772,
+            6505
+          ],
+          "gaussian_adc2_overflow_fraction": 0.0,
+          "decoders": {
+            "nominal": {
+              "exact": {
+                "dnl_min": -0.3640909416071275,
+                "dnl_max": 0.0545486192449971,
+                "inl_min": -10.0033262433756,
+                "inl_max": 7.036551561586506,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 206785
+              },
+              "counted": {
+                "dnl_min": -0.3671860843692678,
+                "dnl_max": 0.05468985938455373,
+                "inl_min": -10.00620821270007,
+                "inl_max": 7.031842406554204,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 206776
+              },
+              "min_count_interior": 324,
+              "max_count_interior": 540,
+              "count_total": 536870912,
+              "count_minus_exact_max_DNL": 0.009459457190185705,
+              "count_minus_exact_max_INL": 0.021172289839538116,
+              "coarse_boundary_checks": {
+                "total": 32760,
+                "reversed": 12619,
+                "largest_drop": 113
+              },
+              "ra_noise_expected": {
+                "dnl_min": -0.49893122745000207,
+                "dnl_max": 0.033634266479781294,
+                "inl_min": -10.813481188954022,
+                "inl_max": 6.971980349416661,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 206775
+              },
+              "ra_noise_excluding_64_rail_codes": {
+                "dnl_min": -0.031988053795466875,
+                "dnl_max": 0.03362814176790274,
+                "inl_min": -8.028677026793194,
+                "inl_max": 7.82973420151503,
+                "missing_interior": 0,
+                "worst_dnl_code": 784879,
+                "worst_inl_transition": 206775
+              }
+            },
+            "fitted": {
+              "exact": {
+                "dnl_min": -0.04567549309005725,
+                "dnl_max": 0.03858111485445703,
+                "inl_min": -0.23120400601476346,
+                "inl_max": 0.12278951247443003,
+                "missing_interior": 0,
+                "worst_dnl_code": 42496,
+                "worst_inl_transition": 59925
+              },
+              "counted": {
+                "dnl_min": -0.046874957391909056,
+                "dnl_max": 0.039062546449804,
+                "inl_min": -0.22998529118417183,
+                "inl_max": 0.11935917490783104,
+                "missing_interior": 0,
+                "worst_dnl_code": 42496,
+                "worst_inl_transition": 535103
+              },
+              "min_count_interior": 488,
+              "max_count_interior": 532,
+              "count_total": 536870912,
+              "count_minus_exact_max_DNL": 0.009459440876021352,
+              "count_minus_exact_max_INL": 0.025062527955827352,
+              "coarse_boundary_checks": {
+                "total": 32760,
+                "reversed": 2541,
+                "largest_drop": 5
+              },
+              "ra_noise_expected": {
+                "dnl_min": -0.42608016483372313,
+                "dnl_max": 0.024247323610958826,
+                "inl_min": -2.0693325605433013,
+                "inl_max": 1.5739377642783516,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 10592
+              },
+              "ra_noise_excluding_64_rail_codes": {
+                "dnl_min": -0.01040144886045169,
+                "dnl_max": 0.024243931886514858,
+                "inl_min": -0.2099252505267195,
+                "inl_max": 0.14287067253269956,
+                "missing_interior": 0,
+                "worst_dnl_code": 1001986,
+                "worst_inl_transition": 586771
+              }
+            },
+            "oracle": {
+              "exact": {
+                "dnl_min": -0.032217499784667814,
+                "dnl_max": 0.03127484859234375,
+                "inl_min": -0.07768286856378313,
+                "inl_max": 0.07145606047793,
+                "missing_interior": 0,
+                "worst_dnl_code": 872448,
+                "worst_inl_transition": 737537
+              },
+              "counted": {
+                "dnl_min": -0.035156253594329945,
+                "dnl_max": 0.031249996158287052,
+                "inl_min": -0.07972551785311159,
+                "inl_max": 0.07485622633819633,
+                "missing_interior": 0,
+                "worst_dnl_code": 872448,
+                "worst_inl_transition": 953923
+              },
+              "min_count_interior": 494,
+              "max_count_interior": 528,
+              "count_total": 536870912,
+              "count_minus_exact_max_DNL": 0.008906743350168611,
+              "count_minus_exact_max_INL": 0.02491458578411456,
+              "coarse_boundary_checks": {
+                "total": 32760,
+                "reversed": 0,
+                "largest_drop": 0
+              },
+              "ra_noise_expected": {
+                "dnl_min": -0.42676433283161974,
+                "dnl_max": 0.023128577496891234,
+                "inl_min": -1.9727694459096197,
+                "inl_max": 1.5360563932349387,
+                "missing_interior": 0,
+                "worst_dnl_code": 1,
+                "worst_inl_transition": 9253
+              },
+              "ra_noise_excluding_64_rail_codes": {
+                "dnl_min": -0.015934414194520907,
+                "dnl_max": 0.023125198706674954,
+                "inl_min": -0.08834808699287684,
+                "inl_max": 0.0700259573665031,
+                "missing_interior": 0,
+                "worst_dnl_code": 949655,
+                "worst_inl_transition": 993509
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

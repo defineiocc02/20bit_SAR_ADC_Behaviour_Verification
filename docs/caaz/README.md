@@ -1,10 +1,24 @@
-# 系统级斩波辅助自归零：原文机制与本工程接入合同
+# CAAZ 来源与归档实验
 
-> **af8／9bdf历史专题。** 本页原正文、数据、图和命令按原字节保留；其中“当前”“本轮”和通过数量仅描述原记录，不表示新主线实现。旧SID／bridge、sampling／range／固定4倍扰动及旧748位接口已退出当前运行，正文命令须在对应完整Git历史下解释。现行来源与未实现项见[A表](../current_digital_source_map.md)，实际状态与证据见[B表](../digital_status_matrix.md)，接口见[ABI2合同](../rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md)。[原专题固定快照](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/docs/caaz/README.md)保留旧链接语境；此横幅不改变旧结论或数值。
+本专题保存 2026-11-05 的来源核对、样本域对照和历史 RTL 证据。现行 CAAZ 作为独立组件研究，代码和验证入口见 [扩展目录](../../subsys/extensions/caaz/README.md)。集成 ADC 及其验证范围见 [v21 状态页](../STATUS.md)。
 
-CAAZ（chopping-assisted auto-zero）在偶数次原始转换时更新自归零，奇数次保持同一个自归零噪声样本并反转输入，最后对两笔已校准结果做“偶减奇、除以二”。本工程采用 **40 MS/s 原始转换、20 MS/s 成对输出**作为候选合同。该速率是工程选择；原型的“6 MS/s”没有在现有资料中明确拆成内部原始转换率和成对有效输出率。
+| 查询 | 入口 |
+| --- | --- |
+| 来源、方程和覆盖范围 | [来源复查](../audit/reviews/20261105-caaz-source-review.md) · [机理覆盖清单](../../flow/verification/manifests/mechanism_inventory.json) |
+| 冻结行为结果 | [数据摘要](data/summary.json) · [机理实验图](fig/caaz_mechanism_results.png) · [配对读出带宽图](fig/caaz_bandwidth.png) |
+| 历史数字上下文 | [CSV](data/rtl_context_trace.csv) · [来源与命令](data/rtl_context_summary.json) · [当时的验证台账](verification.json) |
+| 版次及接口 | [归档专题快照](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/docs/caaz/README.md) · [历史数字接口](RTL_INTERFACE.md) |
 
-该机制登记为 `X02 / OPTIONAL_SOURCE_EXTENSION`；本合同要求扩展默认关闭。本文给出来源、模拟状态和数字接口。来源已逐页核读；候选模型、RTL、模拟电路及目标工艺时序应分别验收，具体实现结果由各自证据记录补充。
+从仓库根目录运行 [绘图脚本](make_figures.py)，可用冻结的 JSON/CSV 重绘三张图。输出目录应是库外新路径。
+
+~~~bash
+bash tools/pyenv.sh --run docs/caaz/make_figures.py --out /tmp/sar-caaz-figures
+~~~
+
+重绘记录会标记 `historical_redraw=true`、`simulation_rerun=false`。以下正文中的「当前」「本轮」以及通过计数属于历史版本。归档的仿真和向量命令按原快照解释。
+
+<details>
+<summary>展开 2026-11-05 专题正文与归档复现命令</summary>
 
 ## 来源与阅读定位
 
@@ -15,7 +29,7 @@ CAAZ（chopping-assisted auto-zero）在偶数次原始转换时更新自归零�
 | `PKU_VLSI2025_C32_1_PAPER` | 3 页会议论文 | p.1 正文；p.2 Figs.2–6；p.3 测量、比较与参考文献 |
 | `PKU_VLSI2025_C32_1_SLIDES` | 42 页讲稿 | PDF pp.28–35，对应页脚 Slide 27–34；PDF pp.37–41 为测量与比较 |
 
-完整哈希、规范文件名和逐页记录由[来源清单](../../sources_manifest.json)与[CAAZ来源覆盖记录](../reviews/20261105-caaz-source-coverage.json)管理。`C32_C32-1.pdf` 与规范讲稿是同 SHA 的别名，不是另一篇论文。讲稿 PDF 页码比其页脚 Slide 编号大一；下文标明两者以免错页。本次维护者选定的原件另见[资料目录](../../references/README.md)，保留其原版权与内嵌声明；本专题的结果图仍由本工程独立生成。
+完整哈希、规范文件名和逐页记录由[来源清单](../../flow/verification/manifests/sources_manifest.json)与[CAAZ来源覆盖记录](../audit/reviews/20261105-caaz-source-coverage.json)管理。`C32_C32-1.pdf` 与规范讲稿是同 SHA 的别名，不是另一篇论文。讲稿 PDF 页码比其页脚 Slide 编号大一；下文标明两者以免错页。本次维护者选定的原件另见[资料目录](../../references/README.md)，保留其原版权与内嵌声明；本专题的结果图仍由本工程独立生成。
 
 ## 电路中保存的是什么
 
@@ -142,7 +156,7 @@ $$
 
 这组完整行为 ADC 输出的误差标准差为：普通 AZ 原始码 **44.27 µV**、普通 AZ 配对平均 **31.14 µV**、CAAZ 配对 **22.28 µV**。对应普通平均收益约 **3.05 dB**，在本组假设下共享 AZ 相消的额外收益约 **2.91 dB**。这些是机制实验，未将原型的 4.3 dB 当作拟合目标。最终码、误差均值、RMS、标准差和无效样本数量分别保留；理想保持也仍有实际 ADC2 与最终码再量化误差。D 图的线性预测只包含 AZ 残项，蓝线包含这些量化影响。
 
-轻量数据见 [data/summary.json](data/summary.json)，完整 raw 捕获由以下命令在新目录重建。第一条重跑 ADC，第二条只从冻结数据重绘原创图：
+该轮的轻量数据见 [data/summary.json](data/summary.json)。在归档快照中，第一条命令用于重建完整 raw 捕获，第二条用于冻结数据重绘。当前工作树的重绘入口见本页开头。
 
 ```bash
 PYTHONPATH=src OPENBLAS_NUM_THREADS=1 python tools/reproduce_caaz.py \
@@ -162,18 +176,18 @@ PYTHONPATH=src python tools/export_caaz_vectors.py \
 
 该输出目录同样必须是新路径。15 种场景共 468 周期、206 个有效输出，其中 64 对来自完整 Python ADC；现有 TXT 的逐字节摘要在随库 manifest 中登记。新生成的 manifest 另记当前源码摘要，不把历史 fixture 标签当成当前 Git 提交。
 
-## 当前实现与接口边界
+## 该轮实现与接口边界
 
-| 入口 | 当前职责与边界 |
+| 源码定位 | 归档轮次的职责与边界 |
 |---|---|
-| [`chopping_az.py`](../../src/adi_model/chopping_az.py) | `ChoppingAZParameters()` 默认 `off`；显式选择 `baseline`、`conventional_az` 或 `chopping_assisted`。输入极性同时进入前级 SADC／RDAC，显式误差在 RA 原有钳位和 ADC2 前注入；完整位权重构后再整数配对。只支持从偶数相开始的独立样本域记录。 |
-| [`caaz_cycle_ctrl.sv`](../../rtl/control/caaz_cycle_ctrl.sv) | 根据真实 acquisition priming 保存输入极性及 AZ 存储代；独立输出 capture／hold，保留原有每周期 RA 准备及储能复位。现有 phase 1–8 为工程接口窗口，phase 8 接受模拟 `az_capture_ok`；其建立时间仍须模拟宏确认。 |
-| [`sar20_digital_core.sv`](../../rtl/top/sar20_digital_core.sv) 与 [`cal_sample_context.sv`](../../rtl/core/cal_sample_context.sv) | `P_CAAZ_ENABLE=0` 默认旁路；开启仅支持结构配置。极性／AZ 代随残差上下文和重构事务一起保存；原 748 位校准包保留，新增 34 位 CAAZ sideband 和 92 位 raw 观测包。 |
-| [`caaz_pair_processor.sv`](../../rtl/calibration/caaz_pair_processor.sv) | 完整 20 位 offset-binary 码先扩为 21 位有符号差 $d=c_e-c_o$，保留精确差，最终 20 位用 $\lfloor(2^{20}+d)/2\rfloor$。ID、实际极性、AZ 代不匹配或任一 raw 异常使配对停止，直到同步 clear／reset。 |
+| [`chopping_az.py`](../../subsys/extensions/caaz/model/chopping_az.py) | `ChoppingAZParameters()` 默认 `off`；显式选择 `baseline`、`conventional_az` 或 `chopping_assisted`。输入极性同时进入前级 SADC／RDAC，显式误差在 RA 原有钳位和 ADC2 前注入；完整位权重构后再整数配对。只支持从偶数相开始的独立样本域记录。 |
+| [`caaz_cycle_ctrl.sv`](../../subsys/extensions/caaz/rtl/caaz_cycle_ctrl.sv) | 根据真实 acquisition priming 保存输入极性及 AZ 存储代；独立输出 capture／hold，保留原有每周期 RA 准备及储能复位。现有 phase 1–8 为工程接口窗口，phase 8 接受模拟 `az_capture_ok`；其建立时间仍须模拟宏确认。 |
+| 历史结构核与 [`cal_sample_context.sv`](../../rtl/core/cal_sample_context.sv) | `P_CAAZ_ENABLE=0` 默认旁路；开启仅支持结构配置。极性／AZ 代随残差上下文和重构事务一起保存；原 748 位校准包保留，新增 34 位 CAAZ sideband 和 92 位 raw 观测包。 |
+| [`caaz_pair_processor.sv`](../../subsys/extensions/caaz/rtl/caaz_pair_processor.sv) | 完整 20 位 offset-binary 码先扩为 21 位有符号差 $d=c_e-c_o$，保留精确差，最终 20 位用 $\lfloor(2^{20}+d)/2\rfloor$。ID、实际极性、AZ 代不匹配或任一 raw 异常使配对停止，直到同步 clear／reset。 |
 
 34 位校准 sideband 为 `{chop_neg, az_pair_id[31:0], az_valid}`，与原 `cal_obs_valid` 同笔。92 位 raw 包为 `{sample_id[31:0], code[19:0], chop_neg, az_pair_id[31:0], az_valid, flags[4:0], analog_bad}`，由 `caaz_raw_valid` 限定。普通时钟空洞允许，样本 ID 的空洞不允许自动拼接。运行中系数被冻结；撤销配置／epoch clear 会丢弃未完成配对，重新预热。模拟状态本身的保持仍由外部电路保证，数字标签不能代替电气确认。
 
-各位域、同沿优先级、故障码、固定参数启用方法和实际时钟预算见 [RTL 接口合同](RTL_INTERFACE.md)。
+该轮报文、同沿优先级、故障码及时钟预算见 [历史 RTL 接口](RTL_INTERFACE.md)。原结构核见 `git show 674b0d8:rtl/top/sar20_digital_core.sv`。
 
 ![真实结构 RTL 的采样极性、AZ 更新和结果归属](fig/caaz_rtl_context.png)
 
@@ -181,11 +195,11 @@ PYTHONPATH=src python tools/export_caaz_vectors.py \
 
 Python 在保留全部输出的同时显式标记无效 pair；RTL 的实时接口采用拒收并锁存故障，两者分别用于离线诊断与在线停流，不能仅比较过滤后的曲线声称错误策略相同。Python 独立记录要求数值偶数 ID 起始且连续；独立 RTL 配对模块认实际极性与存储代，结构核的首次有效 ID 为 2／3，与该约定一致。顶层尚无拒收／丢 pair 计数器和故障后的自动恢复，CAAZ-17 的这些要求仍待补齐。
 
-默认关闭路径已有独立逐码回归。DSP 的 `sar20_system_top` 本轮只显式连接默认关闭端口，**尚未暴露 CAAZ 模拟控制与配置**；要把配对流接入整机，仍需透传接口并重新验收 DSP 的采样率、FIFO、模式切换及错误合同。
+历史整机只验证关闭时的逐码旁路。现有 DSP 适配层的输入是已经重构的数字码和故障标志；若接入配对流，需重新验收采样率、FIFO、模式切换与错误合同。[DSP 数字输入接口](../../subsys/ad4080_dsp/docs/SAR20_INTERFACE.md)
 
 旧 `ra_autozero` 是折叠噪声预算与闪烁噪声抑制的现象模型；新入口对它及尚未定义的连续斩波动态组合会明确拒绝，避免双重计入。完整输入开关、CBIAS 存储与隔离、FGA／CP-FIA 器件噪声及开关注入、Spectre／PEX／可靠性与目标工艺 STA 均未由这些数字和样本域结果证明。
 
-## 本轮已执行的验证
+## 归档轮次已执行的验证
 
 | 验证层级 | 结果与范围 |
 |---|---|
@@ -209,9 +223,9 @@ Python 在保留全部输出的同时显式标记无效 pair；RTL 的实时接�
 | 电容校准与数字重构 | 先完成整笔位权重构再pair。训练参考、dither和元数据的极性域要一致，两笔应使用同一合法系数epoch；CAAZ不替代物理位权学习。 |
 | 系统校正、DSP与数据输出 | `pair_valid`及中点时间戳进入后处理；滤波采样率改用pair ODR，切换模式需处理滤波／FIFO状态；输出带宽、错误策略及外部帧协议另验。 |
 
-更完整的当前工作范围见[总README](../../README.md)、[结构合同](../adr/0021-structural-contract-calibration.md)、[RTL算术合同](../rtl/RTL_ARITHMETIC_CONTRACT.md)和[DSP接口](../../ad4080_dsp/docs/SAR20_INTERFACE.md)。CAAZ是新增系统合同，不据本说明改写现有路径的验收结果。
+现行接口、状态和目录从[项目首页](../../README.md)进入。该轮历史上下文的设计依据另见[结构合同原记录](../guide/decisions/0021-structural-contract-calibration.md)。
 
-## 最优先的验证
+## 当时待开展的验证
 
 1. 用真实采样ID证明只在even更新AZ、odd使用同一个模拟AZ状态；在ADC2采住上一笔残差后才允许重写。
 2. 用无随机噪声的正弦／斜坡检查整体输入换向、粗细码重构、偶减奇符号、中点参考及输出率，覆盖满幅和模式切换。
@@ -219,3 +233,5 @@ Python 在保留全部输出的同时显式标记无效 pair；RTL 的实时接�
 4. 对定点差分先扩一位，再明确除二、舍入和饱和；覆盖最小负码、奇数LSB、overflow及无效pair。
 5. 定向检查reset／clear／invalid／stall／重复旧码与epoch变更；统计拒收及丢pair数量，不靠过滤异常样本抬高指标。
 6. 最后用相同捕获和量化作噪声消融、FFT与多种子对照，按pair采样率报告通带、噪声密度、SNR／SNDR／SFDR及延迟；模拟建立、PDK可靠性与目标工艺STA保留独立证据。
+
+</details>

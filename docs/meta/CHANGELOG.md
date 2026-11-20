@@ -1,0 +1,40 @@
+# 版本与变更记录
+
+## 用哪份代码复现
+
+| 读到的名称 | 它标识什么 |
+| --- | --- |
+| `main` | 数字 IP 的发布入口。普通克隆使用此分支。引用一次试验时记录当时的 Git 提交号。 |
+| [9.0.1+adi.repro](../../pyproject.toml) | 当前源码生成的 Python 分发包版本，由 [pyproject.toml](../../pyproject.toml) 定义。对应的软件作者、许可和引用方式见 [CITATION.cff](CITATION.cff)。 |
+| `adc_digital_ip_v21` | SystemVerilog 顶层模块名。默认 Python 按这套顶层的开关、逐位判决、权重和定点规则出码。[生产清单](../../flow/build/filelists/files_adc_v21.f) |
+
+截至 2026-11-20，GitHub 最近一次正式发布仍是 `v8.2.2`，标签指向 `cad5114`。它保存了当时的行为模型。复核下表的数字 IP 结果时，请取表中对应的提交。[正式发布](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/releases/tag/v8.2.2) · [全部发布](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/releases)
+
+`main` 的 `bc9a16a` 和复现线的 `e50393a` 曾用同一发行名和 `9.0.0` 生成不同内容的同名 wheel。现用本地版本标识 `+adi.repro` 区分复现包。安装指定构建时请使用完整版本或精确的 Git 提交。分支中的文档修订可以沿用同一包号，发布标签另由仓主创建。[版本标识规范](https://packaging.python.org/en/latest/specifications/version-specifiers/#local-version-identifiers)
+
+## 数字 IP 的主要变更
+
+| 日期 | 提交 | 对使用者的影响 |
+| --- | --- | --- |
+| 2026-11-19 | [`d97afa1`](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/commit/d97afa1) | 安装包和命令行都执行生产顶层的事务模型。五组共 1,792 笔、每笔 36 个字段通过 Python 与 RTL 对拍。[输入与结果](../audit/AUDIT_ALGO_VS_SOURCE.md) |
+| 2026-11-19 | [`8db9a30`](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/commit/8db9a30) | 修复采集与转换交接时的片选，以及定点重构错误位的样本归属。[触发条件与测例](../audit/ISSUE_10.md) |
+| 2026-11-17 | [`b878f58`](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/commit/b878f58) | 生产构建统一到一个集成顶层，移除旧整链入口。[RTL 目录与实例](../../rtl/README.md) |
+
+本次补丁修复 Fig.11 研究模型的扰动采样与数字去扰。默认数字 IP 的 RTL 和参考出码规则沿用同一实现。[三项失败的复测](../mechanisms/dither_fig19.md#fig11-研究模型的三项失败怎样核验)
+
+2026-11-20 的结构复核同时修正了整核后端选源、DC 产物身份、清理工具与历史快照索引。[问题、回归和复现命令](../audit/TREE_AUDIT_REPORT.md#current-tree-review)
+
+图册按一笔转换、交接沿、失配校正和全码线性度组织正文。图中作用句限 30 字，原图、工程假设与逐笔观测另列。顶层数据固定在 `3057d2f`。[阅读图册与核对原件](../algorithms/README.md)
+
+## 在本地核对
+
+```bash
+git branch --show-current
+git rev-parse HEAD
+git tag --points-at HEAD
+git ls-remote --refs --tags origin 'refs/tags/v9*' 'refs/tags/v8.2.2'
+git show 'v8.2.2^{commit}' -s --format='%H %cs %s'
+git grep -n -E '^version ?[=:]' -- pyproject.toml docs/meta/CITATION.cff
+```
+
+旧发布的修订说明、审计明细及当时的文件摘要可以从 Git 逐字取回。离线检出可用 `git show d97afa1:docs/meta/CHANGELOG.md`。[整理前的完整变更记录](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/d97afa160a7c9c0ff2f1427656e5899b360771e2/docs/meta/CHANGELOG.md)

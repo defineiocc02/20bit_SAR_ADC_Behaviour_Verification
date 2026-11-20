@@ -1,0 +1,14 @@
+function,python_impl,fixed_point_ref,rtl_module,cosim_level,result,gap
+SADC 9-bit encode,sadc.build_first_stage_quantizer,verification/reference/datapath_ref.sadc_code,rtl/top/sadc_enc.sv,V1,PASS 127/127,
+Thermometer / DEM mask,control/dem3d.unary_rotation_masks,datapath_ref.thermometer,rtl/core/unit_therm.sv,V1,PASS 96/96,"只验数值展开，未验物理 mapper"
+ADC2 bin centre,behavioral/adc2.ADC2.quantize_codes,datapath_ref.adc2_bin_center,rtl/core/adc2_dec.sv,V1,PASS 4195/4195,
+Floor division,内嵌于 reconstruction,reference/fixed_point.floor_div,rtl/core/div_floor.sv,V1,PASS 257/257,
+RDAC switch fanout,simulation/slice_pool.select,scoreboard reference,rtl/core/rdac_drv.sv,V1,PASS 55/55,
+Slice scheduling,control/slice_pool plan,reference/scheduler_ref,rtl/core/slice_pool_ctrl.sv,V1,PASS 100 cycles,
+20-bit reconstruction,calibration/reconstruction.reconstruct,datapath_ref.reconstruct,rtl/core/recon_core.sv,V1,PASS 101/101,"仅 AllSIGNAL 子集"
+Dither word decode,control/dither.Fig19DitherProgram,无,无 RTL,NOT_IMPLEMENTED,,片内字生成与 dither 电容网络无 RTL
+DEM physical mapper,control/dem3d,无,无 RTL,NOT_IMPLEMENTED,,"RTL 只有数值温度计，源 3D DEM 未实现"
+Calibration training,calibration/weight_calibration.fit_unit_weights,无,无 RTL,NOT_IMPLEMENTED,,
+Calibration load & apply,calibration.apply_frozen_calibration,无,rtl/core/calib_regs.sv + weight_store.sv,NOT_RUN,,"RTL 侧加载一致性未对拍"
+Top-level sample flow,simulation/pipeline_engine.execute_pipeline,无,rtl/top/sar20_digital_core.sv,V3,ELABORATED_ONLY,"仅 elaborate + 复位 idle"
+Closed loop plant↔RTL,simulation/*,无,整链,V4,NOT_RUN,缺逐事件命令流桥

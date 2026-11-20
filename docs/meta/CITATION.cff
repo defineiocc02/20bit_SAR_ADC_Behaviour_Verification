@@ -1,0 +1,76 @@
+cff-version: 1.2.0
+type: software
+title: 20-bit two-stage SAR ADC digital IP and Python transaction model
+message: >-
+  Cite this software and the Git commit used for a result. Cite the ISSCC paper
+  separately when referring to the published converter architecture.
+authors:
+  - family-names: Zhao
+    given-names: Reed
+    alias: defineiocc02
+    affiliation: Xidian University
+version: "9.0.1+adi.repro"
+license: BSD-3-Clause
+repository-code: "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification"
+url: "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification"
+abstract: >-
+  SystemVerilog digital controller and Python transaction model for an
+  independent reproduction of a two-stage precision SAR converter. The model
+  records physical slice selection, dither switches, resolved SAR decisions,
+  ADC2 codes and weighted digital reconstruction. The software documentation
+  identifies the engineering assumptions used for the analogue macro responses.
+keywords:
+  - sar-adc
+  - digital-ip
+  - behavioural-model
+  - dynamic-element-matching
+  - dither
+references:
+  - type: conference-paper
+    title: "9.8 A 9.3nV/rtHz 20b 40MS/s 94.2dB DR Signal-Chain Friendly Precision SAR Converter"
+    authors:
+      - family-names: Bodnar
+        given-names: Rares
+      - family-names: Kennedy
+        given-names: Henry
+      - family-names: Hurrell
+        given-names: Christopher P
+      - family-names: Ahmad
+        given-names: Asif
+      - family-names: Vickery
+        given-names: Mark
+      - family-names: Smithers
+        given-names: Luke
+      - family-names: Buckley
+        given-names: William
+      - family-names: Dutt
+        given-names: Monsoon
+      - family-names: Delizia
+        given-names: Pasquale
+      - family-names: Hummerston
+        given-names: Derek
+      - family-names: Czapor
+        given-names: Pawel
+    year: 2024
+    collection-title: 2024 IEEE International Solid-State Circuits Conference (ISSCC)
+    start: 182
+    end: 184
+    doi: 10.1109/isscc49657.2024.10454329
+  - type: conference-paper
+    title: "An 88.8dB-SNDR 6-MS/s Pipelined SAR ADC with A Closed-Loop Dynamic Amplifier Featuring Highly-Linear Full-Scale Output Swing"
+    authors:
+      - family-names: Wang
+        given-names: Zongnan
+      - family-names: Luo
+        given-names: Haoyang
+      - family-names: Bao
+        given-names: Rongjia
+      - family-names: Jie
+        given-names: Lu
+      - family-names: Tang
+        given-names: Xiyuan
+    year: 2025
+    collection-title: 2025 Symposium on VLSI Technology and Circuits
+    start: 1
+    end: 3
+    doi: 10.23919/vlsitechnologyandcir65189.2025.11075015

@@ -5,11 +5,13 @@ build-backend = "hatchling.build"
 # ----------------------------------------------------------------- 项目元数据
 [project]
 name = "sar-adc-behaviour-verification"
-version = "9.0.0"
-description = "SAR ADC behavioral model with visible engineering defaults and digital calibration."
+version = "9.0.1+adi.repro"
+description = "Python transaction model for the 20-bit two-stage SAR ADC digital IP."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { file = "LICENSE" }
+license = { file = "docs/meta/LICENSE" }
+# paths 表兼容既有 Hatchling 版本，两个文件均随分发包保留。
+license-files = { paths = ["docs/meta/LICENSE", "docs/meta/NOTICE"] }
 authors = [{ name = "Reed Zhao" }]
 keywords = ["adc", "sar", "behavioral-model", "mixed-signal", "isscc2024"]
 classifiers = [
@@ -45,13 +47,13 @@ dev = [
     # tomllib is stdlib from 3.11; tests need the backport on 3.10
     "tomli>=2.0; python_version < '3.11'",
 ]
-docs = ["mkdocs>=1.5", "mkdocs-material>=9.4"]
+docs = ["mkdocs>=1.5", "mkdocs-material>=9.4", "pypdf>=5"]
 
 [project.urls]
 Homepage = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification"
-Documentation = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/main/docs/"
+Documentation = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/main/docs/INDEX.md"
 Issues = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/issues"
-Changelog = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/main/CHANGELOG.md"
+Changelog = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/main/docs/meta/CHANGELOG.md"
 
 [project.scripts]
 adi-validate-config = "adi_model.cli:main_validate_config"
@@ -100,7 +102,7 @@ minversion = "7.4"
 # `src` is listed so that `--doctest-modules` below can reach the library: the
 # `Examples:` blocks in the docstrings are executable documentation, and a
 # docstring example that CI never runs is a promise with nothing behind it.
-testpaths = ["tests", "src"]
+testpaths = ["flow/tests", "src"]
 addopts = [
     "-ra",
     "--strict-markers",
@@ -138,7 +140,7 @@ fail_under = 35
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-src = ["src", "tests", "tools"]
+src = ["src", "flow/tests", "tools"]
 # Exclude generated environments/build trees. Active source is checked.
 extend-exclude = [
     "__pycache__",
@@ -191,12 +193,12 @@ ignore = [
 # Tests are read as executable specifications: the docstring *shape* rules buy
 # nothing there, and D205 in particular fires 47 times purely because test
 # docstrings wrap a sentence onto a second line.
-"tests/*" = ["D100", "D101", "D102", "D103", "D104", "D105", "D107", "D205", "D417"]
+"flow/tests/*" = ["D100", "D101", "D102", "D103", "D104", "D105", "D107", "D205", "D417"]
 "tools/*" = ["D100", "D103"]
-# sim/ref/ 是**自检型的参考实现**（跑一遍就打印 PASS/FAIL 与覆盖数），与 tools/ 同类：
+# flow/sim/ref/ 是**自检型的参考实现**（跑一遍就打印 PASS/FAIL 与覆盖数），与 tools/ 同类：
 # 它的价值在"能不能被独立复算"，不在 pydocstyle 的 docstring 形状。
 # 只免除形状规则，D101/D102 等仍然生效。
-"sim/ref/*" = ["D100", "D103", "D417"]
+"flow/sim/ref/*" = ["D100", "D103", "D417"]
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
@@ -225,4 +227,4 @@ warn_unused_ignores = true
 no_implicit_optional = true
 check_untyped_defs = true
 ignore_missing_imports = true
-exclude = ["^tests/", "^tools/"]
+exclude = ["^flow/tests/", "^tools/"]

@@ -1,0 +1,170 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="digital-schedule-flow" width="960" height="579" viewBox="0 0 960 579" role="img" aria-labelledby="digital-schedule-flow-title digital-schedule-flow-desc">
+<title id="digital-schedule-flow-title">18 个物理片怎样轮换角色</title>
+<desc id="digital-schedule-flow-desc">上半图为每个受理沿的调度顺序。下半图的列是片号，行分别为复位、第一个和第二个推进后的状态。A 为采集，C 为转换，短横为备用。运行期每行八片采集、八片转换、两片备用。</desc>
+<defs>
+<marker id="digital-schedule-flow-i" viewBox="0 0 9 8" refX="8.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" orient="auto"><path d="M0 0 L9 4 L0 8 Z" fill="#1b3441"/></marker>
+<marker id="digital-schedule-flow-t" viewBox="0 0 9 8" refX="8.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" orient="auto"><path d="M0 0 L9 4 L0 8 Z" fill="#006d6a"/></marker>
+<marker id="digital-schedule-flow-r" viewBox="0 0 9 8" refX="8.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" orient="auto"><path d="M0 0 L9 4 L0 8 Z" fill="#994124"/></marker>
+<marker id="digital-schedule-flow-g" viewBox="0 0 9 8" refX="8.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" orient="auto"><path d="M0 0 L9 4 L0 8 Z" fill="#425b66"/></marker>
+</defs>
+<rect width="960" height="515" fill="white"/>
+<g font-family="Arial, PingFang SC, Noto Sans CJK SC, Microsoft YaHei, sans-serif" fill="#1b3441">
+<text x="28" y="41" text-anchor="start" font-size="30" font-weight="650" fill="#1b3441">18 个物理片怎样轮换角色</text>
+<text x="29" y="68" text-anchor="start" font-size="17" font-weight="400" fill="#425b66">一个 prepare 请求被受理时，调度器推进一次。每格始终对应同一块物理电容。</text>
+<g id="digital-schedule-flow-allocation">
+<rect x="29" y="100" width="234" height="65" rx="3" fill="#ffffff" stroke="#1b3441" stroke-width="1.8"/>
+<text x="146.0" y="129.5" text-anchor="middle" font-size="22" font-weight="600" fill="#1b3441">旧采集组交给转换</text>
+<text x="146.0" y="153.5" text-anchor="middle" font-size="16" font-weight="400" fill="#425b66">保留这 8 个物理片号</text>
+<rect x="347" y="100" width="254" height="65" rx="3" fill="#ffffff" stroke="#1b3441" stroke-width="1.8"/>
+<text x="474.0" y="129.5" text-anchor="middle" font-size="22" font-weight="600" fill="#1b3441">从余下十片挑两片</text>
+<text x="474.0" y="153.5" text-anchor="middle" font-size="16" font-weight="400" fill="#425b66">两次取数，跳过已选位置</text>
+<rect x="685" y="100" width="246" height="65" rx="3" fill="#eef6f5" stroke="#006d6a" stroke-width="1.8"/>
+<text x="808.0" y="129.5" text-anchor="middle" font-size="22" font-weight="600" fill="#006d6a">形成下一次采集组</text>
+<text x="808.0" y="153.5" text-anchor="middle" font-size="16" font-weight="400" fill="#425b66">选中的两片备用，其余八片采集</text>
+<path d="M263 133 H347" fill="none" stroke="#1b3441" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-schedule-flow-i)"/>
+<path d="M601 133 H685" fill="none" stroke="#1b3441" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-schedule-flow-i)"/>
+</g>
+<g id="digital-schedule-flow-roles">
+<text x="30" y="213" text-anchor="start" font-size="18" font-weight="600" fill="#1b3441">物理片号</text>
+<text x="179" y="212" text-anchor="middle" font-size="17" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">0</text>
+<text x="221" y="212" text-anchor="middle" font-size="17" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">1</text>
+<text x="263" y="212" text-anchor="middle" font-size="17" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">2</text>
+<text x="305" y="212" text-anchor="middle" font-size="17" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">3</text>
+<text x="347" y="212" text-anchor="middle" font-size="17" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">4</text>
+<text x="389" y="212" text-anchor="middle" font-size="17" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">5</text>
+<text x="431" y="212" text-anchor="middle" font-size="17" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">6</text>
+<text x="473" y="212" text-anchor="middle" font-size="17" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">7</text>
+<text x="515" y="212" text-anchor="middle" font-size="17" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">8</text>
+<text x="557" y="212" text-anchor="middle" font-size="17" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">9</text>
+<text x="599" y="212" text-anchor="middle" font-size="17" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">10</text>
+<text x="641" y="212" text-anchor="middle" font-size="17" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">11</text>
+<text x="683" y="212" text-anchor="middle" font-size="17" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">12</text>
+<text x="725" y="212" text-anchor="middle" font-size="17" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">13</text>
+<text x="767" y="212" text-anchor="middle" font-size="17" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">14</text>
+<text x="809" y="212" text-anchor="middle" font-size="17" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">15</text>
+<text x="851" y="212" text-anchor="middle" font-size="17" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">16</text>
+<text x="893" y="212" text-anchor="middle" font-size="17" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">17</text>
+<text x="30" y="254" text-anchor="start" font-size="18" font-weight="550" fill="#1b3441">复位后</text>
+<rect x="160" y="229" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="179" y="255" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="202" y="229" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="221" y="255" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="244" y="229" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="263" y="255" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="286" y="229" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="305" y="255" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="328" y="229" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="347" y="255" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="370" y="229" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="389" y="255" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="412" y="229" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="431" y="255" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="454" y="229" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="473" y="255" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="496" y="229" width="38" height="38" rx="2" fill="#fff" stroke="#829298" stroke-width="1.2"/>
+<text x="515" y="255" text-anchor="middle" font-size="19" font-weight="650" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">–</text>
+<rect x="538" y="229" width="38" height="38" rx="2" fill="#fff" stroke="#829298" stroke-width="1.2"/>
+<text x="557" y="255" text-anchor="middle" font-size="19" font-weight="650" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">–</text>
+<rect x="580" y="229" width="38" height="38" rx="2" fill="#fff" stroke="#829298" stroke-width="1.2"/>
+<text x="599" y="255" text-anchor="middle" font-size="19" font-weight="650" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">–</text>
+<rect x="622" y="229" width="38" height="38" rx="2" fill="#fff" stroke="#829298" stroke-width="1.2"/>
+<text x="641" y="255" text-anchor="middle" font-size="19" font-weight="650" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">–</text>
+<rect x="664" y="229" width="38" height="38" rx="2" fill="#fff" stroke="#829298" stroke-width="1.2"/>
+<text x="683" y="255" text-anchor="middle" font-size="19" font-weight="650" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">–</text>
+<rect x="706" y="229" width="38" height="38" rx="2" fill="#fff" stroke="#829298" stroke-width="1.2"/>
+<text x="725" y="255" text-anchor="middle" font-size="19" font-weight="650" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">–</text>
+<rect x="748" y="229" width="38" height="38" rx="2" fill="#fff" stroke="#829298" stroke-width="1.2"/>
+<text x="767" y="255" text-anchor="middle" font-size="19" font-weight="650" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">–</text>
+<rect x="790" y="229" width="38" height="38" rx="2" fill="#fff" stroke="#829298" stroke-width="1.2"/>
+<text x="809" y="255" text-anchor="middle" font-size="19" font-weight="650" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">–</text>
+<rect x="832" y="229" width="38" height="38" rx="2" fill="#fff" stroke="#829298" stroke-width="1.2"/>
+<text x="851" y="255" text-anchor="middle" font-size="19" font-weight="650" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">–</text>
+<rect x="874" y="229" width="38" height="38" rx="2" fill="#fff" stroke="#829298" stroke-width="1.2"/>
+<text x="893" y="255" text-anchor="middle" font-size="19" font-weight="650" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">–</text>
+<text x="30" y="310" text-anchor="start" font-size="18" font-weight="550" fill="#1b3441">第 1 次推进后</text>
+<rect x="160" y="285" width="38" height="38" rx="2" fill="#dbe3e6" stroke="#dbe3e6" stroke-width="1.2"/>
+<text x="179" y="311" text-anchor="middle" font-size="19" font-weight="650" fill="#1b3441" font-family="Menlo, DejaVu Sans Mono, monospace">C</text>
+<rect x="202" y="285" width="38" height="38" rx="2" fill="#dbe3e6" stroke="#dbe3e6" stroke-width="1.2"/>
+<text x="221" y="311" text-anchor="middle" font-size="19" font-weight="650" fill="#1b3441" font-family="Menlo, DejaVu Sans Mono, monospace">C</text>
+<rect x="244" y="285" width="38" height="38" rx="2" fill="#dbe3e6" stroke="#dbe3e6" stroke-width="1.2"/>
+<text x="263" y="311" text-anchor="middle" font-size="19" font-weight="650" fill="#1b3441" font-family="Menlo, DejaVu Sans Mono, monospace">C</text>
+<rect x="286" y="285" width="38" height="38" rx="2" fill="#dbe3e6" stroke="#dbe3e6" stroke-width="1.2"/>
+<text x="305" y="311" text-anchor="middle" font-size="19" font-weight="650" fill="#1b3441" font-family="Menlo, DejaVu Sans Mono, monospace">C</text>
+<rect x="328" y="285" width="38" height="38" rx="2" fill="#dbe3e6" stroke="#dbe3e6" stroke-width="1.2"/>
+<text x="347" y="311" text-anchor="middle" font-size="19" font-weight="650" fill="#1b3441" font-family="Menlo, DejaVu Sans Mono, monospace">C</text>
+<rect x="370" y="285" width="38" height="38" rx="2" fill="#dbe3e6" stroke="#dbe3e6" stroke-width="1.2"/>
+<text x="389" y="311" text-anchor="middle" font-size="19" font-weight="650" fill="#1b3441" font-family="Menlo, DejaVu Sans Mono, monospace">C</text>
+<rect x="412" y="285" width="38" height="38" rx="2" fill="#dbe3e6" stroke="#dbe3e6" stroke-width="1.2"/>
+<text x="431" y="311" text-anchor="middle" font-size="19" font-weight="650" fill="#1b3441" font-family="Menlo, DejaVu Sans Mono, monospace">C</text>
+<rect x="454" y="285" width="38" height="38" rx="2" fill="#dbe3e6" stroke="#dbe3e6" stroke-width="1.2"/>
+<text x="473" y="311" text-anchor="middle" font-size="19" font-weight="650" fill="#1b3441" font-family="Menlo, DejaVu Sans Mono, monospace">C</text>
+<rect x="496" y="285" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="515" y="311" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="538" y="285" width="38" height="38" rx="2" fill="#fff" stroke="#829298" stroke-width="1.2"/>
+<text x="557" y="311" text-anchor="middle" font-size="19" font-weight="650" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">–</text>
+<rect x="580" y="285" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="599" y="311" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="622" y="285" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="641" y="311" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="664" y="285" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="683" y="311" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="706" y="285" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="725" y="311" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="748" y="285" width="38" height="38" rx="2" fill="#fff" stroke="#829298" stroke-width="1.2"/>
+<text x="767" y="311" text-anchor="middle" font-size="19" font-weight="650" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">–</text>
+<rect x="790" y="285" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="809" y="311" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="832" y="285" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="851" y="311" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="874" y="285" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="893" y="311" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<text x="30" y="366" text-anchor="start" font-size="18" font-weight="550" fill="#1b3441">第 2 次推进后</text>
+<rect x="160" y="341" width="38" height="38" rx="2" fill="#fff" stroke="#829298" stroke-width="1.2"/>
+<text x="179" y="367" text-anchor="middle" font-size="19" font-weight="650" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">–</text>
+<rect x="202" y="341" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="221" y="367" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="244" y="341" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="263" y="367" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="286" y="341" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="305" y="367" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="328" y="341" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="347" y="367" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="370" y="341" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="389" y="367" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="412" y="341" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="431" y="367" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="454" y="341" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="473" y="367" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="496" y="341" width="38" height="38" rx="2" fill="#dbe3e6" stroke="#dbe3e6" stroke-width="1.2"/>
+<text x="515" y="367" text-anchor="middle" font-size="19" font-weight="650" fill="#1b3441" font-family="Menlo, DejaVu Sans Mono, monospace">C</text>
+<rect x="538" y="341" width="38" height="38" rx="2" fill="#fff" stroke="#829298" stroke-width="1.2"/>
+<text x="557" y="367" text-anchor="middle" font-size="19" font-weight="650" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">–</text>
+<rect x="580" y="341" width="38" height="38" rx="2" fill="#dbe3e6" stroke="#dbe3e6" stroke-width="1.2"/>
+<text x="599" y="367" text-anchor="middle" font-size="19" font-weight="650" fill="#1b3441" font-family="Menlo, DejaVu Sans Mono, monospace">C</text>
+<rect x="622" y="341" width="38" height="38" rx="2" fill="#dbe3e6" stroke="#dbe3e6" stroke-width="1.2"/>
+<text x="641" y="367" text-anchor="middle" font-size="19" font-weight="650" fill="#1b3441" font-family="Menlo, DejaVu Sans Mono, monospace">C</text>
+<rect x="664" y="341" width="38" height="38" rx="2" fill="#dbe3e6" stroke="#dbe3e6" stroke-width="1.2"/>
+<text x="683" y="367" text-anchor="middle" font-size="19" font-weight="650" fill="#1b3441" font-family="Menlo, DejaVu Sans Mono, monospace">C</text>
+<rect x="706" y="341" width="38" height="38" rx="2" fill="#dbe3e6" stroke="#dbe3e6" stroke-width="1.2"/>
+<text x="725" y="367" text-anchor="middle" font-size="19" font-weight="650" fill="#1b3441" font-family="Menlo, DejaVu Sans Mono, monospace">C</text>
+<rect x="748" y="341" width="38" height="38" rx="2" fill="#006d6a" stroke="#006d6a" stroke-width="1.2"/>
+<text x="767" y="367" text-anchor="middle" font-size="19" font-weight="650" fill="#fff" font-family="Menlo, DejaVu Sans Mono, monospace">A</text>
+<rect x="790" y="341" width="38" height="38" rx="2" fill="#dbe3e6" stroke="#dbe3e6" stroke-width="1.2"/>
+<text x="809" y="367" text-anchor="middle" font-size="19" font-weight="650" fill="#1b3441" font-family="Menlo, DejaVu Sans Mono, monospace">C</text>
+<rect x="832" y="341" width="38" height="38" rx="2" fill="#dbe3e6" stroke="#dbe3e6" stroke-width="1.2"/>
+<text x="851" y="367" text-anchor="middle" font-size="19" font-weight="650" fill="#1b3441" font-family="Menlo, DejaVu Sans Mono, monospace">C</text>
+<rect x="874" y="341" width="38" height="38" rx="2" fill="#dbe3e6" stroke="#dbe3e6" stroke-width="1.2"/>
+<text x="893" y="367" text-anchor="middle" font-size="19" font-weight="650" fill="#1b3441" font-family="Menlo, DejaVu Sans Mono, monospace">C</text>
+</g>
+<g id="digital-schedule-flow-key">
+<path d="M28 397 H932" fill="none" stroke="#d0dadb" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="29" y="427" text-anchor="start" font-size="19" font-weight="650" fill="#006d6a">A　采集</text>
+<text x="162" y="427" text-anchor="start" font-size="19" font-weight="650" fill="#1b3441">C　转换</text>
+<text x="306" y="427" text-anchor="start" font-size="19" font-weight="550" fill="#425b66">–　备用</text>
+<text x="29" y="462" text-anchor="start" font-size="17" font-weight="400" fill="#1b3441">第 1 次推进，片 9、14 备用。第 2 次推进，原采集组整组变为转换组，片 0、9 备用。</text>
+<text x="29" y="491" text-anchor="start" font-size="16" font-weight="400" fill="#425b66">图中两次推进取自调度测试的前两行冻结向量。复位行由 RTL 的复位赋值得到。</text>
+</g>
+</g>
+<rect x="0" y="515" width="960" height="36" fill="white"/><path d="M25 516H935" stroke="#c6d4d4"/><a href="https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/3057d2f/references/ISSCC2024_SLIDES.pdf#page=10"><text x="25" y="539" font-family="Arial, PingFang SC, Heiti SC, sans-serif" font-size="15" fill="#285851">ISSCC 图 9.8.1、讲稿第 10 页：8 采、8 转、2 备用。片组随机递推为工程选择。</text></a>
+<rect x="0" y="551" width="960" height="28" fill="white"/><text class="svg-purpose" x="25" y="570" font-size="16" font-weight="600" font-family="Arial, PingFang SC, Heiti SC, sans-serif" fill="#142f40">作用　轮换采集与转换片组，允许两笔并行。</text>
+</svg>

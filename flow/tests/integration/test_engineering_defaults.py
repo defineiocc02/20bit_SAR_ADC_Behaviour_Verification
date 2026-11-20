@@ -1,0 +1,224 @@
+"""验证生产默认入口的记录；独立检查 Fig.11 研究实验的物理假设。
+
+波形与 N 可以直接运行；低层未知项仍不自动补全。名义数字系数与制造随机量
+保持分离，全部样本及节点标志保留，20 位仅表示输出码宽。
+"""
+
+from dataclasses import replace
+
+import numpy as np
+import pytest
+
+from adi_model.behavioral.sampler import dc_input, sine_input
+from adi_model.defaults import simulate
+from subsys.experiments.fig11 import Fig11Parameters, fig11_model, simulate_fig11
+from adi_model.simulation.config import Config, ConfigError
+
+
+# 这条从安装包公共入口验证生产数据；下面针对 Fig.11 参数和电容的用例显式导入研究夹具。
+# 相同量化位宽不意味着两者可以共享一张开关掩码或一套电容分母。
+@pytest.mark.parametrize("count", [256, 1024])
+def test_waveform_and_count_produce_all_raw_and_integer_records(count):
+    run = simulate(sine_input(2.0, 1e6, 0.2), count)
+    assert run.codes.code.shape == (count,)
+    assert np.issubdtype(run.codes.code.dtype, np.integer)
+    assert np.all((run.codes.code >= 0) & (run.codes.code < 2**20))
+    np.testing.assert_array_equal(run.raw.sample_id, np.arange(count))
+    np.testing.assert_array_equal(run.codes.analog_overflow, run.raw.analog_overflow)
+    assert run.metadata["n_samples"] == count
+    assert run.metadata["output_bits"] == 20
+    assert run.metadata["source_reproduction"] is False
+    assert run.metadata["digital_coefficients"].startswith("NOMINAL_NOT_FITTED")
+    assert run.raw.out_valid.all() and not run.raw.out_err.any()
+    assert run.metadata["raw_invalid"] == int(np.count_nonzero(run.codes.analog_overflow))
+    assert run.metadata["final_clip_low"] == int(np.count_nonzero(run.codes.clipped_low))
+    assert run.metadata["final_clip_high"] == int(np.count_nonzero(run.codes.clipped_high))
+
+
+def test_defaults_do_not_make_low_level_config_implicitly_ready():
+    assert Config().adc2_n_bits is None
+    with pytest.raises(ConfigError, match="missing"):
+        Config().check_legal()
+    model = fig11_model()
+    # -------------------------------------------------------------------------
+    # [合同] 默认入口只补齐公开 API 的参数，低层 Config() 仍由调用方明确填写。
+    # v2.1 的 13 bit 与半开差分窗口是一组；异常端点仍由 ADC2 原语负责。
+    # 这里验证的是工程默认，而不是实测硅片的位宽或噪声。
+    # 同时钉住位宽和边界，防止 13 bit 搭配历史 14 bit 的窗口而悄悄改变换算增益。
+    assert model.cfg.adc2_n_bits == 13
+    assert (model.cfg.adc2_v_min, model.cfg.adc2_v_max) == (-0.1875, 0.5625)
+    assert model.cfg.b1 == 9
+    assert (model.cfg.n_slices, model.cfg.n_active) == (18, 8)
+    # 2026-11-13 第二轮修正（1C 缺口）：17/5 阵列有两个**不同**的归一化电容，
+    # 混用就差 S4 那 1C（3.13%）：
+    #   采样口径 C_samp = 32 + β·15 = 32.9375C/片 → 8 片 = 20.5 pF（论文锚点）
+    #     ⇒ nominal_active_cap_f = 8 × 32.9375 × 7.7799e-14 = 20.500 pF
+    #     ⇒ nominal_gain = 20.500 pF / 0.640625 pF = 32.000（= g0 = RA 物理增益）
+    #   码本口径 C_conv = 31 + β·15 = 31.9375C/片（S4 无码位）
+    #     ⇒ nominal_conversion_cap_f = 19.8776 pF、G_fixed = 31.028
+    # 修正前的 nominal_gain 用的是码本口径（31.028）却叫 "Cnorm/Cf"，与 plant 的
+    # `normalization_capacitance_f`（采样口径）不同源——这正是 physical_gain 补丁的由来。
+    # ⚠️ 电容比较必须写 `abs=0`：`approx` 的默认 abs=1e-12 在 20.5 pF 上等于 ±4.88%，
+    # 足以让缺陷态的 19.8776 pF 通过（实测）。
+    assert model.nominal_gain == pytest.approx(32.0, rel=1e-6, abs=0)
+    assert model.nominal_active_cap_f == pytest.approx(20.5e-12, rel=1e-6, abs=0)
+    # 码本分母没变（端点闭合要求 drive(511) == 31.9375C）
+    assert model.nominal_conversion_cap_f == pytest.approx(1.9877609e-11, rel=1e-6, abs=0)
+
+
+def test_inference_table_separates_source_anchors_from_geometry_and_noise_assumptions():
+    model = fig11_model()
+    rows = model.inference_table()
+    assert rows["stage1_bits"]["grade"] == "DISCLOSED"
+    assert rows["n_main"]["grade"] == "ASSUMED_GEOMETRY"
+    assert rows["adc2_window_v"]["grade"] == "INFERRED_HEADROOM"
+    assert rows["ra_noise_rms_v"]["grade"] == "ASSUMED_NOISE_BUDGET"
+    assert rows["fixed_point"]["grade"] == "ENGINEERING_ARITHMETIC_CHOICE"
+    # 2026-11-13：SADC 阈值改为**直接取码本电压**（原来是等距表，与实测码本差近 2 LSB）。
+    # 前 512 个 = codebook.voltage_v，末位补一个上边界 2v(511)-v(510)，
+    # 因此 last_v 略大于 v_fs（3.0），这是"半开区间 [v(k), v(k+1))"的必要边界。
+    assert rows["sadc_thresholds"]["value"] == {
+        "edge_count": 513,
+        "first_v": -3.0,
+        "last_v": 3.0117416829745585,
+    }
+    # 该字段是"阈值相对等距表 ±v_fs/512 的最大偏差"。
+    # 2026-11-13 阈值改为取码本后，它不再为 0：码本步长是 cn/512 口径
+    # （31.9375C 分摊），末位边界 2v(511)-v(510) 比 v_fs 高出约 0.0117 V。
+    # 这不是"引入了失配"，而是"阈值不再是等距表"的直接体现。
+    assert rows["sadc_static_mismatch"]["value"] == pytest.approx(0.011741682974558465)
+    assert all(isinstance(row["reason"], str) and row["reason"] for row in rows.values())
+    result = model.simulate(dc_input(0.2), 8)
+    assert result.metadata["enabled"]["unit_dem"] is False
+    assert result.metadata["enabled"]["source_dither"] is False
+    assert any("lower/upper" in text for text in result.metadata["unmodeled"])
+
+
+def test_same_seed_and_run_id_replay_and_different_run_ids_do_not_refabricate_chip():
+    model = fig11_model(seed=42)
+    wave = sine_input(1.5, 1e6, 0.1)
+    first = model.simulate(wave, 32, run_id=5)
+    replay = model.simulate(wave, 32, run_id=5)
+    changed = model.simulate(wave, 32, run_id=6)
+    np.testing.assert_array_equal(first.codes.code, replay.codes.code)
+    np.testing.assert_array_equal(first.raw.conv_slice_ids, replay.raw.conv_slice_ids)
+    np.testing.assert_array_equal(first.raw.vra, replay.raw.vra)
+    assert first.raw.pool.chip is replay.raw.pool.chip is changed.raw.pool.chip is model.chip
+    assert np.any(first.raw.conv_slice_ids != changed.raw.conv_slice_ids)
+    assert np.any(first.raw.sample.rdac_noise_v != changed.raw.sample.rdac_noise_v)
+    assert first.metadata["seed_partition"]["fabrication_spawn_key"] == [0]
+    assert first.metadata["seed_partition"]["noise_spawn_key"] == [2, 5]
+    assert changed.metadata["seed_partition"]["noise_spawn_key"] == [2, 6]
+
+
+def test_nominal_integer_coefficients_do_not_depend_on_manufactured_capacitances():
+    first, second = fig11_model(seed=1), fig11_model(seed=2)
+    assert np.any(first.chip.C_main != second.chip.C_main)
+    np.testing.assert_array_equal(
+        first.nominal_decoder.to_dict()["weights_q"], second.nominal_decoder.to_dict()["weights_q"]
+    )
+    assert first.nominal_decoder.spec == second.nominal_decoder.spec
+    assert not hasattr(first.nominal_decoder, "training_samples")
+
+
+def test_explicit_nominal_override_is_not_hidden_retuning_or_source_authority():
+    base = Fig11Parameters()
+    model = fig11_model(parameters=replace(base, feedback_cap_f=2 * base.feedback_cap_f))
+    assert model.parameters.unit_cap_f == base.unit_cap_f
+    assert model.parameters.bridge_cap_f == base.bridge_cap_f
+    # feedback 翻倍 ⇒ 增益减半。17/5 下名义（物理）增益是 32.0，故此处为 16.0；
+    # 码本口径的 G_fixed 同理减半（31.028 → 15.514），但它不是本模型报出的量。
+    # `abs=0`：电容量的 approx 不能留默认 abs=1e-12（=20.5 pF 的 4.88%）。
+    assert model.nominal_active_cap_f == pytest.approx(20.5e-12, rel=1e-6, abs=0)
+    assert model.nominal_gain == pytest.approx(16.0, rel=1e-6, abs=0)
+    rows = model.inference_table()
+    assert rows["feedback_cap_f"]["grade"] == "USER_OVERRIDE"
+    assert rows["feedback_cap_f"]["default_grade"] == "DERIVED_WITH_ASSUMPTION"
+
+
+def test_custom_window_and_threshold_metadata_report_the_actual_override():
+    thresholds = tuple(np.linspace(-2.0, 2.0, 513) + 0.0003)
+    model = fig11_model(
+        config_overrides={
+            "v_fs": 2.0,
+            "fs": 20e6,
+            "sadc_thresholds_v": thresholds,
+            "adc2_n_bits": 10,
+            "adc2_v_min": -0.1,
+            "adc2_v_max": 0.8,
+        }
+    )
+    result = model.simulate(dc_input(0.2), 8)
+    rows = result.metadata["inferences"]
+    assert rows["fs_hz"]["grade"] == "USER_OVERRIDE"
+    assert rows["adc2_window_v"]["value"] == [-0.1, 0.8]
+    assert rows["adc2_window_v"]["grade"] == "USER_OVERRIDE"
+    assert rows["sadc_thresholds"]["grade"] == "USER_OVERRIDE"
+    assert rows["sadc_static_mismatch"]["value"] == pytest.approx(0.0003)
+    np.testing.assert_array_equal(result.raw.sample.aperture_s, np.arange(8) / 20e6)
+    assert result.metadata["config_overrides"]["adc2_n_bits"] == 10
+
+
+@pytest.mark.parametrize("value", [-3.2, 3.2])
+def test_out_of_range_inputs_and_each_node_flag_are_retained(value):
+    run = simulate_fig11(dc_input(value), 16)
+    assert len(run.codes.code) == len(run.raw.adc2_code) == 16
+    assert run.raw.sadc_over.all()
+    assert run.codes.analog_overflow.all()
+    np.testing.assert_array_equal(run.raw.sample.input_clean_v, np.full(16, value))
+    expected_union = (
+        run.raw.sadc_over
+        | run.raw.rdac_over
+        | run.raw.ra_sat
+        | run.raw.adc2_over
+        | ~run.raw.plan_valid
+    )
+    np.testing.assert_array_equal(run.codes.analog_overflow, expected_union)
+    assert run.metadata["raw_invalid"] == 16
+
+
+def test_declared_ideal_override_matches_independent_quantization_bound():
+    parameters = replace(Fig11Parameters(), unit_mismatch_std=0.0, bridge_mismatch_std=0.0)
+    model = fig11_model(
+        parameters=parameters,
+        config_overrides={"enable_sampling_noise": False, "ra_enable_noise": False},
+    )
+    run = model.simulate(sine_input(2.0, 1e6, 0.1), 64)
+    input_lsb = 2 * model.cfg.v_fs / 2**20
+    bound = model.cfg.delta2 / (2 * model.nominal_gain) + input_lsb / 2
+    assert np.max(abs(run.codes.voltage - run.raw.sample.input_clean_v)) <= bound + 1e-9
+    assert not run.codes.analog_overflow.any()
+    assert not run.metadata["enabled"]["sampling_noise"]
+    assert not run.metadata["enabled"]["ra_output_noise"]
+
+
+@pytest.mark.parametrize("count", [0, -1, True, 1.5])
+def test_invalid_record_count_is_not_coerced_or_allocated(count):
+    with pytest.raises(ConfigError):
+        simulate_fig11(dc_input(0.0), count)
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"b1": 7},
+        {"dac_arch": "unary"},
+        {"dither_mode": "quantizer"},
+        {"dem_enable": True},
+        {"dyn_input_settling": True},
+        {"adc2_v_min": None},
+        {"c_sadc": None},
+        {"input_network": {}},
+    ],
+)
+def test_unsupported_or_incomplete_explicit_requests_do_not_silently_fall_back(overrides):
+    with pytest.raises((ConfigError, TypeError)):
+        fig11_model(config_overrides=overrides)
+
+
+@pytest.mark.parametrize(
+    "field,value", [("unit_cap_f", 0), ("n_main", 64), ("unit_mismatch_std", -0.1)]
+)
+def test_invalid_nominal_geometry_or_physical_scale_is_rejected(field, value):
+    with pytest.raises(ConfigError):
+        replace(Fig11Parameters(), **{field: value})

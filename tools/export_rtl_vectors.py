@@ -15,8 +15,8 @@ from pathlib import Path
 
 import numpy as np
 
-from adi_model.fixed_point import FixedPointReconstructor
-from adi_model.weight_calibration import DigitalObservation
+from adi_model.calibration.weight_calibration import DigitalObservation
+from adi_model.contracts.fixed_point import FixedPointReconstructor
 from export_rtl_params import (
     _digest,
     _integer,

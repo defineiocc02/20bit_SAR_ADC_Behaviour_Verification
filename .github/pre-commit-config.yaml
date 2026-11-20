@@ -1,0 +1,39 @@
+# pre-commit 配置
+#
+# 2026-11-15 精简：原先这里堆了十几条长正则，全部指向
+# docs/evidence/ 与 docs/reports/ 下的历史产物（9-30 ~ 10-07 的 Vivado/CI
+# 证据与报告）。这些目录已经移出仓库（备份在仓库外），排除规则随之失效，
+# 保留只会增加维护负担，故一并删除。
+#
+# 如果将来重新引入"需要保持原始字节"的证据目录，再加排除规则，
+# 并在这里说明为什么那些文件不能被 formatter 改动。
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+        args: ["--maxkb=512"]
+        # 当前图册为本仓原创矢量出版物，CI 校验其 SHA-256 与图源身份。
+        exclude: ^docs/algorithms/digital-ip-atlas[.]pdf$
+      - id: check-merge-conflict
+      - id: debug-statements
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        files: ^src/
+        additional_dependencies: [numpy>=1.24]
+        args: [--config-file=pyproject.toml]

@@ -1,0 +1,39 @@
+........................................................................ [  4%]
+........................................................................ [  9%]
+........................................................................ [ 13%]
+........................................................................ [ 18%]
+........................................................................ [ 23%]
+........................................................................ [ 27%]
+........................................................................ [ 32%]
+........................................................................ [ 37%]
+........................................................................ [ 41%]
+........................................................................ [ 46%]
+........................................................................ [ 51%]
+........................................................................ [ 55%]
+........................................................................ [ 60%]
+........................................................................ [ 65%]
+........................................................................ [ 69%]
+........................................................................ [ 74%]
+........................................................................ [ 79%]
+........................................................................ [ 83%]
+........................................................................ [ 88%]
+........................................................................ [ 93%]
+........................................................................ [ 97%]
+...............................                                          [100%]
+============================= slowest 15 durations =============================
+3.33s call     tests/unit/test_dem3d.py::test_unary_rotation_preserves_nominal_weight
+2.85s call     tests/unit/test_fixed_point.py::test_every_twenty_bit_word_and_code_width_without_a_huge_analog_record
+1.62s call     tests/unit/test_vivado_impl.py::test_timeout_retains_failure_and_never_emits_complete_result
+1.38s call     tests/unit/test_dem3d.py::test_fig11_nominal_charge_is_state_independent
+1.16s call     tests/unit/test_vivado_impl.py::test_changed_declared_input_during_execution_cannot_be_promoted[sdc]
+0.94s call     tests/unit/control/test_fig11_dem.py::test_every_code_and_phase_conserves_selected_capacitance
+0.81s call     tests/unit/test_vivado_impl.py::test_changed_declared_input_during_execution_cannot_be_promoted[source]
+0.72s call     tests/unit/test_vivado_impl.py::test_changed_declared_input_during_execution_cannot_be_promoted[library]
+0.56s call     tests/unit/test_behavior_fingerprint_tool.py::test_existing_baseline_is_not_overwritten
+0.55s call     tests/unit/test_behavior_fingerprint_tool.py::test_drifted_baseline_exits_non_zero_and_names_the_first_field
+0.54s call     tests/unit/test_behavior_fingerprint_tool.py::test_matching_baseline_exits_zero
+0.53s setup    tests/unit/test_behavior_fingerprint_tool.py::test_matching_baseline_exits_zero
+0.48s call     tests/unit/test_vivado_impl.py::test_changed_declared_input_during_execution_cannot_be_promoted[filelist]
+0.47s call     tests/unit/test_vivado_impl.py::test_changed_declared_input_during_execution_cannot_be_promoted[header]
+0.41s call     tests/unit/test_vivado_full_mapped.py::test_current_tcl_scripts_are_compiled_as_text_without_vendor_execution
+1543 passed in 41.80s

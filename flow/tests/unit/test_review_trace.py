@@ -1,0 +1,352 @@
+# =============================================================================
+# 文件名     : test_review_trace.py
+# 版本       : v1.0
+# 功能       : 比较冻结的审阅记录、版本化来源清单和当前可定位模块集合。
+# 设计说明   :
+#   * 审阅页码、文件清册和行范围各有自己的冻结提交。
+#   * 当前 Python 包可导入及 RTL 源清单完整只用于检查当前工作树。
+# 变更记录   : 现行来源和机制清单移至验证清单目录。
+# =============================================================================
+
+"""检查按日期保留的审阅快照及扩展覆盖是否完整且可追溯。"""
+
+import hashlib
+import importlib
+import json
+import re
+import subprocess
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[3]
+REVIEW = ROOT / "docs/audit/reviews"
+SOURCE_BASELINE = "20261105-source-coverage.json"
+SOURCE_EXTENSION = "20261105-caaz-source-coverage.json"
+CODE_BASELINE = "20261105-code-coverage.json"
+CODE_EXTENSION = "20261105-caaz-source-code-coverage.json"
+
+
+def _load(name: str) -> dict:
+    return json.loads((REVIEW / name).read_text(encoding="utf-8"))
+
+
+def _registered_sources() -> dict:
+    manifest = json.loads((ROOT / "flow/verification/manifests/sources_manifest.json").read_text(encoding="utf-8"))
+    rows = manifest["sources"] + manifest["background_sources"]["items"]
+    assert len(rows) == len({row["id"] for row in rows})
+    return {row["id"]: row for row in rows}
+
+
+# =============================================================================
+# 1. 冻结来源覆盖
+# =============================================================================
+# 来源清单具有独立身份。用页号、哈希及 ID 验证，而不是直接信任两个报告的总数。
+# 扩展记录必须能追到基础记录的原字节，便于后来的阅读增量与既有数据分开。
+# 后续项目把目录搬到别处时更新入口路径。冻结页码和审阅状态不随路径重解释。
+def test_source_review_covers_each_registered_page_once():
+    sources = _registered_sources()
+    baseline, extension = (_load(name) for name in (SOURCE_BASELINE, SOURCE_EXTENSION))
+    # 这些是按日期冻结的阅读记录；后续资料通过扩展记录加入，
+    # 不改写原始集合以暗示当时已读过后来的资料。
+    assert baseline["totals"] == {
+        "documents": 18,
+        "pages": 596,
+        "text_read": 596,
+        "image_checked": 596,
+    }
+    assert extension["extends"] == SOURCE_BASELINE
+    assert (
+        extension["baseline_coverage_sha256"]
+        == hashlib.sha256((REVIEW / SOURCE_BASELINE).read_bytes()).hexdigest()
+    )
+    assert extension["totals"] == {
+        "documents": 2,
+        "pages": 45,
+        "text_read": 45,
+        "image_checked": 45,
+    }
+    documents = baseline["documents"] + extension["documents"]
+    assert len(documents) == len({row["source_id"] for row in documents}) == len(sources)
+    assert {row["source_id"] for row in documents} == set(sources)
+    # 同内容的别名不增加唯一来源数量。
+    assert len({row["sha256"] for row in documents}) == len(documents)
+    for report in (baseline, extension):
+        assert report["totals"]["documents"] == len(report["documents"])
+        assert report["totals"]["pages"] == sum(row["pages"] for row in report["documents"])
+    for document in documents:
+        source = sources[document["source_id"]]
+        assert document["sha256"] == source["sha256"]
+        assert document["pages"] == source["pages"]
+        pages = document["page_review"]
+        assert [row["pdf_page"] for row in pages] == list(range(1, source["pages"] + 1))
+        assert all(row["text_read"] and row["image_checked"] for row in pages)
+    manifest = json.loads((ROOT / "flow/verification/manifests/sources_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["meta"]["corpus_documents"] == len(documents)
+    assert manifest["meta"]["corpus_pages"] == sum(row["pages"] for row in documents)
+
+
+# =============================================================================
+# 2. 同原件别名
+# =============================================================================
+# 同 SHA 文件可以有不同原始文件名，例如工作区另存的讲稿。
+# 来源 ID 对应的是原件。别名挂在原件上，只增加可追踪名称，不增加原件计数。
+def test_caaz_source_alias_is_explicit_and_not_a_third_document():
+    sources = _registered_sources()
+    paper = sources["PKU_VLSI2025_C32_1_PAPER"]
+    slides = sources["PKU_VLSI2025_C32_1_SLIDES"]
+    assert (paper["pages"], slides["pages"]) == (3, 42)
+    assert paper["sha256"] != slides["sha256"]
+    assert paper["source_role"] == slides["source_role"] == "OPTIONAL_RESEARCH_EXTENSION"
+    aliases = slides["aliases"]
+    assert len(aliases) == 1
+    alias = aliases[0]
+    assert alias["file"] == "C32_C32-1.pdf"
+    assert alias["sha256"] == slides["sha256"]
+    assert alias["pages"] == slides["pages"]
+    assert alias["counted_as_document"] is False
+    assert alias["file"] not in {row["file"] for row in sources.values()}
+    extension = _load(SOURCE_EXTENSION)
+    assert extension["excluded_aliases"] == [
+        {
+            "alias_file": alias["file"],
+            "canonical_source_id": slides["id"],
+            "sha256": alias["sha256"],
+            "pages": alias["pages"],
+            "counted_as_document": False,
+        }
+    ]
+
+
+# =============================================================================
+# 3. 原文到工项
+# =============================================================================
+# 要求由源 ID、机制 ID 和适用范围三部分共同定位；逐条引用由固定集合反向校验。
+# 每条记录须保留预期行为与原因，不能因为功能打勾就省略选用原文的条件。
+# 基础和扩展分别回算覆盖分布，避免扩展的新增内容污染原来的范围声明。
+def test_each_source_requirement_has_a_valid_applicability_and_mechanism_mapping():
+    sources = set(_registered_sources())
+    inventory = json.loads((ROOT / "flow/verification/manifests/mechanism_inventory.json").read_text(encoding="utf-8"))
+    mechanisms = {row["id"] for row in inventory["mechanisms"]}
+    baseline = _load("20261105-requirements-trace.json")
+    extension = _load("20261105-caaz-source-requirements.json")
+    assert len(baseline["requirements"]) == 126
+    assert extension["extends"] == "20261105-requirements-trace.json"
+    assert (
+        extension["baseline_trace_sha256"]
+        == hashlib.sha256((REVIEW / "20261105-requirements-trace.json").read_bytes()).hexdigest()
+    )
+    assert len(extension["requirements"]) == 20
+    rows = baseline["requirements"] + extension["requirements"]
+    assert len(rows) == len({row["req_id"] for row in rows})
+    allowed = {
+        "target_selected",
+        "optional_patent_embodiment",
+        "background_comparison",
+        "product_interface_reference",
+        "unresolved_source_conflict",
+        "optional_research_extension",
+    }
+    for report in (baseline, extension):
+        counts = dict.fromkeys(report["counts_by_scope"], 0)
+        for row in report["requirements"]:
+            assert row["scope"] in allowed
+            assert row["source_ids"] and set(row["source_ids"]) <= sources
+            assert set(row["mechanism_ids"]) <= mechanisms
+            assert row["expected_behavior"] and row["reason"]
+            assert row["coverage_state"] in {
+                "partial",
+                "open",
+                "comparison_only",
+                "open_source_conflict",
+            }
+            counts[row["scope"]] += 1
+        assert counts == report["counts_by_scope"]
+    for row in extension["requirements"]:
+        assert row["scope"] == "optional_research_extension"
+        assert row["mechanism_ids"] == ["X02"]
+        # 阅读原文不等于执行过本项目验证。
+        assert row["source_branch_verification_status"] == "NOT_RUN"
+        assert row["source_branch_implementation_status"] == "NOT_ASSESSED_BY_SOURCE_BRANCH"
+        assert row["implementation_status_source"]["mechanism_id"] == "X02"
+
+
+# =============================================================================
+# 4. 可选机制边界
+# =============================================================================
+# CAAZ 的来源身份保持独立。默认关闭是已登记合同的一部分，与论文所报性能分开。
+# 检查原始速率、偶奇配对和结果速率的登记语义，不把假设时钟当作来源披露。
+def test_caaz_remains_an_optional_source_derived_sample_domain_extension():
+    inventory = json.loads((ROOT / "flow/verification/manifests/mechanism_inventory.json").read_text(encoding="utf-8"))
+    caaz = next(row for row in inventory["mechanisms"] if row["id"] == "X02")
+    assert "OPTIONAL_SOURCE_EXTENSION" in inventory["config_classes"]
+    assert caaz["embodiment"] == "OPTIONAL_SOURCE_EXTENSION"
+    assert {row["id"] for row in caaz["sources"]} == {
+        "PKU_VLSI2025_C32_1_PAPER",
+        "PKU_VLSI2025_C32_1_SLIDES",
+    }
+    assert caaz["default_enabled"] is False
+    assert caaz["default_disable_contract"] == {
+        "python": "ChoppingAZParameters.mode='off'",
+        "rtl": "P_CAAZ_ENABLE=0",
+    }
+    assert caaz["completion"] == "PARTIAL_SAMPLE_DOMAIN"
+    # 原文披露 CAAZ；本项目选择的原始／配对采样率是
+    # 工程假设，不能据此继承原文硅片性能。
+    assert set(caaz["evidence_source"]) == {"DISCLOSED", "DERIVED", "ASSUMED"}
+    equations = _load("20261105-caaz-source-equations.json")
+    assert equations["pair_rate_choice"]["raw_hz"] == 40_000_000
+    assert equations["pair_rate_choice"]["pair_hz"] == 20_000_000
+    assert equations["pair_rate_choice"]["status"].startswith("ENGINEERING_CHOICE;")
+
+
+# =============================================================================
+# 5. 历史技术审阅
+# =============================================================================
+# 当时实际审过的源码通过冻结树枚举。当前源码可能增减，不能据现存数量反写审阅档案。
+# 扩展的新增项和重读项彼此互斥。用集合差交来还原两类，避免一个文件被重复计入。
+# 范围和哈希都是旧提交下的证据。当前注册路径检查另在末项执行。
+def test_reviewed_production_file_inventory_includes_baseline_and_extension():
+    baseline, extension = (_load(name) for name in (CODE_BASELINE, CODE_EXTENSION))
+    assert baseline["production_python_modules"] == 49
+    assert baseline["production_rtl_modules"] == 41
+    baseline_rows = baseline["files"]
+    assert len(baseline_rows) == 90
+    baseline_paths = {row["path"] for row in baseline_rows}
+    assert len(baseline_paths) == len(baseline_rows)
+    assert extension["extends"] == CODE_BASELINE
+    assert (
+        extension["baseline_coverage_sha256"]
+        == hashlib.sha256((REVIEW / CODE_BASELINE).read_bytes()).hexdigest()
+    )
+    extension_rows = extension["files"]
+    extension_paths = {row["path"] for row in extension_rows}
+    assert len(extension_paths) == len(extension_rows)
+    # 日期化快照只与当时Git基线比较，不改写历史JSON去冒充当前源。
+    historical = subprocess.run(
+        ["git", "ls-tree", "-r", "--name-only", baseline["baseline_commit"]],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+    expected_baseline = {
+        name
+        for name in historical
+        if (name.startswith("src/adi_model/") and name.endswith(".py"))
+        or (name.startswith("rtl/") and name.endswith(".sv"))
+        # 注意：baseline_commit（d1e1f87，2026-11-05）的树里 DSP 路径是
+        # ad4080_dsp/rtl/，而当前工作树是 subsys/ad4080_dsp/rtl/。
+        # 本断言比对的是**历史树**，因此必须按历史布局匹配；
+        # 只认 subsys/ 前缀会让 baseline 的 17 个 DSP 文件全部漏掉。
+        or (
+            (
+                name.startswith("ad4080_dsp/rtl/")
+                or name.startswith("subsys/ad4080_dsp/rtl/")
+            )
+            and name.endswith(".sv")
+        )
+    }
+    assert baseline_paths == expected_baseline
+    expected_extension = baseline_paths | set(extension["added_files"])
+    assert baseline_paths | extension_paths == expected_extension
+    assert extension["current_inventory"]["production_modules"] == len(expected_extension)
+    assert set(extension["added_files"]) == extension_paths - baseline_paths
+    assert set(extension["rereviewed_files"]) == extension_paths & baseline_paths
+    assert extension["added_files"], "An extension cannot claim new-module coverage without rows"
+    assert extension["current_inventory"] == {
+        "production_python_modules": sum(path.endswith(".py") for path in expected_extension),
+        "production_rtl_modules": sum(path.endswith(".sv") for path in expected_extension),
+        "production_modules": len(expected_extension),
+    }
+    assert extension["extension_totals"] == {
+        "files": len(extension_rows),
+        "full_read_lines": sum(row["reviewed_lines"] for row in extension_rows),
+        "added_files": len(extension_paths - baseline_paths),
+        "rereviewed_files": len(extension_paths & baseline_paths),
+    }
+    for row in baseline_rows:
+        assert row["full_read"]
+        assert row["read_ranges"] == [[1, row["baseline_lines"]]]
+        # 按日期保留的审计摘要标识当时快照，不用于标识未来 HEAD。
+        assert re.fullmatch(r"[0-9a-f]{64}", row["current_sha256"])
+        assert re.fullmatch(r"[0-9a-f]{64}", row["baseline_sha256"])
+    for row in extension_rows:
+        assert row["full_read"]
+        assert row["read_ranges"] == [[1, row["reviewed_lines"]]]
+        assert re.fullmatch(r"[0-9a-f]{64}", row["reviewed_sha256"])
+
+
+# =============================================================================
+# 6. 可外发记录
+# =============================================================================
+# 审阅记录含定位元数据，不收录原始 PDF、截图或本机私有位置。
+# 保留多种旧字段名做负控，以免改媒体字段拼写后误把实际负载加回仓库。
+def test_caaz_review_records_exclude_private_paths_and_source_payloads():
+    for name in (
+        SOURCE_EXTENSION,
+        CODE_EXTENSION,
+        "20261105-caaz-source-requirements.json",
+        "20261105-caaz-source-equations.json",
+        "20261105-caaz-source-review.md",
+    ):
+        text = (REVIEW / name).read_text(encoding="utf-8")
+        assert "/Users/" not in text
+        assert "ZoteroLinkedFiles" not in text
+        assert '"source_pdf"' not in text
+        assert '"text_path"' not in text
+        assert '"image_file"' not in text
+        assert '"ocr_evidence"' not in text
+
+
+# =============================================================================
+# 7. 当前树的独立检查
+# =============================================================================
+# 对当前 Python 包递归遍历。模块公开名按相对位置推导，不按同名文件跨目录猜测。
+# RTL 清单与当前实际源比较，同时拒绝重复项。清单覆盖范围和测试台功能是不同判据。
+# 机制清单源码引用应属于当前生产集合。旧证据报告的文件状态不充当现行运行证明。
+def test_current_runtime_source_set_has_current_imports_and_explicit_rtl_manifest():
+    """当前集合另检可定位/可导入/清单完整，不把静态集合检查写作已审读或已仿真。
+
+    2026-11-12 目录迁移后，模块不再全部平铺在 `src/adi_model/` 根下，
+    因此本测试改为**递归**枚举并按实际包路径导入；原意图（可定位、可导入、
+    清单完整）不变，覆盖范围从"包根"扩大到"整个包"。
+    """
+    package_root = ROOT / "src/adi_model"
+    current_python = {
+        p.relative_to(package_root).as_posix(): p for p in package_root.rglob("*.py")
+    }
+    by_stem = {p.stem: p for p in current_python.values()}
+    assert {
+        "defaults",
+        "dither",
+        "pipeline_engine",
+        "weight_calibration",
+    } <= by_stem.keys()
+    assert not {"ktc", "ref_track", "sim_split", "digital_core"} & by_stem.keys()
+    for relative, path in current_python.items():
+        parts = Path(relative).with_suffix("").parts
+        if parts[-1] == "__init__":
+            parts = parts[:-1]
+        name = ".".join(("adi_model", *parts)) or "adi_model"
+        loaded = importlib.import_module(name)
+        assert Path(loaded.__file__).resolve() == path.resolve(), relative
+    manifest = (ROOT / "rtl/rtl_sources.f").read_text().splitlines()
+    declared = [
+        line.strip() for line in manifest if line.strip() and not line.lstrip().startswith("#")
+    ]
+    current_rtl = {p.relative_to(ROOT).as_posix() for p in (ROOT / "rtl").rglob("*.sv")}
+    assert len(declared) == len(set(declared))
+    assert set(declared) == current_rtl
+    inventory = json.loads((ROOT / "flow/verification/manifests/mechanism_inventory.json").read_text())
+    current_production = current_rtl | {
+        p.relative_to(ROOT).as_posix() for p in current_python.values()
+    }
+    current_production |= {
+        p.relative_to(ROOT).as_posix() for p in (ROOT / "subsys/ad4080_dsp/rtl").glob("*.sv")
+    }
+    referenced = {
+        name
+        for row in inventory["mechanisms"]
+        for name in row["code"]
+        if name.startswith(("src/adi_model/", "rtl/", "subsys/ad4080_dsp/rtl/"))
+    }
+    assert referenced <= current_production

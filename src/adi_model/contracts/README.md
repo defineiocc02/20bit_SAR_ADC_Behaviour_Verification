@@ -1,0 +1,24 @@
+# Python 类型、目标配置与整数格式
+
+默认生产事务使用 16 个主半单元、4 个子权重及 Q24 原码中心，见[生产定点公式](../digital_conversion.py)。下文的通用定点配置与电容研究夹具各按其声明的格式使用。
+
+这里保存模型的规格类型、事件身份、具名 profile 和整数算术接口。v21 的规格与执行优先级以 [工程合同入口](../../../docs/CONTRACT_CURRENT.md) 为准。
+
+| 文件 | 职责 |
+| --- | --- |
+| [specs.py](specs.py) | `TopologySpec`、单样本 `EventRecord`、`SampleContext`、开关命令及复现身份记录。输入显式携带 profile、拓扑及连接身份。 |
+| [events.py](events.py) | 事件顺序及样本关联的低层检查。 |
+| [profiles.py](profiles.py) | 注册具名目标。`load_profile(name)` 按精确名称查询，未知名称抛 `KeyError`。 |
+| [fixed_point.py](fixed_point.py) | 应用指定的寄存器格式和有效电容权重。批次 `DigitalObservation`、`FrozenCalibration` 从 [weight_calibration.py](../calibration/weight_calibration.py) 导入，`specs.py` 的同名类型描述单样本或系数身份，调用时按模块区分。 |
+
+## 当前 ADC 配置
+
+| 名称 | 用途 |
+| --- | --- |
+| `adi_isscc2024_40m_6vpp` | 40 MS/s、±3 V、18 片池／8 片活动，每片 16 个主权重／4 个子权重，ADC2 13 位。窗口和模型默认值见 [defaults.py](../defaults.py)。 |
+
+## 整数运算边界
+
+专利研究夹具的 `Fig11Parameters.format` 选择权重 Q30（48 位）、归一化电压 Q32（64 位有符号）、96 位受检累加与 20 位 offset-binary。`FixedPointFormat` 接受显式格式。系数、电压项和 ADC2 码箱中心按 ties-to-even 量化，最终出码用 floor 并夹到合法码域。调用方若给物理增益，码箱值的增益换算也使用整数就近取偶。累加值须落在 `[-2**95, 2**95)`，越界抛错。模拟越界标志和最终码裁剪分列。
+
+生产 Python 和 v21 的实际出码另外由独立的 [定点模型](../../../tools/recon_oracle.py) 验收。组件参考的格式与范围可从 [验证入口](../../../flow/verification/README.md) 查看。

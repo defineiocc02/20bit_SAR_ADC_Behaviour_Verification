@@ -1,7 +1,0 @@
-{
-  "reason": "Fresh public CLI rerun after all comment edits; same strict numeric baseline, actual new input/source metadata",
-  "previous_json_sha256": "24ff2bb076f6275ebd2337abecc18a6398ccd2f5fc09364945b0180380e7f967",
-  "current_json_sha256": "dbbefe2aa7bd6df71651608733d510ec793d6264ca04cd82e7abfada213107a3",
-  "all_legacy_rows_and_timing_metrics_unchanged": true,
-  "all_frozen_array_elements_unchanged": true
-}

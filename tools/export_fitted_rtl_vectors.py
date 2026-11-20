@@ -11,7 +11,7 @@ import argparse
 import json
 from pathlib import Path
 
-from adi_model.fixed_point import FixedPointReconstructor
+from adi_model.contracts.fixed_point import FixedPointReconstructor
 from export_fitted_rtl import build_fitted_registers
 from export_rtl_params import _digest, _json_text, load_contract
 from export_rtl_vectors import build_vectors, write_bundle

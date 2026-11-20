@@ -1,0 +1,61 @@
+# =============================================================================
+# 文件名     : min_single_domain.upf
+# 版本       : v5.0
+# 功能       : 单电源域最小 UPF，让 FC 的 place_opt 完成 PG 连接。
+#
+# 设计说明   :
+#   * 为什么需要：place_opt 报 OPT-043/OPT-045，日志
+#       Number of used supplies = 0
+#     库有 PG 引脚（get_lib_pins */*/VDD -> 839 个，dir=in）。
+#
+#   * **五个顺序/完整性坑（v1~v5 各踩一次，全部带错误码）**：
+#       v1  create_supply_net -domain .                     -> SEL-005
+#       v2  先建 PD 再建域相关网，set 引该网                -> UPF-005
+#       v3  缺电压/驱动、-supply 与 set_domain_supply_net 重复 -> UPF-520/176/012
+#       v4  set_voltage 写进 UPF 文件                        -> CMD-005
+#       v5  **associate_supply_set 没有真正绑到 PD**
+#           实测 PD.supply_sets 为空，supply_sets_all 有 SS_PRIMARY
+#           -> place_opt 认为 PD 上没有可用 supply
+#           改用 create_power_domain -supply {primary SS_PRIMARY}
+#           并且**不再调 set_domain_supply_net**（它会覆盖成 "已指定"）
+#
+#   * 关键：`create_voltage_area -power` 要求
+#       "The net must match one of the available power supply nets
+#        on the power domains."（man create_voltage_area）
+#     所以 PD 必须先真正挂上 supply set。
+#
+#   * 电压在 TCL 侧设（set_voltage 是 TCL 命令，UPF 文件里不可用）。
+#
+# 变更记录   :
+#   2026-11-16  v1.0 ~ v4.0 见上。
+#   2026-11-16  v5.0 用 create_power_domain -supply 直接挂 set，去掉重复指定。
+# =============================================================================
+
+upf_version 2.1
+
+# ---- 1. 全局电源网络 ----
+create_supply_net VDD
+create_supply_net VSS
+
+# ---- 2. 电源集合 ----
+create_supply_set SS_PRIMARY \
+    -function {power VDD} \
+    -function {ground VSS}
+
+# ---- 3. 单电源域，**在创建时就挂 supply set** ----
+# v5 之前的写法是先 create_power_domain 再 associate_supply_set，
+# 实测 PD.supply_sets 仍为空，说明 associate 没有真正生效。
+create_power_domain PD_TOP -elements {.} -supply {primary SS_PRIMARY}
+
+# ---- 4. 定义电源状态（避免 MV-099）----
+#
+# **为什么需要**：check_mv_design 报
+#   Warning: Supply state(s) has not been defined on the supply net 'VDD' (MV-099)
+# 电源状态是 UPF 用来描述"这个网在某时刻是什么电压"的模型；
+# 单电源域设计也必须有，否则后续 MV 检查不完整。
+
+# ---- 5. 给电源网加驱动（避免 UPF-176）----
+create_supply_port VDD_PORT -direction inout -domain PD_TOP
+connect_supply_net VDD -ports {VDD_PORT}
+create_supply_port VSS_PORT -direction inout -domain PD_TOP
+connect_supply_net VSS -ports {VSS_PORT}

@@ -1,0 +1,199 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="digital-dem-flow" width="960" height="604" viewBox="0 0 960 604" role="img" aria-labelledby="digital-dem-flow-title digital-dem-flow-desc">
+<title id="digital-dem-flow-title">同一粗码如何落到不同开关</title>
+<desc id="digital-dem-flow-desc">两个八乘八矩阵各对应一条 DEM 叶子原始掩码，列表示宏列，行表示槽号。固定 k=283，桥交换关闭；相位改变后，四个满列及保留列的位置改变。保留列中的三个选通槽也随纵向相位改变。</desc>
+<defs>
+<marker id="digital-dem-flow-i" viewBox="0 0 9 8" refX="8.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" orient="auto"><path d="M0 0 L9 4 L0 8 Z" fill="#1b3441"/></marker>
+<marker id="digital-dem-flow-t" viewBox="0 0 9 8" refX="8.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" orient="auto"><path d="M0 0 L9 4 L0 8 Z" fill="#006d6a"/></marker>
+<marker id="digital-dem-flow-r" viewBox="0 0 9 8" refX="8.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" orient="auto"><path d="M0 0 L9 4 L0 8 Z" fill="#994124"/></marker>
+<marker id="digital-dem-flow-g" viewBox="0 0 9 8" refX="8.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" orient="auto"><path d="M0 0 L9 4 L0 8 Z" fill="#425b66"/></marker>
+</defs>
+<rect width="960" height="540" fill="white"/>
+<g font-family="Arial, PingFang SC, Noto Sans CJK SC, Microsoft YaHei, sans-serif" fill="#1b3441">
+<text x="28" y="41" text-anchor="start" font-size="30" font-weight="650" fill="#1b3441">同一粗码如何落到不同开关</text>
+<text x="29" y="68" text-anchor="start" font-size="17" font-weight="400" fill="#425b66">k = 283 = 64 × 4 + 8 × 3 + 3。横向选满 4 列，纵向在保留列中选 3 槽，子阵列编码低段 3。</text>
+<g id="digital-dem-flow-maps">
+<text x="260" y="114" text-anchor="middle" font-size="21" font-weight="600" fill="#1b3441">横相位 0　·　纵相位 0</text>
+<text x="89" y="154" text-anchor="start" font-size="17" font-weight="500" fill="#425b66">槽／列</text>
+<text x="168" y="155" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">0</text>
+<text x="194" y="155" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">1</text>
+<text x="220" y="155" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">2</text>
+<text x="246" y="155" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">3</text>
+<text x="272" y="155" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">4</text>
+<text x="298" y="155" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">5</text>
+<text x="324" y="155" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">6</text>
+<text x="350" y="155" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">7</text>
+<text x="133" y="184" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">0</text>
+<rect x="156" y="166" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="182" y="166" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="208" y="166" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="234" y="166" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="260" y="166" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="286" y="166" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="312" y="166" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="338" y="166" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<text x="133" y="210" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">1</text>
+<rect x="156" y="192" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="182" y="192" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="208" y="192" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="234" y="192" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="260" y="192" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="286" y="192" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="312" y="192" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="338" y="192" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<text x="133" y="236" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">2</text>
+<rect x="156" y="218" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="182" y="218" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="208" y="218" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="234" y="218" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="260" y="218" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="286" y="218" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="312" y="218" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="338" y="218" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<text x="133" y="262" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">3</text>
+<rect x="156" y="244" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="182" y="244" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="208" y="244" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="234" y="244" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="260" y="244" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="286" y="244" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="312" y="244" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="338" y="244" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<text x="133" y="288" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">4</text>
+<rect x="156" y="270" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="182" y="270" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="208" y="270" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="234" y="270" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="260" y="270" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="286" y="270" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="312" y="270" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="338" y="270" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<text x="133" y="314" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">5</text>
+<rect x="156" y="296" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="182" y="296" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="208" y="296" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="234" y="296" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="260" y="296" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="286" y="296" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="312" y="296" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="338" y="296" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<text x="133" y="340" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">6</text>
+<rect x="156" y="322" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="182" y="322" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="208" y="322" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="234" y="322" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="260" y="322" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="286" y="322" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="312" y="322" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="338" y="322" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<text x="133" y="366" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">7</text>
+<rect x="156" y="348" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="182" y="348" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="208" y="348" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="234" y="348" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="260" y="348" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="286" y="348" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="312" y="348" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="338" y="348" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="336" y="163" width="28" height="212" rx="1" fill="none" stroke="#994124" stroke-width="1.9" stroke-dasharray="5 3"/>
+<text x="260" y="411" text-anchor="middle" font-size="17" font-weight="550" fill="#1b3441">保留列 7　·　35 个位置选通</text>
+<text x="699" y="114" text-anchor="middle" font-size="21" font-weight="600" fill="#1b3441">横相位 2　·　纵相位 3</text>
+<text x="528" y="154" text-anchor="start" font-size="17" font-weight="500" fill="#425b66">槽／列</text>
+<text x="607" y="155" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">0</text>
+<text x="633" y="155" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">1</text>
+<text x="659" y="155" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">2</text>
+<text x="685" y="155" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">3</text>
+<text x="711" y="155" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">4</text>
+<text x="737" y="155" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">5</text>
+<text x="763" y="155" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">6</text>
+<text x="789" y="155" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">7</text>
+<text x="572" y="184" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">0</text>
+<rect x="595" y="166" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="621" y="166" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="647" y="166" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="673" y="166" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="699" y="166" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="725" y="166" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="751" y="166" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="777" y="166" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<text x="572" y="210" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">1</text>
+<rect x="595" y="192" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="621" y="192" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="647" y="192" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="673" y="192" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="699" y="192" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="725" y="192" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="751" y="192" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="777" y="192" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<text x="572" y="236" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">2</text>
+<rect x="595" y="218" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="621" y="218" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="647" y="218" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="673" y="218" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="699" y="218" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="725" y="218" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="751" y="218" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="777" y="218" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<text x="572" y="262" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">3</text>
+<rect x="595" y="244" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="621" y="244" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="647" y="244" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="673" y="244" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="699" y="244" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="725" y="244" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="751" y="244" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="777" y="244" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<text x="572" y="288" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">4</text>
+<rect x="595" y="270" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="621" y="270" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="647" y="270" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="673" y="270" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="699" y="270" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="725" y="270" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="751" y="270" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="777" y="270" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<text x="572" y="314" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">5</text>
+<rect x="595" y="296" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="621" y="296" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="647" y="296" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="673" y="296" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="699" y="296" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="725" y="296" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="751" y="296" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="777" y="296" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<text x="572" y="340" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">6</text>
+<rect x="595" y="322" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="621" y="322" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="647" y="322" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="673" y="322" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="699" y="322" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="725" y="322" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="751" y="322" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="777" y="322" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<text x="572" y="366" text-anchor="middle" font-size="16" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">7</text>
+<rect x="595" y="348" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="621" y="348" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="647" y="348" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="673" y="348" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="699" y="348" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="725" y="348" width="24" height="24" rx="1" fill="#006d6a" stroke="#006d6a" stroke-width="1.15"/>
+<rect x="751" y="348" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="777" y="348" width="24" height="24" rx="1" fill="#fff" stroke="#b5c3c6" stroke-width="1.15"/>
+<rect x="619" y="163" width="28" height="212" rx="1" fill="none" stroke="#994124" stroke-width="1.9" stroke-dasharray="5 3"/>
+<text x="699" y="411" text-anchor="middle" font-size="17" font-weight="550" fill="#1b3441">保留列 1　·　35 个位置选通</text>
+<path d="M406 266 H548" fill="none" stroke="#1b3441" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-dem-flow-i)"/>
+<text x="477" y="253" text-anchor="middle" font-size="18" font-weight="550" fill="#425b66">改变相位</text>
+</g>
+<g id="digital-dem-flow-key">
+<path d="M28 431 H932" fill="none" stroke="#d0dadb" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="29" y="454" width="20" height="20" rx="0" fill="#006d6a" stroke="#006d6a" stroke-width="1.8"/>
+<text x="60" y="470" text-anchor="start" font-size="17" font-weight="500" fill="#1b3441">选通的一对等权半单元</text>
+<rect x="297" y="454" width="20" height="20" rx="0" fill="#ffffff" stroke="#a5b8bd" stroke-width="1.8"/>
+<text x="329" y="470" text-anchor="start" font-size="17" font-weight="400" fill="#1b3441">未选通</text>
+<rect x="454" y="454" width="20" height="20" rx="0" fill="none" stroke="#994124" stroke-width="1.8" stroke-dasharray="4 3"/>
+<text x="486" y="470" text-anchor="start" font-size="17" font-weight="400" fill="#1b3441">保留列</text>
+<text x="29" y="509" text-anchor="start" font-size="17" font-weight="400" fill="#425b66">本例关闭桥交换。保护码 512–520 则选通全部主单元，由子阵列编码超出 512 的部分。</text>
+</g>
+</g>
+<rect x="0" y="540" width="960" height="36" fill="white"/><path d="M25 541H935" stroke="#c6d4d4"/><a href="https://patents.google.com/patent/US10511316B2/en"><text x="25" y="564" font-family="Arial, PingFang SC, Heiti SC, sans-serif" font-size="15" fill="#285851">ISSCC 图 9.8.3 下部与 US10511316B2 图 19–20：横纵打乱与保留列。相位编码、桥交换由工程选定。</text></a>
+<rect x="0" y="576" width="960" height="28" fill="white"/><text class="svg-purpose" x="25" y="595" font-size="16" font-weight="600" font-family="Arial, PingFang SC, Heiti SC, sans-serif" fill="#142f40">作用　轮换等权电容，减轻失配造成的非线性。</text>
+</svg>

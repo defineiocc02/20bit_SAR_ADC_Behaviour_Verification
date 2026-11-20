@@ -1,0 +1,20 @@
+{
+  "metrics": {
+    "power_spectral_density": "5a233fb33d75214525257fb294000c9064695b8d4de9f9491145767f08203e1c",
+    "spectrum_dbfs": "59d477b292cd030da4db0a2a061608be754fd2ab21ac65eadbd8527c83de415c",
+    "sine_fit_metrics": "0355a03f422387000e96dbbc7b3d7f2b525335124df0a1bffa80e77c9eb5c41f",
+    "inl_from_mean_error": "931a884001e7e7e49705b56e2e7b1e1a31b2a41d95090b95df52069f9bd35347",
+    "integrate_noise_band": "f619da22c6d884089d15889efcae03c5af25f41dc5ea34e172a9040f94fe224b",
+    "reference_precision_bits": "b223a77d6597c6b84f52d6cdbeb95dd7c8d67c60f5818229b83fae8dad6b6ed9",
+    "static_test": "9f1521451fc35eb5f8a6d9af8489cfef2a9862646fa7ce0681d82e448c5ffad7"
+  },
+  "metrics_lsb20": {
+    "power_spectral_density": "5a233fb33d75214525257fb294000c9064695b8d4de9f9491145767f08203e1c",
+    "spectrum_dbfs": "59d477b292cd030da4db0a2a061608be754fd2ab21ac65eadbd8527c83de415c",
+    "sine_fit_metrics": "0355a03f422387000e96dbbc7b3d7f2b525335124df0a1bffa80e77c9eb5c41f",
+    "inl_from_mean_error": "931a884001e7e7e49705b56e2e7b1e1a31b2a41d95090b95df52069f9bd35347",
+    "integrate_noise_band": "f619da22c6d884089d15889efcae03c5af25f41dc5ea34e172a9040f94fe224b",
+    "reference_precision_bits": "b223a77d6597c6b84f52d6cdbeb95dd7c8d67c60f5818229b83fae8dad6b6ed9",
+    "static_test": "9f1521451fc35eb5f8a6d9af8489cfef2a9862646fa7ce0681d82e448c5ffad7"
+  }
+}

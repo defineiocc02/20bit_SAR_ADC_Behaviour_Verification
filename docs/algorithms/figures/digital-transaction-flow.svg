@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="digital-transaction-flow" width="1100" height="559" viewBox="0 0 1100 559" role="img" aria-labelledby="digital-transaction-flow-title digital-transaction-flow-desc">
+<title id="digital-transaction-flow-title">同一笔采样如何从扰动字 53 还原为 410304 码</title>
+<desc id="digital-transaction-flow-desc">tag 54 的采样请求指定六位字 53。SADC 低段为 2.625，粗码为 202。高段 4 使最终命令为 206。八个 RDAC 槽的预置平均为 6.625。实际 pre 和 post 共同决定理想宏的 ADC2 原码 6016 及片上的权重和。数字重构输出 410304。</desc>
+<defs>
+  <marker id="txn-arrow" viewBox="0 0 8 8" refX="7.2" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#355160"/></marker>
+  <marker id="txn-blue" viewBox="0 0 8 8" refX="7.2" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#2166ac"/></marker>
+</defs>
+<rect width="1100" height="495" fill="white"/>
+<g font-family="Arial, PingFang SC, Heiti SC, Noto Sans CJK SC, sans-serif" fill="#142f40">
+  <text x="26" y="45" font-size="33" font-weight="700">一笔采样怎样从扰动字走到最终码</text>
+  <text x="28" y="76" font-size="18" fill="#485f6b">顶层端口实测 · tag 54 · 固定输入 −0.6522216796875 V · 强制测试字，理想模拟宏</text>
+  <path d="M28 91H1070" stroke="#bac8cd"/>
+  <g font-size="15" fill="#34635b"><text x="248" y="225">原图 300 → ADC 200</text><text x="495" y="225">原图 224 · 码域调整</text><text x="246" y="353">原图 222 → DAC 220</text></g>
+  <!-- 分支点属于同一个受理样本。U 供已决码加法，低段和全字在采样端分开。 -->
+  <g fill="none" stroke="#355160" stroke-width="2.7" marker-end="url(#txn-arrow)">
+    <path d="M173 218H199V159H231"/><path d="M199 218V286H231"/>
+    <path d="M427 159H480"/><path d="M669 159H711"/><path d="M427 286H711"/>
+    <path d="M837 220V159H859"/><path d="M837 220V286H859"/>
+    <path d="M950 329V382"/><path d="M1035 159H1070V421H1037"/>
+  </g>
+  <path d="M817 220H837" stroke="#355160" stroke-width="3"/><circle cx="837" cy="220" r="3.8" fill="#355160"/>
+  <circle cx="199" cy="218" r="3.8" fill="#355160"/>
+  <g stroke="#355160" stroke-width="1.9" fill="#fff">
+    <rect x="26" y="174" width="147" height="90" rx="5"/><rect x="233" y="114" width="194" height="90" rx="5" fill="#f2f7f9" stroke-dasharray="7 4"/>
+    <rect x="233" y="242" width="194" height="89" rx="5"/><rect x="482" y="114" width="187" height="90" rx="5"/>
+    <rect x="713" y="114" width="104" height="217" rx="5" fill="#f7faf9" stroke="#90aaa9"/>
+    <rect x="861" y="114" width="174" height="90" rx="5" fill="#f2f7f9" stroke-dasharray="7 4"/>
+    <rect x="861" y="242" width="174" height="87" rx="5"/>
+    <rect x="233" y="384" width="802" height="74" rx="5" fill="#e7f4f0" stroke="#006e68"/>
+  </g>
+  <g font-size="16" fill="#485f6b"><text x="39" y="194">片选与受理</text><text x="248" y="137">所选 SADC · 理想宏</text><text x="247" y="265">八槽 RDAC · 采样预置</text><text x="496" y="137">已决位跟随 · DEM</text><text x="873" y="137">余差宏 + ADC2</text><text x="873" y="265">片上权重求和</text></g>
+  <text x="39" y="226" font-size="28" font-weight="700">字 <tspan data-trace="word">53</tspan></text><text x="39" y="248" font-size="17" fill="#485f6b">二进制 110101</text>
+  <text x="248" y="165" font-size="23" font-weight="700">粗码 c = <tspan data-trace="coarse">202</tspan></text><text x="248" y="189" font-size="17" fill="#2166ac">低段 L = 2.625</text>
+  <text x="247" y="295" font-size="22" font-weight="700">平均 T = 6.625</text><text x="247" y="317" font-size="16" fill="#485f6b">T = L + U，冻结 pre</text>
+  <text x="496" y="165" font-size="23" font-weight="700">k = <tspan data-trace="k">206</tspan></text><text x="496" y="189" font-size="16" fill="#485f6b">c + U，高段 U = 4</text>
+  <text x="765" y="146" font-size="17" text-anchor="middle" fill="#485f6b">转换终态</text><text x="765" y="176" font-size="22" font-weight="700" text-anchor="middle">post</text>
+  <path d="M725 218H805" stroke="#bac8cd"/><text x="765" y="247" font-size="15" text-anchor="middle" fill="#006e68">同一组片号</text>
+  <text x="765" y="290" font-size="22" font-weight="700" text-anchor="middle">pre</text><text x="765" y="314" font-size="17" text-anchor="middle" fill="#485f6b">采样开关</text>
+  <text x="873" y="167" font-size="23" font-weight="700">raw = <tspan data-trace="raw">6016</tspan></text><text x="873" y="189" font-size="16" fill="#485f6b">读取实际开关</text>
+  <text x="873" y="295" font-size="22" font-weight="700">G, Wm, Wp</text><text x="873" y="316" font-size="16" fill="#485f6b">按物理片号查表</text>
+  <text x="22" y="378" font-size="16" fill="#485f6b">实线框　数字 IP</text><text x="22" y="407" font-size="16" fill="#485f6b">虚线框　理想模拟宏</text>
+  <text x="251" y="410" font-size="17" fill="#006e68">同笔细码与权重按 tag 配对</text><text x="251" y="438" font-size="20" font-weight="700">加转换权重 Wm，扣一次采样权重 Wp</text>
+  <path d="M658 422H720" stroke="#2166ac" stroke-width="2.2" marker-end="url(#txn-blue)"/>
+  <text x="741" y="428" font-size="29" fill="#006e68" font-weight="700"><tspan data-trace="code">410304</tspan> 码</text>
+  <text x="27" y="484" font-size="15" fill="#485f6b">L、T、U 均以一级粗码步长为单位。c 由 k−U 复核。两组开关与片号一起送往理想宏和片上求和器。</text>
+</g><rect x="0" y="495" width="1100" height="36" fill="white"/><path d="M25 496H1075" stroke="#c6d4d4"/><a href="https://patents.google.com/patent/US10505561B2/en"><text x="25" y="519" font-family="Arial, PingFang SC, Heiti SC, sans-serif" font-size="15" fill="#285851">讲稿第 17 页 · US10505561B2 图 19：300 至 SADC，222 至 RDAC，224 调码。八槽与本图数字由工程确定。</text></a>
+<rect x="0" y="531" width="1100" height="28" fill="white"/><text class="svg-purpose" x="25" y="550" font-size="16" font-weight="600" font-family="Arial, PingFang SC, Heiti SC, sans-serif" fill="#142f40">作用　两级分担量化，按同笔权重还原输入。</text>
+</svg>

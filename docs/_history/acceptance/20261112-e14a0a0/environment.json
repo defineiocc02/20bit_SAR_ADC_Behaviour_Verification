@@ -1,0 +1,32 @@
+{
+  "run_id": "20261112-e14a0a0",
+  "repo": "defineiocc02/20bit_SAR_ADC_Behaviour_Verification",
+  "branch": "merge/adi-repro",
+  "commit": "e14a0a0",
+  "worktree_dirty_files": 0,
+  "review_baseline": "0752889da6ea9a50649ea6a6aa21b54ecf4d8bbc",
+  "platform": {
+    "host": "macOS arm64 (local), Linux RHEL 8.10 (vm-meow, via ProxyJump windows-codex)",
+    "python": "3.13.12",
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "matplotlib": "3.11.2",
+    "pytest": "9.2.0",
+    "ruff": "0.6.9",
+    "mypy": "2.4.1"
+  },
+  "simulator": {
+    "name": "VCS",
+    "version": "W-2024.09-SP1",
+    "path": "/opt/synopsys/vcs/W-2024.09-SP1/bin/vcs",
+    "license": "SNPSLMD_LICENSE_FILE=27080@localhost",
+    "host": "vm-meow"
+  },
+  "not_available": {
+    "verilator": "absent locally; installed as 4.028 on vm-meow but that host runs Python 3.6 without numpy, so the pytest orchestration cannot run there"
+  },
+  "notes": [
+    "worktree was clean at every measurement; figures were regenerated at the previous code commit 1e915ec because the generation itself changes no source",
+    "no remote push and no merge to main was performed"
+  ]
+}

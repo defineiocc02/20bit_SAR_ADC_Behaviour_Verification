@@ -1,0 +1,115 @@
+{
+  "sample_index": 97,
+  "sample_time_ns": 2425.0,
+  "input_v": -1.485825478343601,
+  "loop_status": "A6 (in-loop dither) not wired: only the digital/RDAC part can be composed",
+  "no_dither": {
+    "sadc_input_v": -1.485825478343601,
+    "coarse_code": 128,
+    "coarse_nominal_v": -1.4970645792563597,
+    "rdac_event_codes": [
+      128,
+      128,
+      128,
+      128,
+      128,
+      128,
+      128
+    ],
+    "rdac_cumulative_abs_charge_pc": [
+      29.877443240280506,
+      29.877443240280506,
+      29.877443240280506,
+      29.877443240280506,
+      29.877443240280506,
+      29.877443240280506,
+      29.877443240280506
+    ],
+    "ra_input_residue_v": 0.011012865509499798,
+    "adc2_code": 14194,
+    "reconstructed_v": -1.4860525131225586,
+    "reconstruction_error_lsb20": -39.67720339672329
+  },
+  "with_dither": {
+    "dither_word": 33,
+    "dither_bits_D6_to_D1": [
+      1,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    "lower_lsb": 0.14285711736218717,
+    "upper_lsb": 4,
+    "lower_v": 0.0016773829702287912,
+    "total_v": 0.04864411451853812,
+    "sadc_input_v": -1.4875028613138297,
+    "coarse_code": 128,
+    "rdac_event_codes": [
+      128,
+      128,
+      128,
+      128,
+      128,
+      128,
+      128
+    ],
+    "rdac_cumulative_abs_charge_pc": [
+      29.877443240280506,
+      29.877443240280506,
+      29.877443240280506,
+      29.877443240280506,
+      29.877443240280506,
+      29.877443240280506,
+      29.877443240280506
+    ],
+    "ra_adc2": "not available: requires A6 in-loop dither"
+  },
+  "dem_state": {
+    "horizontal": 41,
+    "vertical": 3
+  },
+  "physical_slices": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "main_units_on_per_slice": [
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4
+  ],
+  "sub_units_on_per_slice": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "main_unit_index_slice0": [
+    0,
+    1,
+    13,
+    14
+  ],
+  "sub_unit_index_slice0": [],
+  "provenance": {
+    "no_dither": "single real pipeline run (dither disabled)",
+    "with_dither": "same sample; code recomputed from the 513-point SADC thresholds; analog tail absent",
+    "prefix_table": "complete_flash3_sar6_prefix_table (same as main chain)"
+  }
+}

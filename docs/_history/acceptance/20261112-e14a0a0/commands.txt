@@ -1,0 +1,47 @@
+# 所有命令均在仓库根目录、受测版本 e14a0a0、工作区干净时执行
+
+# 0. 版本与环境
+git rev-parse HEAD
+git status --porcelain | wc -l
+python3 -V
+
+# 1. 结构审计（依赖方向 / CAAZ / 同名函数）
+python3 - <<'PY'   # 见 evidence/structure_audit.txt 的生成脚本
+PY
+
+# 2. 单一权威实现：两份 metrics 的行为对照（七入口摘要）
+PYTHONPATH=src python3 tools/check_metrics_equivalence.py \
+  --json docs/acceptance/20261112-e14a0a0/evidence/metrics_equivalence.json \
+  --compare /tmp/metrics_before.json
+
+# 3. 行为指纹：对照基线 / 拒绝覆盖 / 漂移必须非零退出
+PYTHONPATH=src python3 tools/behavior_fingerprint.py \
+  --check docs/restructure/behavior_fingerprint.json
+PYTHONPATH=src python3 tools/behavior_fingerprint.py --out docs/restructure   # 应退出 2
+
+# 4. 测试
+PYTHONPATH=src python3 -m pytest tests --collect-only -q
+PYTHONPATH=src python3 -m pytest tests/unit tests/verification -q
+PYTHONPATH=src python3 -m pytest tests/integration -q
+PYTHONPATH=src:. python3 -m pytest tests/verification/test_scoreboard_fault_injection.py -q
+
+# 5. 静态检查
+python3 -m ruff check --output-format=concise .
+python3 -m mypy src/adi_model
+
+# 6. Python–RTL V1（VCS，远端 vm-meow）
+python3 -m verification.run_verification --level contracts
+python3 -m verification.run_verification --level module
+
+# 7. V3 顶层 bring-up（elaborate + 复位 idle）
+python3 -m verification.run_verification --level rtl_top
+python3 -m verification.run_verification --level closed_loop
+
+# 8. 性能矩阵与图（必须同参数，否则图与表对不上）
+PYTHONPATH=src python3 tools/run_p4_ablation.py --static-points 256 \
+  --static-repeats 32 --dynamic-n 8192 --out docs/reviews/20261113_p3p4/data
+PYTHONPATH=src python3 tools/run_review_figures.py --points 256 --repeats 32 \
+  --dynamic-n 8192 --out docs/reviews/20261113_p3p4/figures
+
+# 9. 公共入口
+PYTHONPATH=src python3 -m adi_model --help

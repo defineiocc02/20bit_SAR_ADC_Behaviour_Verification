@@ -1,3 +1,14 @@
+# =============================================================================
+# 文件名     : inventory_gate.py
+# 版本       : v1.0
+# 功能       : 核对来源身份、代码引用和清单中的必要状态。
+# 设计说明   :
+#   * 来源标识和 SHA-256 具有不同职责。名称用于关联机制，同字节才可替代原件。
+#   * 引用是否可定位、必需状态是否就绪是两个维度，分别记录，不相互代替。
+#   * 只读原件并静态解析代码。离线缺资料使用 BLOCKED，不能伪装为已复核。
+#   * 只在指明输出路径时创建摘要。已存在的证据禁止覆盖，保证重复运行有独立身份。
+# 变更记录   : 接入验证目录中的相对清单位置，并解析已归档的历史路径。
+# =============================================================================
 """来源身份、代码引用和已登记状态的静态检查。
 
 来源哈希/页数登记、仓库内引用和显式 required_task_ids 分别检查。
@@ -23,11 +34,19 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import NoReturn
 
-SOURCES_FILE = "sources_manifest.json"
-INVENTORY_FILE = "mechanism_inventory.json"
+# 清单单独归于验证流程。旧仓库快照按整对清单读取，避免新旧字段混用。
+MANIFEST_DIR = Path("flow/verification/manifests")
+SOURCES_FILE = str(MANIFEST_DIR / "sources_manifest.json")
+INVENTORY_FILE = str(MANIFEST_DIR / "mechanism_inventory.json")
 REFERENCES_FILE = "references/source_manifest.json"
+# 冻结清单的原始字符串仍是证据的一部分。只对已知移位的首层目录重定位。
+MOVED_REFERENCE_ROOTS = {
+    "tests": Path("flow/tests"),
+    "sim": Path("flow/sim"),
+    "extensions": Path("subsys/extensions"),
+}
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
-TEST_ID_RE = re.compile(r"^(?P<path>tests/[\w/]+\.py)::(?P<symbol>\w+)$")
+TEST_ID_RE = re.compile(r"^(?P<path>(?:(?:flow/)?tests|subsys/extensions/caaz/tests)/[\w/]+\.py)::(?P<symbol>\w+)$")
 RTL_CONTRACT_STATUSES = (
     "DIGITAL_IMPLEMENTED",
     "CONTROL_ONLY",
@@ -36,6 +55,14 @@ RTL_CONTRACT_STATUSES = (
 )
 
 
+# =============================================================================
+# 1. 结果和范围
+# =============================================================================
+# 门禁每遇到一项事实追加一行。静态身份、原始资料可用性和必要状态可以独立追溯。
+# FAIL 表示有反证或记录格式错误，BLOCKED 表示证据缺项。二者不能合并为相同原因。
+# 未执行的阶段依自身范围排除。GateResult 的统计只计登记行，不代替实际运行。
+# 记录顺序保留输入次序，损坏字段的报错可沿相同机制 ID 找回原条目。
+# 需要额外校验状态的调用方使用 required_states_ready，而不是只读 PASS 总数。
 @dataclass
 class Record:
     """一条门禁记录：check id、严重级别、人类可读结论。"""
@@ -83,6 +110,14 @@ class GateResult:
         )
 
 
+# =============================================================================
+# 2. 输入读入
+# =============================================================================
+# 先限制输入体积再接触解析器，避免损坏或错误选择的文件消耗无限内存。
+# 用对象钩子检查重复键，防止后一个同名字段覆盖前一个来源或状态字段。
+# 清单的实数必须有界。Python 默认接受的 NaN 和无穷表示不能写进严格 JSON。
+# 读取成功还需验证根类型。后续检查器依赖字段映射，不接受数组的隐式重解释。
+# 解码或结构错误由调用方归入具体的 sources、inventory 或 references 记录。
 def _load_json(path: Path) -> dict[str, object]:
     """读取有限数值、无重复键的 JSON 对象，不接受未迁移根格式。"""
 
@@ -116,6 +151,14 @@ def _load_json(path: Path) -> dict[str, object]:
     return values
 
 
+# =============================================================================
+# 3. 本地资料查找
+# =============================================================================
+# 首先查显式环境覆盖，再查清单的默认目录，支持在不同主机按同身份复验。
+# 旧清单把 location_rule 放在 meta 内，有顶层规则时以顶层为准，避免默认覆盖显式选择。
+# 相对默认位置以仓库根为基准。规则仅提供候选目录，不更改来源的登记名称。
+# 目录是否存在由逐文件查找判断，此处不创建目录、下载或复制原件。
+# 外部资料目录只用于原件定位。代码和测试引用仍由仓库内相对路径检查。
 def _resolve_sources_dir(manifest: dict[str, object], repo_root: Path) -> list[Path]:
     """原文定位目录候选：环境变量优先，其次清单登记的默认目录。"""
     candidates: list[Path] = []
@@ -140,6 +183,13 @@ def _resolve_sources_dir(manifest: dict[str, object], repo_root: Path) -> list[P
     return candidates
 
 
+# =============================================================================
+# 4. 随库资料的身份
+# =============================================================================
+# ReferenceAsset 只装已经核查通过的资料。声明过但身份不符的条目不得进入替代索引。
+# 原始资料的大小使用字节，页数为登记值。门禁不以读到 PDF 开头代替页数或技术核查。
+# 按 source_id 查来源身份。按 SHA 比较同内容别名，这两张表承担不同约束。
+# 把已证明的资产类型单独保存，防止后续算法把来源清单里的未核声明当真值。
 @dataclass(frozen=True)
 class ReferenceAsset:
     """已核仓库PDF字节身份及登记页数；不表示本工具阅读了文献。"""
@@ -151,6 +201,18 @@ class ReferenceAsset:
     size_bytes: int
 
 
+# =============================================================================
+# 5. 随库原件检查
+# =============================================================================
+# 先限制入口版本及条目类型，拒绝把任意路径清单当作参考 PDF 的专用格式。
+# 编码规范限制在 references 下且为 PDF。真实路径再做解析，防止符号链接绕过目录界限。
+# 空 ID 与重复 ID 单独报错。重复路径也报错，不能用一个文件填满两个资料槽位。
+# 记录起点隔离当前条目。其他条目失败不应阻止核对本条目，但本条目有错就不缓存。
+# 去重前核对长度和完整 SHA。不能只用同名文件、部分哈希或宣称页数判等。
+# documents_count 和总页数是清点口径，不是实际 PDF 的逐页技术阅读结果。
+# 文件超限时跳过读取并留下失败记录，避免构建或 CI 在误放大文件时卡住。
+# 类型判断区分 bool 与 int，JSON true 不能充当页数或字节大小。
+# 遇到损坏或不可读文件由外层保留路径关联结果，不写入任何原始清单。
 def _check_reference_assets(
     repo_root: Path, manifest: dict[str, object], result: GateResult
 ) -> tuple[set[str], dict[str, ReferenceAsset]]:
@@ -245,34 +307,43 @@ def _check_reference_assets(
     return ids, assets
 
 
-def _check_sources(
-    repo_root: Path,
-    manifest: dict[str, object],
+# =============================================================================
+# 6. 主来源和背景来源的追踪
+# =============================================================================
+# 登记来源 ID 先于查找文件。原件未就绪时，机制仍可引用其明确的登记身份。
+# 背景条目允许明确声明哈希未登记。它输出 BLOCKED，不加入已经核实的原件集合。
+# 随库原件与主来源相同 ID 时先查登记冲突。即使找到外部文件，也不能隐藏这个冲突。
+# 找不到本地文件时可使用已经逐字节核过的同 SHA 资产。替代对象必须一致完整。
+# 同 SHA 却登记不同页数时保留冲突。字节相同并不自动修正手写元数据。
+# 来源文件字段只接受文件名；从目录查找时禁止条目自己指定目录或绝对路径。
+# 优先检查实际找到的原件。若它的哈希错误，不能用同 SHA 替代物把错误盖掉。
+# 资料体积超限时不尝试哈希，明确记为当前环境未执行该校验。
+# resolve_dirs 只负责候选位置，来源验证和状态记录在此完成，不改变候选目录。
+def _verify_source_entries(
+    entries: list[tuple[object, bool]],
+    *,
     result: GateResult,
-    reference_assets: dict[str, ReferenceAsset] | None = None,
+    reference_assets: dict[str, ReferenceAsset],
+    reference_by_sha: dict[str, ReferenceAsset],
+    resolve_dirs,
 ) -> set[str]:
-    """检查已登记来源文件，返回可用于静态引用的 ID。
+    """逐条校验来源条目（ID 合法性、重复、哈希、体积），返回登记的 ID 集合。
 
-    未登记哈希的背景条目保持 BLOCKED。返回的 ID 标识声明，包括本地文件被阻断的条目；
-    不认证原文内容或文献引用的含义。
+    从 `_check_sources` 抽出：原函数 104 行里这段 for 占 74 行。
+    本函数只读清单、只写 result；错误以 result.add(...) 累积，不抛异常。
+
+    Args:
+        entries: (条目, 是否背景来源) 的列表，由调用方拼好。
+        result: 累积检查结果的容器；本函数只往里 add。
+        reference_assets: 参考资产表（按 ID），用于判断来源与资产是否同 UID。
+        reference_by_sha: 参考资产的 SHA256 索引，用于交叉引用。
+        resolve_dirs: 解析来源目录的可调用对象。
+
+    Returns:
+        已登记来源的 ID 集合（含本地文件被阻断的条目）。
+
+    Side effects: 写 result；读取本地文件以计算哈希（仅当路径解析成功时）。
     """
-    reference_assets = {} if reference_assets is None else reference_assets
-    reference_by_sha = {asset.sha256: asset for asset in reference_assets.values()}
-    sources = manifest.get("sources", [])
-    if not isinstance(sources, list) or not sources:
-        result.add("sources.present", "FAIL", "sources_manifest 缺少 sources 数组")
-        return set()
-    entries = [(source, False) for source in sources]
-    background = manifest.get("background_sources", {})
-    if not isinstance(background, dict):
-        result.add("sources.background", "FAIL", "background_sources 必须是对象")
-    else:
-        items = background.get("items", [])
-        if not isinstance(items, list):
-            result.add("sources.background", "FAIL", "background_sources.items 必须是数组")
-        else:
-            entries.extend((source, True) for source in items)
-    resolve_dirs = _resolve_sources_dir(manifest, repo_root)
     ids: set[str] = set()
     for src, is_background in entries:
         if not isinstance(src, dict):
@@ -351,6 +422,62 @@ def _check_sources(
     return ids
 
 
+
+# =============================================================================
+# 7. 汇总登记与建立索引
+# =============================================================================
+# 把主体和背景记录保留各自类别。背景条目的登记豁免不作用于主要来源。
+# 所有资料成员按来源 ID 汇入机制核查。清单缺失和本地资料缺失的级别不相同。
+# 随库登记单独形成哈希索引。后续允许比较字节身份，不把附带文件名当推断依据。
+# 登记的文献规模由原清单记录。路径迁移不重新声明哪些原文已经阅读。
+# 此步骤只返回登记身份。来源哈希结果留在 result，后续引用检查不重写其状态。
+def _check_sources(
+    repo_root: Path,
+    manifest: dict[str, object],
+    result: GateResult,
+    reference_assets: dict[str, ReferenceAsset] | None = None,
+) -> set[str]:
+    """检查已登记来源文件，返回可用于静态引用的 ID。
+
+    未登记哈希的背景条目保持 BLOCKED。返回的 ID 标识声明，包括本地文件被阻断的条目；
+    不认证原文内容或文献引用的含义。
+    """
+    reference_assets = {} if reference_assets is None else reference_assets
+    reference_by_sha = {asset.sha256: asset for asset in reference_assets.values()}
+    sources = manifest.get("sources", [])
+    if not isinstance(sources, list) or not sources:
+        result.add("sources.present", "FAIL", "sources_manifest 缺少 sources 数组")
+        return set()
+    entries = [(source, False) for source in sources]
+    background = manifest.get("background_sources", {})
+    if not isinstance(background, dict):
+        result.add("sources.background", "FAIL", "background_sources 必须是对象")
+    else:
+        items = background.get("items", [])
+        if not isinstance(items, list):
+            result.add("sources.background", "FAIL", "background_sources.items 必须是数组")
+        else:
+            entries.extend((source, True) for source in items)
+    resolve_dirs = _resolve_sources_dir(manifest, repo_root)
+    ids: set[str] = set()
+    return _verify_source_entries(
+        entries,
+        result=result,
+        reference_assets=reference_assets,
+        reference_by_sha=reference_by_sha,
+        resolve_dirs=resolve_dirs,
+    )
+    return ids
+
+
+# =============================================================================
+# 8. 仓库相对路径及旧证据
+# =============================================================================
+# 本函数服务代码、测试、RTL 及随库资产的共同路径边界，供调用方先验类型检查。
+# 现存合法原路径优先。外部快照可以保留旧树，不会被跳到当前仓库文件。
+# 兼容仅覆盖已知目录迁移。未知路径继续失败，避免全仓按 basename 猜测证据。
+# 无论直接路径或兼容路径，都以解析后的真实位置判断仓库边界，禁止逃出仓库。
+# 兼容时拒绝带父级跳转的输入，以免通过新的目录深度改变原引用的意思。
 def _repo_file(repo_root: Path, relative_path: str) -> Path | None:
     """解析可移植的仓库相对文件路径，拒绝越出仓库。"""
     path = Path(relative_path)
@@ -358,9 +485,28 @@ def _repo_file(repo_root: Path, relative_path: str) -> Path | None:
         return None
     root = repo_root.resolve()
     resolved = (root / path).resolve()
-    return resolved if resolved.is_relative_to(root) and resolved.is_file() else None
+    if not resolved.is_relative_to(root):
+        return None
+    if resolved.is_file():
+        return resolved
+    # 旧身份仅在原路径确实缺失时解析到迁移目的地，不覆盖调用方提供的文件。
+    if not path.parts or ".." in path.parts:
+        return None
+    destination = MOVED_REFERENCE_ROOTS.get(path.parts[0])
+    if destination is None:
+        return None
+    relocated = (root / destination.joinpath(*path.parts[1:])).resolve()
+    return relocated if relocated.is_relative_to(root) and relocated.is_file() else None
 
 
+# =============================================================================
+# 9. 代码锚点和实现状态
+# =============================================================================
+# 仅用 AST 提取声明，清单的检查不会 import 测试，因而不会执行仿真或生成向量。
+# 仅承认文件顶层函数和类。内部函数或注释中出现相同名字不能证明公开测试入口。
+# 模块静态可定位与 RTL 完成状态分开判断。登记的控制级别须在显式的状态集合内。
+# 目前只验证引用和声明有无，不根据符号名、端口长度或注释自动推导功能等价。
+# AST 解析失败由验证条目关联到原路径，方便修复语法而不是错误重写清单。
 def _top_level_declarations(path: Path) -> set[str]:
     """读取 Python 顶层类和函数的确切名称，不导入代码。"""
     if path.stat().st_size > 300 * 1024**2:
@@ -403,6 +549,19 @@ def _check_rtl_contract(
                 )
 
 
+# =============================================================================
+# 10. 机制与验收引用
+# =============================================================================
+# 先识别必需任务集合及机制 ID，再检查每条记录，避免按一张固定的任务号表猜覆盖。
+# 只接受显式条件下的任务映射。一个 optional 机制不能填补必需项的验收。
+# 引用检查只确认文件及顶层符号能定位。测试存在不等价于此次执行过该测试。
+# 同一测试文件可被多个机制引用，缓存声明集合以避免多次解析造成代价。
+# 状态判断使用清单的登记枚举，过时的自由文本不能被默认为成功。
+# 必需项缺自己的执行结果时保留未就绪。一个其他机制的 PASS 不填补本项缺口。
+# 遇到格式错误继续检查其余独立机制，便于一次给出完整整理清单。
+# 已定位的来源和任务按 ID 比较。机制名称相似不能证明两者身份一致。
+# 静态引用、实验登记和必需任务覆盖分别发布，报告阅读者可以定位失败层。
+# 根目录清单移动不改该机制文件的哈希。旧路径由统一解析器处理，不逐条改史料。
 def _check_code_and_tests(
     repo_root: Path,
     inventory: dict[str, object],
@@ -633,13 +792,22 @@ def _check_code_and_tests(
         result.add("coverage.required_task_ids", "PASS", "显式必需条目均有登记；不代表已实现或验证")
 
 
+# =============================================================================
+# 11. 汇合单次门禁结果
+# =============================================================================
+# 优先决定整套登记目录，避免部分文件从旧目录读、另一半从新目录读。
+# 三个输入失效分别记录。当一个清单无法读时，其余清单仍能给独立的诊断结果。
+# 先身份核查，再解析机制的来源引用。顺序明确才能区分来源缺口与实现缺口。
+# 本函数只读证据并返回结果，不调整通过记录，也不自动覆盖冻结的证据文件。
 def verify(repo_root: Path) -> GateResult:
     """核对根来源、随库原件及机制引用；不修改历史20/641阅读登记。"""
     result = GateResult()
     paths = {}
+    # 只有整个新目录缺席时才接受旧快照布局。新目录存在但少文件应当报错。
+    manifest_dir = MANIFEST_DIR if (repo_root / MANIFEST_DIR).exists() else Path("manifest")
     for label, relative in (
-        ("sources", SOURCES_FILE),
-        ("inventory", INVENTORY_FILE),
+        ("sources", str(manifest_dir / Path(SOURCES_FILE).name)),
+        ("inventory", str(manifest_dir / Path(INVENTORY_FILE).name)),
         ("references", REFERENCES_FILE),
     ):
         path = _repo_file(repo_root, relative)
@@ -675,6 +843,15 @@ def verify(repo_root: Path) -> GateResult:
     return result.finalize()
 
 
+# =============================================================================
+# 12. 摘要与 CLI
+# =============================================================================
+# 摘要同时保留逐项记录和总量。下游可过滤未就绪的必需记录，而不需解析终端文案。
+# 输出字段显示验证范围以及未执行的功能／EDA 环节，避免把静态验证升级成行为结果。
+# 写入摘要使用同目录临时文件和排他建目标。已存在的摘要属于别的运行，必须报错。
+# 写入异常时临时文件清理由该函数负责。调用方不应据残留的路径推定验证通过。
+# 退出码分列静态错误和输入未就绪。自动化消费者可为两类情况分别提供反馈。
+# 只打印既有登记和检查结论。CLI 不会为了获得 PASS 调用网络或更改本地原件。
 def build_summary(result: GateResult, repo_root: Path) -> dict[str, object]:
     """生成严格类型的 validation_summary.json 内容。"""
     return {

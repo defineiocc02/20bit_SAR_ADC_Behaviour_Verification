@@ -371,7 +371,7 @@ SOURCES = (
     "rtl/core/div_floor.sv",
     "rtl/core/cal_output_stage.sv",
     "rtl/core/recon_core.sv",
-    "sim/tb/engineering_fsm_tb.sv",
+    "flow/sim/tb/engineering_fsm_tb.sv",
 )
 
 

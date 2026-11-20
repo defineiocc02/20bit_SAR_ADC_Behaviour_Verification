@@ -1,0 +1,31 @@
+# DC 单模块综合汇总（13 个模块）
+# 来源：/tmp/{m1,m2,m4,m5,mm_*,mc_*,mf_*,mw2}.log 的 CHK_MODULE/CHK_CELLS/Total cell area/slack 行
+# 工艺：TSMC 28HPC+ tcbn28hpcplusbwp7t40p140ssg0p81vm40c  周期 25 ns
+# 脚本：flow/synth/v21/syn_module.tcl
+# 时间：2026-11-16
+
+模块                  耗时      面积 µm²           日志
+--------------------------------------------------------------
+dither_pre            2 s        46.65      mc_dither_pre
+follower_rt           2 s       145.24      mc_follower_rt
+dem_phase_rr          2 s       178.65      mf_dem_phase_rr
+sar_evt_v21           3 s       254.31      m5
+dem_mask_v3           3 s       310.07      mc_dem_mask_v3
+dem_phase_gen         3 s       472.56      mf_dem_phase_gen
+adc2_capture          3 s       625.73      mm_adc2_capture
+acq_conv_ctx          6 s      1255.87      mm_acq_conv_ctx
+sched18               7 s      1265.38      m4
+recip_q60            20 s      9246.99      m1
+recip_rnd_v21        32 s     16619.82      m2
+recon_v21(旁路)      99 s     26128.47      （alpha_bypass 强制 1 的诊断版）
+wsum_v21            480 s    102201.55      mw2（含共用查表优化）
+--------------------------------------------------------------
+合计                662 s    160951.29
+
+注：
+1. wsum_v21 的 105359.02 µm²（mw，515 s）是优化前版本；
+   480 s / 102201.55 µm² 是"三函数共用一次查表"优化后。
+2. recon_v21 的 99 s / 26128.47 µm² 是 alpha_bypass 强制为 1 的诊断版；
+   生产版（alpha 可变）在 DC 里 >10 分钟未完成（13 个 DW_div）。
+3. 全部 13 个模块均满足 25 ns。
+4. 这些是 DC 数据，与 FC 的 compile_fusion 数据口径不同，不可直接相加。

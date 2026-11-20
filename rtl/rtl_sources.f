@@ -1,6 +1,4 @@
 rtl/core/adc2_dec.sv
-rtl/control/caaz_cycle_ctrl.sv
-rtl/calibration/caaz_pair_processor.sv
 rtl/core/analog_phase_ctrl.sv
 rtl/core/cal_output_stage.sv
 rtl/core/cal_residue_mac.sv
@@ -16,5 +14,16 @@ rtl/core/slice_pool_ctrl.sv
 rtl/core/status_regs.sv
 rtl/core/unit_therm.sv
 rtl/core/weight_store.sv
+rtl/dem_mask_v3.sv
+rtl/dither_pre.sv
+rtl/recip_q60.sv
+rtl/sched18.sv
 rtl/top/sadc_enc.sv
-rtl/top/sar20_digital_core.sv
+rtl/v21/acq_conv_ctx.sv
+rtl/v21/adc2_capture.sv
+rtl/v21/adc2_node_macro.sv
+rtl/v21/adc_digital_ip_v21.sv
+rtl/v21/recip_rnd_v21.sv
+rtl/v21/recon_v21.sv
+rtl/v21/sar_evt_v21.sv
+rtl/v21/wsum_v21.sv

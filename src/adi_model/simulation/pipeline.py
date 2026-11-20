@@ -1,8 +1,10 @@
 # =============================================================================
 # 文件名     : pipeline.py
 # 模块名     : 电荷研究接口
+# 版本       : v1.0
 # 功能       : 将显式器件、片组选取与校准状态交给研究流水。
 # 设计说明   : 两个扰动参数属于不同采样实验，混用会使同一笔的电荷归属不清。
+# 变更记录   : 按全字 RDAC 采样记录 Fig.19 的电荷口。
 # =============================================================================
 """电荷研究的低层流水入口。调用方显式提供电容、片组和码本；生产 Python 入口在 adi_model.defaults。"""
 
@@ -11,6 +13,9 @@ from __future__ import annotations
 from adi_model.simulation.pipeline_engine import execute_pipeline
 
 
+# =============================================================================
+# 1. 研究流水的绑定与调用
+# =============================================================================
 def run_pipeline(
     cfg,
     input_fn,
@@ -65,7 +70,7 @@ def run_pipeline(
         initial_adc2_input_v: 动态ADC2所需显式初始输入V，不默填零。
         dither_program: Fig.19 静态实验逐笔给出的 lower/upper 控制；
             与dither_enable一致，真实进入SADC/RDAC采样及逐事件码处理。
-        dither_port: Fig.11 研究夹具的电荷口。两采样端均平移 −L，RDAC 命令为 c−U。
+        dither_port: Fig.11 研究夹具的电荷口。SADC 采 x−L，RDAC 采 x−T 并用转换码 c−U。
             该参数与 dither_program 互斥，逐笔字由调用方给定。
 
     Returns:

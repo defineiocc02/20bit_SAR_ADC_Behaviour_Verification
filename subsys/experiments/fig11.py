@@ -1,8 +1,10 @@
 # =============================================================================
 # 文件名     : fig11.py
 # 模块名     : 专利 Fig.11 电容阵列研究
+# 版本       : v1.0
 # 功能       : 重放既有 17/5 几何的电荷、噪声、非理想及显式 Fig.19 扰动试验。
 # 设计说明   : 该实验由源码仓库的研究脚本使用；安装包的数字 IP 入口在 adi_model.defaults。
+# 变更记录   : 将未抵消高段的范围预算标为独立压力试算。
 # =============================================================================
 """专利 Fig.11 研究夹具。原模拟数据保留其电荷坐标、种子与量化条件。"""
 
@@ -64,6 +66,9 @@ def _seed(value, name: str) -> int:
     return int(value)
 
 
+# =============================================================================
+# 1. 名义参数、研究假设与制造种子
+# =============================================================================
 @dataclass(frozen=True)
 class Fig11Parameters:
     """默认名义值与工程试验假设；覆盖一项不会暗中重推其他物理输入。
@@ -199,6 +204,9 @@ def _schedule(seed: int):
     return binding
 
 
+# =============================================================================
+# 2. 研究模型与工作条件
+# =============================================================================
 class Fig11Model:
     """同一制造实现上的可重放默认模型；run_id分开计划与噪声。
 
@@ -298,9 +306,8 @@ class Fig11Model:
         # 输入/残差口径：论文 20.5 pF 锚点，RA 物理增益 G_phys = C_samp/Cf。
         self.nominal_active_cap_f = cfg.n_active * c_slice_sampled
         self.nominal_gain = self.nominal_active_cap_f / p.feedback_cap_f
-        # 参数自洽性：二级 ADC 能否装下 dither 的提前量。这不是错误检查，
-        # 而是一条**可读结论**——不自洽时会在 inference 表里显式列出缺口，
-        # 避免读者从若干 dither 失败用例反推"到底是哪两个参数打不过"。
+        # 保留“采样端漏掉高段”的反事实量程预算，便于解释旧饱和用例。
+        # 正常接入全字时，实际余差与逐笔越界标志由电荷流水计算。
         from adi_model.simulation.parameter_consistency import check_dither_fits_stage2
 
         # check_legal 已验证 ADC2 窗口的两个端点存在，以下只对静态类型缩窄。
@@ -484,6 +491,7 @@ class Fig11Model:
         row(
             "stage2_capacity_vs_dither",
             {
+                "scope": "uncancelled_upper_stress_only",
                 "adc2_coverage_lsb1": round(report.capacity.coverage_lsb1, 4),
                 "dither_need_lsb1": report.needed_lsb1,
                 "deficit_lsb1": round(report.deficit_lsb1, 4),

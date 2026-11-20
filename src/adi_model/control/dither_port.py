@@ -1,15 +1,17 @@
 # =============================================================================
 # 文件名     : dither_port.py
 # 模块名     : 研究夹具的扰动电荷与范围核算
+# 版本       : v1.0
 # 功能       : 在给定电容、码本与输入范围下计算等效电荷、码移残差和越界条件。
 # 设计说明   : 等效电荷口是独立实验算子。生产 IP 用实际片号、开关及权重求 Wp。
+# 变更记录   : 将高段预置在采样和转换两处的作用写入接口定义。
 # =============================================================================
 """Fig.11 电荷实验用的扰动算子。
 
 `charge_c` 把指定扰动字的等效电压换算为电荷。`code_shift_residual`
 检查实际码本中 VD(c)−VD(c−U) 与 U·Δ 的偏差。`range_ledger` 枚举
 64 个字，给出该假设下两个采样端口和码移命令各自的有效范围。
-此实验在两个采样节点的电压中分别减去 L，RDAC 跟随 c−U。生产事务的 c+U 与去扰逻辑
+此实验分别给 SADC、RDAC 采样端减去 L、T，RDAC 转换使用 c−U。生产事务的 c+U 与去扰逻辑
 由 adi_model.digital_conversion 与 adi_model.dem_dither 实现。
 
 `attenuated_dither_bound` 计算给定满幅和桥接衰减下的范围估算。
@@ -30,6 +32,9 @@ from adi_model.control.dither import (
 from adi_model.simulation.config import ConfigError
 
 
+# =============================================================================
+# 1. 码字、电压与标称电荷
+# =============================================================================
 @dataclass(frozen=True)
 class DitherPort:
     """把 Fig19 六位字接到实际电容上的独立电荷口。
@@ -95,7 +100,7 @@ class DitherPort:
     def upper_lsb(self, words) -> np.ndarray:
         """只取 upper 段 U 的粗码 LSB 数（整数 0..5）。
 
-        在电荷夹具中 U 用于 RDAC 的码移，L 用于两个节点的采样电压。
+        U 既是 RDAC 转换命令的码移，也包含在 RDAC 完整采样预置 T 中。
         上段电压统计单列，可核对每次码移相当于多少粗码步。
         """
         program = Fig19DitherProgram.from_words(words, spec=self.spec)
@@ -105,7 +110,7 @@ class DitherPort:
         """Upper 段折合到输入端的电压 [V]（= U x 粗码步长）。
 
         按该夹具码本的 coarse_step_v 换算。此数用于报告上段幅度，
-        电荷夹具在转换时通过码移施加 U。
+        它和采样端的高段预置可用于逐笔核对两路是否匹配。
         """
         return self.upper_lsb(words) * self.spec.coarse_step_v
 
@@ -126,6 +131,9 @@ class DitherPort:
         return self.lsb_equivalent(words) * self.spec.coarse_step_v
 
 
+# =============================================================================
+# 2. 码步误差与范围核算
+# =============================================================================
 def code_shift_residual(
     pool,
     codes,

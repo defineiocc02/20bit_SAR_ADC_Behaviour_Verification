@@ -1,8 +1,10 @@
 # =============================================================================
 # 文件名     : pipeline_engine.py
 # 模块名     : Fig.11 电荷研究流水
+# 版本       : v1.0
 # 功能       : 按物理片号依次计算采集、转换开关、余差和诊断码。
 # 设计说明   : 保存每笔实际的采样电压和最终命令，供模型回归与误差定位。
+# 变更记录   : Fig.19 两路共用逐笔预置，浮点与定点按同一实际开关码折回输入。
 # =============================================================================
 """显式物理数据与数字binding驱动的唯一pipeline实现。
 
@@ -99,6 +101,9 @@ def _dither_topology(dither_program, dither_port) -> str:
     return "none"
 
 
+# =============================================================================
+# 1. 运行条件与码本有效域
+# =============================================================================
 def _validate_request(
     cfg,
     pool,
@@ -227,8 +232,8 @@ def _validate_request(
                 "Flash3/SAR6 seven-event table; no prefix or codebook fallback"
             )
     if dither_port is not None:
-        # 独立电荷口 v2：RDAC 码域完全不参与，因此**不要求**均匀码本；
-        # 但 must 有本 run 的逐笔字，且不得与参考/RA/ADC2 动态路径混用。
+        # 电荷实验按实际掩码取电荷，可容许非均匀码本；转换仅给出最终 k。
+        # 逐笔字与当前静态运行绑定，不能推出逐事件的建立时间。
         port_program = dither_port.require_words()
         if port_program.words.shape != (n_samples,) or dither_port.spec.v_fs != cfg.v_fs:
             raise ConfigError("dither port raw length/Vfs conflicts with the actual record")
@@ -242,8 +247,6 @@ def _validate_request(
                 "dither charge-port v2 is a static-connection model; dynamic reference/RA/ADC2 "
                 "response and continuous acquisition are outside it"
             )
-        # 电荷口不偏移 RDAC 码，因此不需要逐事件前缀表；这里只要求
-        # 码本本身可求值（由 pool/mapper 一致性检查覆盖）。
     if cfg.dyn_input_settling:
         raise ConfigError(
             "continuous acquisition requires a complete SADC/RDAC phase and initial-node binding; "
@@ -261,6 +264,9 @@ def _validate_request(
     return int(n_samples)
 
 
+# =============================================================================
+# 2. 片组归属、初态与输入单位
+# =============================================================================
 def _prepare_conversion(
     *,
     cfg,
@@ -367,6 +373,9 @@ def _prepare_conversion(
 
 
 
+# =============================================================================
+# 3. 同笔采样、转换与输出
+# =============================================================================
 def execute_pipeline(
     cfg: Config,
     input_fn,
@@ -423,7 +432,8 @@ def execute_pipeline(
         initial_ra_output_v: 活跃动态RA所需显式初始输出V。
         initial_adc2_input_v: 活跃动态ADC2所需显式初始输入V，不默填0。
         dither_program: 同一raw的Fig19静态等效Q32控制。SADC采x-L、RDAC存x-T，
-            各已决命令减 U；字记录的 known_common_q 为 −T，实际重构电压公共项为 −L。
+            各已决命令减 U；用实际 k 的掩码解码时，采样公共项为 −T。
+        dither_port: 同样的双端采样与最终命令，可用非均匀码本，需显式逐笔给字。
 
     Returns:
         SimResult；未装载冻结权重时out只为名义标量诊断，整数输出另调用to_codes。
@@ -470,8 +480,9 @@ def execute_pipeline(
         ra_input_error_v=ra_input_error_v,
         rng=rng,
     )
-    # Fig.19 研究有两种显式采样输入。下段 L 都进入 SADC；RDAC 采到 x−T
-    # （dither_program）或 x−L（dither_port）。两者的最终 RDAC 命令都扣一次 U。
+    # FIG.19 的 300 只送 L，222 送全字 T。两种研究入口共用这一份逐笔采样记录；
+    # 区别在后面的码本与事件处理，不能在此给 RDAC 丢掉 U。
+    sampled_word = dither_program if dither_port is None else dither_port.require_words()
     sample = capture(
         cfg,
         input_fn,
@@ -479,22 +490,15 @@ def execute_pipeline(
         sample_ids=ids,
         rng=rng,
         rdac_noise_cap_f=rdac_noise_cap_f,
-        dither_program=dither_program,
-        # 电荷口把 lower_v 作为两个采样节点共有的电压偏移；capture 内部令 total=lower。
-        dither_sample_v=(
-            None if dither_port is None else dither_port.require_words().lower_v
-        ),
+        dither_program=sampled_word,
     )
+    # 没有扰动时用逐笔零偏置，让孔径重采和名义重构沿用同一单位。
+    rdac_preset_v = np.zeros(n_samples) if sampled_word is None else sampled_word.total_v
     sadc = build_first_stage_quantizer(cfg)
     backend = ADC2(cfg)
-    # 2026-11-13 修正：**不要**加窗口中心偏置。
-    # 判码规则是 thr[k] = vd0(k)，因此 x ∈ [vd0(k), vd0(k+1)) ⇒ 残差 = x - vd0(k)
-    # 落在**单边** [0, 1 LSB9)，而不是双极 ±0.5 LSB9。
-    # 早前误以为残差是双极、于是把"残差 0"摆到窗口中点 0.1875，
-    # 结果 ADC2 输入变成 [0.1875, 0.5625]，超出上界 0.4125 —— 这就是
-    # 定点路径饱和、A0 出现 -5.79% 增益误差与 -0.172V 偏移的直接原因。
-    # 正确映射：adc2_input = G*residue，范围 [0, 0.375] ⊂ [-0.0375, 0.4125] ✓
-    adc2_centre = 0.0
+    # 此研究夹具的 SADC 以码本下边界作判决。在理想等步长阵列内，
+    # 余差落在一个正向粗码格内。RA 以零为基准放大，ADC2 自身定义码箱端点。
+    # 窗口不居中时，再加一个偏置会同时改变有效范围与重构零点。
     ra = ResidueAmplifier(cfg)
     state = initialize_state(cfg) if state is None else state
     if not isinstance(state, DigitalState):
@@ -533,17 +537,9 @@ def execute_pipeline(
     # ==== 224 减法器：RDAC 用码 k = c - U（原件 FIG.19 / [10] Sheet 20）====
     # 两个实验都以减后的实际命令访问 RDAC 码本。静态程序已在前缀映射时减 U，
     # 电荷口保留粗码到此处再减 U；单独跟踪这一步可查出重复扣减。
-    if dither_program is not None:
-        hold_upper = np.asarray(dither_program.upper_code, dtype=np.int64)
-    elif dither_port is not None:
-        hold_upper = np.asarray(dither_port.require_words().upper_code, dtype=np.int64)
-    else:
-        hold_upper = np.zeros(n_samples, dtype=np.int64)
-    # 静态程序的 mapped.codes 已经扣过 U。电荷口在此减 U，非法命令在写片组前被拒绝。
-    if dither_program is not None:
-        rdac_codes = np.asarray(mapped.codes, dtype=np.int64)
-    else:
-        rdac_codes = np.asarray(mapped.codes, dtype=np.int64) - hold_upper
+    rdac_codes = np.asarray(mapped.codes, dtype=np.int64)
+    if dither_port is not None:
+        rdac_codes = rdac_codes - dither_port.require_words().upper_code
     if np.any((rdac_codes < 0) | (rdac_codes > 511)):
         raise ConfigError(
             "dither upper segment would push the RDAC code outside the 9-bit domain; "
@@ -645,11 +641,6 @@ def execute_pipeline(
         )
     pool.reset_electrical_state()
     shape = (n_samples, cfg.n_active)
-    # 电荷口记录 upper 段的等效电压；实际命令已减 U，两个采样节点只平移 L，
-    # 此处只用于报告"upper 段折合多大"，不重复注入。
-    upper_v = (
-        np.zeros(n_samples) if dither_port is None else dither_port.upper_v(dither_port.require_words().words)
-    )
     recorded_main = np.empty((n_samples, cfg.n_active, pool.geometry.n_main), dtype=np.int64)
     recorded_sub = np.empty((n_samples, cfg.n_active, pool.geometry.n_sub), dtype=np.int64)
     node_charge = np.empty((*shape, 2))
@@ -667,6 +658,8 @@ def execute_pipeline(
     for index, converting in enumerate(plan.conv):
         group = acquisition_ids[index]
         values = np.full(cfg.n_active, sample.rdac_input_v[index])
+        # 有孔径时偏时，波形按各片的实际时间重新取值。T 属于采样时冻结的字，
+        # 重采时间不能重抽字，也不能丢掉该笔采样预置。
         if pool.t_skew is not None and np.any(pool.t_skew[group] != 0):
             values = (
                 finite_record(
@@ -675,6 +668,7 @@ def execute_pipeline(
                     "per-slice skewed input [V]",
                 )
                 + sample.driver_noise_v[index]
+                - rdac_preset_v[index]
             )
         if pool.v_os is not None:
             values += pool.v_os[group]
@@ -800,10 +794,7 @@ def execute_pipeline(
             q_residue[index] = residue[index] * c_normalize[index]
             vd_true[index] += reference_correction
             vra[index] = joint.result.ra_v[index]
-            # ADC2 窗口是 [vmin, vmax] = [中心 ± 0.6 LSB9·G]，中心 = 0.5 LSB9·G
-            # （paper_literal: [-0.0375, 0.4125]，G32、LSB9=11.72mV）。
-            # RA 是纯线性放大器、零输出为 0，因此"残差 0"必须落在窗口中点：
-            # ADC2 输入 = G*residue + 中点。缺这一项时负残差全部溢出（实测 x=±1/±3 V 全 over）。
+            # 联合动态引擎已经给出 ADC2 实际输入节点电压，保留其零点与采样时刻。
             adc2_input[index] = joint.result.adc2_v[index]
             ra_sat[index] = joint.result.ra_sat[index]
             if not cfg.dyn_ref_settling and not cfg.conversion.dynamic:
@@ -816,12 +807,11 @@ def execute_pipeline(
                 ra_sat[index] |= point_sat[0]
         pool.release(converting, sample_id=int(ids[index]))
     adc2_code, adc2_over = backend.quantize_codes(adc2_input)
-    # ADC2 码解码成节点电压后先减去中点，才回到"以 RA 零点为参考"的残差电压；
-    # 否则重构式 fine/G 会带一个恒定的中点偏置。
+    # ADC2 原码代表一个区间，后级取该区间的电压中心。低段和全字的
+    # 区别取决于这里选用哪一个 DAC 粗码作基准，与 ADC2 的码箱中心无关。
     fine = backend.decode_codes(adc2_code)
-    # 名义电压必须取**RDAC 实际使用的码 k = c - U**：残差是在 k 的电荷基线上建立的，
-    # 取 vd0(c) 会与残差不同源（实测 64 字 p2p 达 114 mV）。
-    # 这与原件 FIG.19 的 224 减法器一致：减法之后的码才是 DAC 的状态。
+    # k 给出生成当前模拟余差时的真实开关。数字端只查它的名义电压，
+    # 这样制造失配仍然会体现在最终误差里，也能用片号与掩码独立复核。
     vd0 = mapper.nominal_codebook.evaluate(rdac_codes)
     if np.any(ra_sat) or np.any(adc2_over):
         reasons.append("RA/ADC2 clipping violates the linear training equation")
@@ -837,14 +827,13 @@ def execute_pipeline(
         if nominal_low is None
         else nominal_low[:, None] * np.ones((1, cfg.n_active)),
     )
-    # 数字已知公共项只含 **L**：U 的作用已经通过 k = c - U 落在物理链里
-    # （vd0(k) + residue 恰等于 x），若这里再扣 T，U 会被扣两次。
-    # 依据 [10] 摘要页 (b)："the dither being subtracted from a digital output result
-    # of the subsequent analog to digital converter stage" —— 后级只承担剩余部分。
-    if dither_program is not None:
-        term = term - dither_program.lower_v[:, None, None]
-    elif dither_port is not None:
-        term = term - dither_port.require_words().lower_v[:, None, None]
+    # 以实际转换码 k 为基准，r = x − T − VD(k)，所以 x = VD(k) + r + T。
+    # 若用未减上段的粗码 c，均匀码本下才等价于 VD(c) + r + L。
+    # 只有采样时接信号的单元含 −T；接参考轨的单元保留其原来的已知电压项。
+    # 单开 D6 时 L 为零，T 仍有四个粗码步。这个向量可以直接暴露错误基准。
+    # 该项只取本笔字的名义值，实际失配造成的码步偏差仍由模拟余差带到输出。
+    if sampled_word is not None:
+        term = term - signal_mask * rdac_preset_v[:, None, None]
     diagnostic_reasons = []
     if cfg.dyn_ref_settling or (
         cfg.conversion is not None
@@ -876,23 +865,12 @@ def execute_pipeline(
     diagnostic_available = not diagnostic_reasons
     if diagnostic_available:
         assert diagnostic_gain is not None
-        # 重构只补 **L**：
-        #   - U 段的作用已经由 k = c - U 在物理链里完成（vd0(k) + residue 恰等于 x，
-        #     实测两个 word 都是 0.400712），再补 T 就等于把 U 重复加一次；
-        #   - L 段按 [10] 摘要页 (b) "subtracted from a digital output result of the
-        #     subsequent ADC stage"，在后级数字输出里扣除。
-        # 因此 correction = -L，重建式为 out = vd0(k) + fine/G + L……等等：
-        # reconstruct() 的定义是 out = (vd - correction)/alpha，代入 correction=-L
-        # 得到 out = vd0(k) + fine/G + L，即把采样侧注入的 L 加回来。
-        if dither_program is not None:
-            correction = -dither_program.lower_v
-        elif dither_port is not None:
-            correction = -dither_port.require_words().lower_v
-        else:
-            correction = np.zeros(n_samples)
-        out = reconstruct(vd0, fine, diagnostic_gain, correction, 1.0)
+        # reconstruct 会减去有符号的采样偏置。此处与上面的实际掩码用同一电压基准。
+        out = reconstruct(vd0, fine, diagnostic_gain, -rdac_preset_v, 1.0)
     else:
         out = np.full(n_samples, np.nan)
+    # 失配试验的平均值必须包含同样的片组与样本数。保留越界记录和样本 ID，
+    # 这样两次记录即使长度相同，也能查出是否只剩下部分有效字。
     bad = sadc_over | ra_sat | adc2_over | ~plan.valid
     observation = DigitalObservation(
         CalibrationSpec.from_config(cfg, geometry=pool.geometry),
@@ -906,22 +884,20 @@ def execute_pipeline(
         ids,
         static_charge_domain and not reasons,
     )
-    # 导出的采样说明随实际支路变化。word 对象保留完整预置 T，
-    # 数字观测把 lower_v 记入 known_voltage_term_v。二者由用户在不同字段读到。
-    # 保留旧记录的 model 标识，历史归档可以继续按原来的格式解析。
+    # 记录字与在信号端施加的公共项，以便逐笔核对物理采样与数字观测。
     dither_metadata = None
     if dither_port is not None:
         port_program = dither_port.require_words()
         dither_metadata = {
             **dither_port.spec.to_dict(),
             "model": "FIG19_CHARGE_PORT_V2",
-            "topology": "RDAC code k = c - U; both sampling nodes shift by -L",
-            "stored_rdac_input": "sample.rdac_input_v = input_v - L",
+            "topology": "RDAC code k = c - U; SADC samples input minus L, RDAC samples input minus T",
+            "stored_rdac_input": "sample.rdac_input_v = input_v - T",
             "sadc_input": "sample.x_sadc = input_v + sampling noise + tau mismatch error - L",
-            "digital_known_common_q": "word.known_common_q = -total_q; applied common voltage term = -lower_v",
+            "digital_known_common_q": "word.known_common_q = -total_q; applied common voltage term = -total_v",
             "upper_code_max": int(port_program.upper_code.max()),
             "lower_v_max": float(port_program.lower_v.max()),
-            "upper_v_max": float(upper_v.max()),
+            "upper_v_max": float((port_program.upper_code * port_program.spec.coarse_step_v).max()),
             "not_modeled": [
                 "physical dither capacitor/switch network and its own mismatch",
                 "dither DAC reference settling",
@@ -936,7 +912,7 @@ def execute_pipeline(
             "event_flag_scope": "resolved RDAC integer range; no per-event analog settling claim",
             "stored_rdac_input": "sample.rdac_input_v = input_v - T; actual pool.acquire",
             "sadc_input": "sample.x_sadc = input_v - L for the zero-noise static experiment",
-            "digital_known_common_q": "word.known_common_q = -total_q; applied common voltage term = -lower_v",
+            "digital_known_common_q": "word.known_common_q = -total_q; applied common voltage term = -total_v",
         }
     result = SimResult(
         cfg=cfg,
@@ -1017,9 +993,7 @@ def execute_pipeline(
             "dither": dither_metadata,
         },
         digital_observation=observation,
-        dither_program=dither_program
-        if dither_program is not None
-        else (None if dither_port is None else dither_port.require_words()),
+        dither_program=sampled_word,
         dither_trace=dither_trace,
         conversion_trace=None if joint is None else joint.result,
     )

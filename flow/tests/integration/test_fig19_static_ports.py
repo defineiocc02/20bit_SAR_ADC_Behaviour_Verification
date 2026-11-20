@@ -1,5 +1,6 @@
 # =============================================================================
 # 文件名     : test_fig19_static_ports.py
+# 模块名     : Fig.19 两端采样与整数重构对照
 # 版本       : v1.0
 # 功能       : 核查 US10505561B2 图 19 静态研究的双采样端口、掩码与出码。
 # 设计说明   :
@@ -120,7 +121,10 @@ def _round_even_pair(numerator: int, denominator: int) -> int:
     return quotient
 
 
-def _integer_oracle(parameters, backend_codes, k_codes, lower_q, slice_ids, model, physical_gain):
+# =============================================================================
+# 1. 从码位、器件掩码与 ADC2 码箱独立重构
+# =============================================================================
+def _integer_oracle(parameters, backend_codes, k_codes, total_q, slice_ids, model, physical_gain):
     """用纯 Python 整数复算 20 bit 定点输出，与声明方程同构。
 
     名义权重取自 Fig.11 夹具，ADC2 窗口和位数取自同一份规格。
@@ -131,7 +135,7 @@ def _integer_oracle(parameters, backend_codes, k_codes, lower_q, slice_ids, mode
         fine_q = min_q + round_even((2a+1)(max_q − min_q), 2**(adc2_bits+1))
         fine_q = round_even(fine_q · gain, G_phys · 2^wf)      ← 换算到 Σw 口径
         gain   = Σ_{活跃片} Σ_{端口} w                      （signal≡1，见下）
-        term   = v_fs·(1 − 2·sw) − L                        （**减 L，不是 T**）
+        term   = v_fs·(1 − 2·sw) − T                        （实际 k 掩码的采样公共项）
         known  = Σ_{活跃片} Σ_{端口} w·term
         word   = floor((fine_q·2^wf − known + gain·2^vf)·2^ob / (2·gain·2^vf))
 
@@ -142,14 +146,14 @@ def _integer_oracle(parameters, backend_codes, k_codes, lower_q, slice_ids, mode
        因此 `gain` 等于**全权重和 × 活跃片数**。
     2. **开关用 RDAC 码 k = c − U**（224 减法器之后），不是粗码 c。
        U 非零时，直接使用 c 会比较与实际转换不同的开关状态。
-    3. **已知项减的是 L 不是 T**。T = L + U 里那部分 U 已经通过 k 进入了 RDAC 侧，
-       若 term 再减 T，便会对同一笔重复扣除 U 的作用。
+    3. 实际掩码记录 k。由 r = x − T − VD(k)，恢复输入需要 VD(k) + r + T。
+       对等步长码本，也可以用原始粗码算 VD(c) + r + L。
 
     Args:
         parameters: 提供 adc2 窗口与位数。
         backend_codes: 二级 ADC 码 (N,)。
         k_codes: RDAC 码 k = c − U (N,)。
-        lower_q: 每笔的 L 定点值（3 V 归一的 Q32）(N,)。
+        total_q: 每笔的 T 定点值（3 V 归一的 Q32）(N,)。
         slice_ids: 每笔的活跃物理片 ID (N, n_active)。
         model: 提供定点格式、权重表与窗口常数。
         physical_gain: 本笔 RA 物理增益（`raw.state.estimated_gain`，实测 32.0）。
@@ -172,7 +176,7 @@ def _integer_oracle(parameters, backend_codes, k_codes, lower_q, slice_ids, mode
     ring = 15
     result = []
     for index, (backend, k, injection) in enumerate(
-        zip(backend_codes, k_codes, lower_q, strict=True)
+        zip(backend_codes, k_codes, total_q, strict=True)
     ):
         phased = np.empty((slice_ids.shape[1], n_ports), dtype=np.int64)
         for slot in range(slice_ids.shape[1]):
@@ -267,15 +271,13 @@ def _assert_physical_and_integer_views(run, external, words, model):
     np.testing.assert_array_equal(run.raw.main_masks, expected_main)
     np.testing.assert_array_equal(run.raw.sub_masks, expected_sub)
     masks = np.concatenate((expected_main, expected_sub), axis=2)
-    # 数字已知公共项只含 **L**（不是 T）：U 的作用已由 k = c - U 落在物理链里
-    # （vd0(k) 用的是减后的码），数字侧再扣 T 会把 U 扣两次。
-    # 实测依据：word=32（U≠0 但 L=0）时该项为 0；word=48（L≠0）时恰为 -L。
-    expected_term = -lower_v[:, None, None] + 3 * (1 - 2 * masks.astype(np.int64))
+    # 从字位独立解出 T；只对实际 k 掩码补 T。若误用 L，单开 D6 将少约四个粗码。
+    expected_term = -total_v[:, None, None] + 3 * (1 - 2 * masks.astype(np.int64))
     np.testing.assert_array_equal(run.raw.digital_observation.known_voltage_term_v, expected_term)
     np.testing.assert_array_equal(run.raw.dither_program.known_common_q, -total_q)
     exported = run.raw.binding_metadata["dither"]
     assert "input_v - T" in exported["stored_rdac_input"]
-    assert "applied common voltage term = -lower_v" in exported["digital_known_common_q"]
+    assert "applied common voltage term = -total_v" in exported["digital_known_common_q"]
     # ADC2 量化步长从同一份参数的窗口和后端位数计算。
     # 先查 13 位原始码，再比较它进入定点重构后的 20 位输出。
     raw_voltage = 32 * residue
@@ -283,7 +285,7 @@ def _assert_physical_and_integer_views(run, external, words, model):
     backend = np.floor((raw_voltage - parameters.adc2_v_min) / backend_step).astype(np.int64)
     np.testing.assert_array_equal(run.raw.adc2_code, backend)
     np.testing.assert_array_equal(run.codes.code, _integer_oracle(
-            parameters, backend, k, lower_q,
+            parameters, backend, k, total_q,
             run.raw.digital_observation.slice_ids,
             model,
             run.raw.state.estimated_gain,
@@ -300,6 +302,8 @@ def test_all_sixty_four_words_reach_both_real_analog_nodes_and_final_integer_cod
     words = np.arange(64)
     run = ideal_model.simulate(dc_input(voltage), 64, dither_words=words)
     _assert_physical_and_integer_views(run, np.full(64, voltage), words, ideal_model)
+    np.testing.assert_allclose(run.raw.out, voltage, rtol=0, atol=6 / 2**20)
+    assert np.ptp(np.asarray(run.codes.code, dtype=np.int64)) <= 1
     np.testing.assert_array_equal(run.raw.sample_id, np.arange(64))
     np.testing.assert_array_equal(
         run.raw.held_sample_ids, np.broadcast_to(np.arange(64)[:, None], (64, 8))

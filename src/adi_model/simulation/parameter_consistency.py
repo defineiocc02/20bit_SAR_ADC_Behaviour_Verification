@@ -5,14 +5,9 @@
 # 功能       : 把"参数之间必须自洽"的关系做成可读断言，而不是留在若干失败用例里。
 #
 # 设计说明   :
-#   * 把 ADC2 窗口折回前级输入，才能与 dither 的提前量在同一标尺比较。
-#     默认 0.75 V 窗口在增益 32、6 Vpp 输入下覆盖 2 个一级 LSB。
-#     当减法命令的 U=5 时，再加一半一级量化步长，需求达到 5.5 个一级 LSB。
-#   * 这类"参数互相打不过"的问题，最好的落点是**一条显式断言**：
-#     它在构建时就给出可读的结论（谁需要多少、谁只提供多少、差多少），
-#     而不是让读者从 4 个失败用例里反推。
-#   * 本模块只做**核算与报告**，不修改任何参数、不自动放宽窗口、不关闭 dither。
-#     调用方决定是"拒绝运行"还是"带着已知缺口运行并打印"。
+#   * 本模块比较窗口宽度与假设的残差摆幅。U 项只适用于采样端漏掉高段的压力试算。
+#     Fig.19 全字进入 RDAC 时，名义等步长码本的 U 会在余差中抵消。
+#   * 此处只算所需跨度。实际是否越过上、下限，由 ADC2 按每笔节点电压标记。
 # -----------------------------------------------------------------------------
 # 变更记录
 # -----------------------------------------------------------------------------
@@ -111,25 +106,10 @@ def stage2_capacity(
 
 
 def dither_requirement_lsb1(*, upper_code_max: int, quantization_margin: float = 0.5) -> float:
-    """需求 = U 的最大提前量 + 量化余量。"""
-    """dither 的 upper 段需要多少一级 LSB 的残差余量。
+    """在假设高段未进入 RDAC 采样时计算最大码移加给定量化余量，单位为 LSB1。
 
-    Args:
-        upper_code_max: dither upper 段的最大码（`U = 4·D6 + D4`，六位字下最大 5）。
-        quantization_margin: 一级量化本身需要的余量（满步长对应 0.5，默认）。
-
-    Returns:
-        需要的 LSB1 数。
-
-    Raises:
-        ConfigError: upper_code_max 非整数或为负。
-
-    说明：U 通过 `k = c - U` 让码提前，残差从 ±0.5 LSB 扩展到 [-0.5, U+0.5] LSB。
-    推导：c 的量化误差 ±0.5Δ，k = c - U，残差 = x - vd0(k) ≈ 量化误差 + U·Δ，
-    因此 U 是**累积**提前量（不是"二选一"）。
-    `U = 4·D6 + D4` 取 {0,1,4,5}，最大值 5 ⇒ 残差上界 5.5 LSB1。
-    这条结论与论文 [00] 的 "dither range enhanced by 2b" 一致：
-    D6 给出 4 倍的 RDAC 侧范围，D4 是 1 码的量化器侧范围。
+    upper_code_max 为最大未抵消的上段整数码，quantization_margin 为假设的余量。
+    例如 U=5、余量 0.5 时得到 5.5。这个反例不描述全字预置的 Fig.19 通路。
     """
     if isinstance(upper_code_max, bool) or not isinstance(upper_code_max, int | np.integer):
         raise ConfigError("upper_code_max must be an integer")
@@ -173,16 +153,11 @@ class ConsistencyReport:
 
     def summary(self) -> str:
         """一句话结论，供日志与报告直接引用。"""
-        if self.sufficient:
-            return (
-                f"ADC2 covers {self.capacity.coverage_lsb1:.2f} LSB1 "
-                f"(needs {self.needed_lsb1:.2f}); dither fits."
-            )
+        verdict = "sufficient" if self.sufficient else "insufficient"
         return (
-            f"ADC2 covers {self.capacity.coverage_lsb1:.2f} LSB1 but dither needs "
-            f"{self.needed_lsb1:.2f}; short by {self.deficit_lsb1:.2f} LSB1. "
-            "The second stage window and the dither range are not mutually consistent; "
-            "this is a parameter choice, not an implementation defect."
+            f"Uncancelled-upper stress only: ADC2 window {self.capacity.coverage_lsb1:.2f} LSB1, "
+            f"requested {self.needed_lsb1:.2f} LSB1, span deficit {self.deficit_lsb1:.2f} LSB1; "
+            f"span/resolution verdict {verdict}."
         )
 
 

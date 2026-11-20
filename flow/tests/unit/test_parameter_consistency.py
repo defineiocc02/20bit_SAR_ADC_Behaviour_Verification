@@ -1,19 +1,12 @@
 # =============================================================================
 # 文件名     : test_parameter_consistency.py
 # 模块名     : Fig.11 量程研究
+# 版本       : v1.0
 # 功能       : 按指定的增益、一级码步与二级窗口计算剩余余量。
 # 设计说明   : 这里的上段需求来自显式码移实验，生产接口按实际开关重构。
+# 变更记录   : 区分全字通路与断开采样高段的压力预算。
 # =============================================================================
-"""Fig.11 电荷夹具的 ADC2 量程与码移扰动幅度检查。
-
-这条检查把"4 个 dither 测试长期失败"变成一条可读断言。
-
-研究夹具在本例使用 **13 bit / 0.75 V**。下面的 5.5 步需求来自该码移实验。
-窗口折到一级输入 = 0.75/32 = 0.0234375 V = **2.0 个一级 LSB**（原 1.2），
-而 dither 的 upper 段需要 **5.5** 个 —— **缺口仍存在（缺 3.5 LSB1）**，
-所以 sufficient 仍为 False；本测试验证的是"缺口被显式报出"，
-不是"缺口已消除"。
-"""
+"""理想匹配的 Fig.19 两路抵消 U。这里专门核算人为断开一路后所需的额外余量。"""
 
 from __future__ import annotations
 
@@ -30,6 +23,9 @@ from adi_model.simulation.parameter_consistency import (
 V_FS = 3.0
 
 
+# =============================================================================
+# 1. 手算窗口和未抵消上段的范围
+# =============================================================================
 def test_stage2_capacity_matches_hand_calculation():
     """覆盖量 = 窗口 / (增益 × 一级 LSB)，可手算复现。"""
     cap = stage2_capacity(v_fs=V_FS, gain=32.0, adc2_v_min=-0.0375, adc2_v_max=0.4125)
@@ -45,8 +41,8 @@ def test_dither_requirement_counts_margin_on_top_of_upper_code():
     assert dither_requirement_lsb1(upper_code_max=2, quantization_margin=0.0) == pytest.approx(2.0)
 
 
-def test_default_model_reports_the_known_gap():
-    """默认参数下二级 ADC 装不下 dither：缺口必须被显式报出，且量级可核对。"""
+def test_uncancelled_upper_stress_reports_the_known_gap():
+    """假设 U 未在余差里抵消，窗口的压力预算缺口可独立复算。"""
     model = Fig11Model(seed=20261105, parameters=Fig11Parameters(), config_overrides=None)
     report = model.dither_stage2_consistency
     assert report.sufficient is False
@@ -54,13 +50,14 @@ def test_default_model_reports_the_known_gap():
     assert report.capacity.coverage_lsb1 == pytest.approx(2.0, abs=0.01)
     assert report.needed_lsb1 == pytest.approx(5.5)
     assert report.deficit_lsb1 == pytest.approx(3.5, abs=0.01)
-    assert "not mutually consistent" in report.summary()
+    assert "Uncancelled-upper stress only" in report.summary()
 
 
 def test_report_is_visible_in_the_inference_table():
     """缺口必须出现在 inference 表里，读者不必从测试失败去反推。"""
     model = Fig11Model(seed=20261105, parameters=Fig11Parameters(), config_overrides=None)
     entry = model.inference_table()["stage2_capacity_vs_dither"]
+    assert entry["value"]["scope"] == "uncancelled_upper_stress_only"
     assert entry["value"]["sufficient"] is False
     # 13 bit / 0.75 V 下缺 3.5 LSB1（原 14 bit/0.45 V 时缺 4.3）
     assert entry["value"]["deficit_lsb1"] == pytest.approx(3.5, abs=0.01)
@@ -75,7 +72,7 @@ def test_sufficient_case_is_reported_as_such():
     )
     assert report.sufficient is True
     assert report.deficit_lsb1 == 0.0
-    assert "dither fits" in report.summary()
+    assert "verdict sufficient" in report.summary()
 
 
 def test_rejects_illegal_parameters():

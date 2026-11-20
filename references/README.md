@@ -14,6 +14,6 @@
 
 当前的披露、工程选定范围和未实现项见 [机制专题](../docs/mechanisms/README.md)及[项目状态](../docs/STATUS.md)。更早的逐模块对照和判据可按当时快照追踪。[历史原文对照](../docs/_history/archive/current_digital_source_map.md) · [历史状态表](../docs/_history/archive/digital_status_matrix.md)
 
-原件的版权与内嵌使用声明归原作者／出版方所有，不适用本工程的 BSD 软件许可，不因存放于此而获得新的授权。Python wheel 和 sdist 不包含这些 PDF；从发行包阅读本页时，请访问 [GitHub 资料目录](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/tree/merge/adi-repro/references)获取仓库中的对应文件。
+原件的版权与内嵌使用声明归原作者／出版方所有，不适用本工程的 BSD 软件许可，不因存放于此而获得新的授权。Python wheel 和 sdist 不包含这些 PDF；从发行包阅读本页时，请访问 [GitHub 资料目录](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/tree/main/references)获取仓库中的对应文件。
 
 这里的 158 页是文件清点口径。首页原有的 20 份／641 页完整阅读审计保留其历史范围；CICC 资料的新身份核对不计为 62 页讲稿的完整技术复核。

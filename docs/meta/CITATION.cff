@@ -9,10 +9,10 @@ authors:
     given-names: Reed
     alias: defineiocc02
     affiliation: Xidian University
-version: "9.0.0+adi.repro"
+version: "9.0.1+adi.repro"
 license: BSD-3-Clause
 repository-code: "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification"
-url: "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/tree/merge/adi-repro"
+url: "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification"
 abstract: >-
   SystemVerilog digital controller and Python transaction model for an
   independent reproduction of a two-stage precision SAR converter. The model

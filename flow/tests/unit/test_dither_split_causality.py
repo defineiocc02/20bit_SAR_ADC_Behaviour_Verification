@@ -12,14 +12,13 @@
 
 D6 上段作用于粗码补偿一侧，D5 下段作用于 SADC 输入一侧。
 本组测试固定相同直流输入，分别切换 D6、D5，读取 SADC 粗码和 20 位输出。
-Fig.11 研究夹具在此输入下开启 D6 会改变最终码，严格预期失败用例持续跟踪。
+Fig.11 研究夹具在理想条件下切换 D6，可由实际开关和 ADC2 输出还原相同的最终码。
 生产模型另由包级入口检查相同四种输入，预期码为 594193。
 """
 
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 
 # =============================================================================
@@ -62,20 +61,13 @@ def test_fig11_lower_bit_does_move_the_sadc_decision():
     ), "the lower bit did not reach the quantiser; it is not the lower branch"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Fig.11 研究夹具在 0.4 V 的码移试验中开启 D6 后最终码变化。"
-        "粗码分流在前两个用例检查，最终码复原条件通过时严格 XPASS。"
-    ),
-)
 def test_fig11_final_output_is_restored_for_the_d6_d5_combinations():
     """De-dithering: the final code must not depend on the injected word."""
     outputs = {
         int(np.asarray(_research(w).codes.code)[0])
         for w in (0, 1 << UPPER_BIT, 1 << LOWER_BIT, (1 << UPPER_BIT) | (1 << LOWER_BIT))
     }
-    assert len(outputs) == 1, f"final code depends on the dither word: {outputs}"
+    assert outputs == {594193}, f"0.4 V 切换 D6/D5 时输出 {outputs}"
 
 
 def test_production_output_is_restored_for_the_same_four_words():

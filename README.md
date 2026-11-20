@@ -4,10 +4,10 @@
 
 工作树只有一个生产顶层 `adc_digital_ip_v21`。`v21` 是它在源码与构建清单中的名称。模拟比较器、残差放大器和 ADC2 通过宏接口连接。默认 Python 按这一个顶层的字源、片选、DEM、余差量化和定点规则逐笔出码。宏的电压输入由模拟假设给出。[顶层 RTL](rtl/v21/adc_digital_ip_v21.sv) · [生产源清单](flow/build/filelists/files_adc_v21.f) · [接口合同](docs/CONTRACT_CURRENT.md)
 
-**复现请检出 `merge/adi-repro`。** GitHub 的默认分支 `main` 保存另一条工程线。安装本分支得到的 Python 包版本是 [9.0.0+adi.repro](pyproject.toml)。引用具体运行请记录提交号。[版本记录](docs/meta/CHANGELOG.md) · [结构与版本实测](docs/audit/TREE_AUDIT_REPORT.md#current-tree-review) · [软件引用](docs/meta/CITATION.cff)
+**从默认分支 `main` 开始复现。** 根目录的 README、生产顶层和 Python 模型随同一个提交发布。配套 Python 包版本是 [9.0.1+adi.repro](pyproject.toml)。引用具体运行请记录提交号。[版本记录](docs/meta/CHANGELOG.md) · [结构与版本实测](docs/audit/TREE_AUDIT_REPORT.md#current-tree-review) · [软件引用](docs/meta/CITATION.cff)
 
 ```bash
-git clone --branch merge/adi-repro https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification.git
+git clone https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification.git
 cd 20bit_SAR_ADC_Behaviour_Verification
 git rev-parse HEAD
 ```

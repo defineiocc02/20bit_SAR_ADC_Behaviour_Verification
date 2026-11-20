@@ -1,8 +1,10 @@
 # =============================================================================
 # 文件名     : sampler.py
 # 模块名     : 研究模型的采样节点
+# 版本       : v1.0
 # 功能       : 将采样端输入及指定的扰动分别传给 SADC 和 RDAC。
 # 设计说明   : 保存两路实际电压，便于在码移或电荷口实验中独立检查同一笔的偏移。
+# 变更记录   : 标明两节点共模试验和 Fig.19 逐字采样的作用点。
 # =============================================================================
 """单孔径采样记录、显式样本域噪声与解析输入函数。
 
@@ -71,6 +73,9 @@ class SampleCapture:
             object.__setattr__(self, name, readonly(value, value.dtype))
 
 
+# =============================================================================
+# 1. 单孔径与采样视图
+# =============================================================================
 def capture(
     cfg: Config,
     input_fn,
@@ -94,10 +99,8 @@ def capture(
             定义所选残差输入域sigma=sqrt(chi*kB*T/Ceq)，不从物理拓扑补相位假设。
         dither_program: 可选同笔Fig19静态等效控制；lower/total从同一Q32字生成，
             必须与raw长度和Vfs一致，不用RA误差代替采样注入。
-        dither_sample_v: 可选(N,)注入**采样节点**的 dither 电压[V]。独立电荷口
-            拓扑里 lower 段由 dither 电容在采样节点注入，因此 SADC 与 RDAC
-            两个视图同时平移；转换时再用前级判决减去上段 U 作为 RDAC 命令。
-            与 dither_program 互斥。
+        dither_sample_v: 可选 (N,) 共模偏移 [V]，同时作用于两个采样视图。
+            直接测试采样端口时可用。Fig.19 的两条支路由 dither_program 提供。
 
     Returns:
         含真实SADC/RDAC两个采样输入视图的SampleCapture；采集起点严格aperture−Ts。
@@ -177,11 +180,11 @@ def capture(
     total = np.zeros(n_samples)
     if dither_program is not None and dither_sample_v is not None:
         raise ConfigError(
-            "dither_program (code-shift topology) and dither_sample_v (charge-port "
+            "dither_program (code-shift topology) and dither_sample_v (common-offset "
             "topology) are mutually exclusive; pick one and state it"
         )
     if dither_sample_v is not None:
-        # 独立电荷口：lower 段注入在采样节点，两个视图一起平移。
+        # 直接采样接口支持给两个节点施加相同电压，用于单独核对采样器。
         lower = finite_record(dither_sample_v, (n_samples,), "dither sample [V]", scalar=False)
         total = lower
     if dither_program is not None:
@@ -192,7 +195,7 @@ def capture(
         ):
             raise ConfigError("Fig19 program length/Vfs must match the actual sampling record")
         # 静态研究程序给出两组等效电压。SADC 减低段 L，RDAC 采样减全字 T，
-        # 随后在转换码中减一次 U。与上面两端都减 L 的电荷口实验分别记账。
+        # 随后在转换码中减一次 U。两项始终来自同一个冻结字。
         lower, total = dither_program.lower_v, dither_program.total_v
     tau_error = np.zeros(n_samples)
     if cfg.sampling_tau_mismatch is not None:

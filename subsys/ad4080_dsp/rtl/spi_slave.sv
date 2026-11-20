@@ -57,9 +57,17 @@ module spi_slave #(
                               ADVANCE, WAIT_CS} phase_t;
     phase_t phase;
     // CS/SCLK 的双级同步切断外部边沿到状态机的异步路径。
-    // SDI 依主机保持窗口在同步后的采样沿读取，不能用器件 pad 的零保持
-    // 规范直接替代这个内部时钟域约定。
+    // 表2指定主机可在 SCLK 上升沿后立即改变 SDI。外部时钟沿先锁位，
+    // 再将整位交给核心；解析器使用已有的同步上升事件推进。
+    // 最坏同沿相位下，锁存位有一拍额外时间稳定，再由解析器消费。
+    // 保持 clk >= 8*SCLK，并在实际 Pad/STA 约束 SCLK->捕获和跨域路径。
     (* ASYNC_REG = "TRUE" *) logic cs_meta, cs_sync, sck_meta, sck_sync;
+    logic sdi_edge_q, sdi_core_sample_q;
+
+    always_ff @(posedge sclk or negedge rst_n) begin
+        if (!rst_n) sdi_edge_q <= 1'b0;
+        else sdi_edge_q <= sdi;
+    end
     logic cs_prev, sck_prev;
     wire cs_fall = cs_prev && !cs_sync;
     wire cs_rise = !cs_prev && cs_sync;
@@ -98,9 +106,9 @@ module spi_slave #(
     // 无损表示。扩展到 0x0100 以上的有效地址需明确到 CRC8 种子的映射。
     wire crc_address_seed_missing = crc_frame && optional_entity && addr[15:8] != 8'd0;
     logic [6:0] crc_rx;
-    wire [15:0] instruction_next = {instruction_shift[14:0], sdi};
-    wire [15:0] payload_next = {rx_shift[14:0], sdi};
-    wire [7:0] crc_rx_next = {crc_rx[6:0], sdi};
+    wire [15:0] instruction_next = {instruction_shift[14:0], sdi_core_sample_q};
+    wire [15:0] payload_next = {rx_shift[14:0], sdi_core_sample_q};
+    wire [7:0] crc_rx_next = {crc_rx[6:0], sdi_core_sample_q};
     wire instruction_done = instruction_bits == (short_frame ? 5'd7 : 5'd15);
     // bank 选择每个实体的线宽。严格双字节的最后一个数据位晚于普通
     // 字节模式一个字节，避免先落下半个字段再报告部分访问。
@@ -140,9 +148,11 @@ module spi_slave #(
         if (!rst_n) begin
             cs_meta <= 1'b1; cs_sync <= 1'b1; cs_prev <= 1'b1;
             sck_meta <= 1'b1; sck_sync <= 1'b1; sck_prev <= 1'b1;
+            sdi_core_sample_q <= 1'b0;
             cs_close_pending <= 1'b0;
         end else begin
             cs_meta <= cs_n; cs_sync <= cs_meta; cs_prev <= cs_sync;
+            sdi_core_sample_q <= sdi_edge_q;
             sck_meta <= sclk; sck_sync <= sck_meta; sck_prev <= sck_sync;
             cs_close_pending <= close_with_sample;
         end
@@ -217,9 +227,9 @@ module spi_slave #(
                 // 图 67/70 的首采样可与 CS 下降同拍。此位参与指令
                 // 和 CRC 起始累计，避免后续把首数据位当成地址末位。
                 instruction_bits <= sck_rise ? 5'd1 : 5'd0;
-                instruction_shift <= sck_rise ? {14'd0, sdi} : 15'd0;
-                host_crc <= sck_rise ? crc_bit(8'hA5, sdi) : 8'hA5;
-                device_crc <= sck_rise ? crc_bit(8'hA5, sdi) : 8'hA5;
+                instruction_shift <= sck_rise ? {14'd0, sdi_core_sample_q} : 15'd0;
+                host_crc <= sck_rise ? crc_bit(8'hA5, sdi_core_sample_q) : 8'hA5;
+                device_crc <= sck_rise ? crc_bit(8'hA5, sdi_core_sample_q) : 8'hA5;
                 poisoned <= 1'b0; optional_entity <= 1'b0;
                 data_started <= 1'b0;
                 sdo <= 1'b0; sdo_oe <= send_status && !reset_poll_requested;
@@ -336,8 +346,8 @@ module spi_slave #(
                     case (phase)
                         INSTRUCTION: begin
                             instruction_shift <= instruction_next[14:0];
-                            host_crc <= crc_bit(host_crc, sdi);
-                            device_crc <= crc_bit(device_crc, sdi);
+                            host_crc <= crc_bit(host_crc, sdi_core_sample_q);
+                            device_crc <= crc_bit(device_crc, sdi_core_sample_q);
                             if (instruction_done) begin
                                 read_command <= short_frame ? instruction_next[7] : instruction_next[15];
                                 addr <= short_frame ? {9'd0, instruction_next[6:0]} :
@@ -350,8 +360,8 @@ module spi_slave #(
                         DATA: begin
                             if (data_started) begin
                                 rx_shift <= payload_next[14:0];
-                                host_crc <= crc_bit(host_crc, sdi);
-                                device_crc <= crc_bit(device_crc, read_command ? sdo : sdi);
+                                host_crc <= crc_bit(host_crc, sdi_core_sample_q);
+                                device_crc <= crc_bit(device_crc, read_command ? sdo : sdi_core_sample_q);
                                 if (payload_done) begin
                                     pending_write <= completed_write;
                                     framing_write <= !read_command &&
@@ -359,8 +369,8 @@ module spi_slave #(
                                     // 暂存完整数据并切至校验相。CRC 模式此时
                                     // 仍没有 bank 写脉冲，收到完整校验才能提交。
                                     if (crc_frame) begin
-                                        host_crc_expected <= crc_bit(host_crc, sdi);
-                                        crc_tx <= crc_bit(device_crc, read_command ? sdo : sdi);
+                                        host_crc_expected <= crc_bit(host_crc, sdi_core_sample_q);
+                                        crc_tx <= crc_bit(device_crc, read_command ? sdo : sdi_core_sample_q);
                                         crc_rx <= '0; crc_bits <= '0;
                                         phase <= CRC;
                                     end else begin

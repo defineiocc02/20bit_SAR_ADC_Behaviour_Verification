@@ -125,11 +125,13 @@ module ad4080_regs #(
     wire sw_reset_now = P_AON_CFG_BOUND ? remote_reset : (sw_reset_request && software_reset_allowed);
     wire mode_value_ok = wdata[7:2] == '0 && wdata[1:0] != 2'b01;
     wire ldo_value_ok = wdata[7:2] == '0;
-    // 来自同一份原 bank 译码和两步 arm 状态。主机提交时若队列满或
-    // 本域不空闲，拒绝整个候选；没有另一份模式/PD 镜像接受它。
-    assign pwr_cmd_valid_o = P_AON_CFG_BOUND && we && write_bytes == 2'd1 && access_supported && power_cfg_idle &&
-                             (sw_reset_request || (addr == 16'h0002 && mode_value_ok) ||
-                              (addr == 16'h0018 && ldo_value_ok));
+    // [电源命令] 0x02 允许已完成、尚未回读的记录。此时 capture_active
+    // 仍保留读口所有权，用未完成采集和正在读出分别表示不能切换的状态。
+    // 0x18 和 AON 软复位继续要求整个会话释放。命令资格由此唯一译码，
+    // 拒绝路径从同一个 valid 和队列 ready 判断，避免 bank 与 AON 受理不一致。
+    assign pwr_cmd_valid_o = P_AON_CFG_BOUND && we && write_bytes == 2'd1 && access_supported &&
+                             ((addr == 16'h0002 && mode_value_ok && software_reset_allowed) ||
+                              (power_cfg_idle && (sw_reset_request || (addr == 16'h0018 && ldo_value_ok))));
     assign pwr_cmd_op_o = addr == 16'h0002 ? 2'd0 : (addr == 16'h0000 ? 2'd1 : 2'd2);
     assign pwr_cmd_value_o = wdata[1:0];
     wire cnv_error_w1c = we && write_bytes == 2'd1 && addr == 16'h0014 && wdata[2];

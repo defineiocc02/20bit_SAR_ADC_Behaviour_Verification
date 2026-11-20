@@ -69,6 +69,14 @@ jobs:
       - name: Exercise the estimators, measured table and offset trim
         run: python -m unittest discover -s "$CAL" -p 'test_*.py' -v
       - uses: ./.github/actions/setup-verilator
+      - name: Install the raw trace extraction tool
+        shell: bash
+        run: |
+          # 产品台架在仿真完成后用 rg 提取原始逐沿与滤波行；Ubuntu 镜像未保证预装。
+          if ! command -v rg >/dev/null; then
+            sudo apt-get -o Acquire::Retries=3 update
+            sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends ripgrep
+          fi
       - name: Compare held-out samples with the existing DSP RTL
         run: python "$CAL/verify_rtl.py" --repo . --out "$RUNNER_TEMP/ad4080-system-calibration.json" --require-manual-order
       - name: Publish the independent Figure 96 result

@@ -108,6 +108,7 @@ module ad4080_regs #(
     logic [3:0] gpio_dir_r, gpio_data_r;
     logic [3:0][3:0] gpio_sel_r;
     logic crc_r, send_status_r, strict_r, ascend_r, single_r, short_r;
+    logic keep_stream_length_r;               // 表44 的可读写位与不支持的非零循环独立。
     logic [1:0] crc_enable_bits_r, crc_inverse_bits_r;
     logic [7:0] scratch_r;
     // 所有权未确定时保留已确认的整字配置，拒绝跨域过程中覆盖下一次启动用的时隙。
@@ -125,13 +126,13 @@ module ad4080_regs #(
     wire sw_reset_now = P_AON_CFG_BOUND ? remote_reset : (sw_reset_request && software_reset_allowed);
     wire mode_value_ok = wdata[7:2] == '0 && wdata[1:0] != 2'b01;
     wire ldo_value_ok = wdata[7:2] == '0;
-    // [电源命令] 0x02 允许已完成、尚未回读的记录。此时 capture_active
-    // 仍保留读口所有权，用未完成采集和正在读出分别表示不能切换的状态。
-    // 0x18 和 AON 软复位继续要求整个会话释放。命令资格由此唯一译码，
+    // [电源命令] p.28 保留已完成记录。0x02 与软复位以正在采集和读出作
+    // 忙条件，即使 capture_active 因保留读指针仍为 1，也可接受软件复位。
+    // 0x18 继续要求整个会话释放。命令资格由此唯一译码，
     // 拒绝路径从同一个 valid 和队列 ready 判断，避免 bank 与 AON 受理不一致。
     assign pwr_cmd_valid_o = P_AON_CFG_BOUND && we && write_bytes == 2'd1 && access_supported &&
-                             ((addr == 16'h0002 && mode_value_ok && software_reset_allowed) ||
-                              (power_cfg_idle && (sw_reset_request || (addr == 16'h0018 && ldo_value_ok))));
+                             ((software_reset_allowed && (sw_reset_request || (addr == 16'h0002 && mode_value_ok))) ||
+                              (power_cfg_idle && addr == 16'h0018 && ldo_value_ok));
     assign pwr_cmd_op_o = addr == 16'h0002 ? 2'd0 : (addr == 16'h0000 ? 2'd1 : 2'd2);
     assign pwr_cmd_value_o = wdata[1:0];
     wire cnv_error_w1c = we && write_bytes == 2'd1 && addr == 16'h0014 && wdata[2];
@@ -223,7 +224,8 @@ module ad4080_regs #(
             16'h000B: begin rdata=16'h0083; read_only=1'b1; end
             16'h000C: begin rdata=16'h0056; read_only=1'b1; end
             16'h000D: begin rdata=16'h0004; read_only=1'b1; end
-            16'h000E,16'h000F: rdata=16'h0000;
+            16'h000E: rdata=16'h0000;
+            16'h000F: rdata={13'd0,keep_stream_length_r,2'd0};
             16'h0010: rdata={8'd0,crc_enable_bits_r,strict_r,send_status_r,2'd0,crc_inverse_bits_r};
             16'h0011: rdata={8'd0,interface_status};
             16'h0014: rdata={8'd0,status};
@@ -309,6 +311,7 @@ module ad4080_regs #(
             crc_r<=1'b0; send_status_r<=1'b0; strict_r<=1'b1;
             ascend_r<=1'b0; single_r<=1'b0; short_r<=1'b0;
             crc_enable_bits_r<=2'd0; crc_inverse_bits_r<=2'd3;
+            keep_stream_length_r<=1'b0;
             data_intf_config_a_o<=8'h40; data_intf_config_b_o<=8'h00; data_intf_config_c_o<=8'h20;
             scratch_r<='0; reset_armed<=1'b0; por_r<=1'b1; por_analog_r<=1'b1;
             not_ready_r<=1'b0; clock_r<=1'b0; crc_error_r<=1'b0;
@@ -325,6 +328,7 @@ module ad4080_regs #(
             crc_r<=1'b0; send_status_r<=1'b0; strict_r<=1'b1;
             single_r<=1'b0; short_r<=1'b0;
             crc_enable_bits_r<=2'd0; crc_inverse_bits_r<=2'd3;
+            keep_stream_length_r<=1'b0;
             data_intf_config_a_o<=8'h40; data_intf_config_b_o<=8'h00; data_intf_config_c_o<=8'h20;
             scratch_r<='0; reset_armed<=1'b0; por_r<=1'b1; por_analog_r<=1'b1;
             not_ready_r<=1'b0; clock_r<=1'b0; crc_error_r<=1'b0;
@@ -353,7 +357,7 @@ module ad4080_regs #(
                 else case (addr)
                     16'h0000: begin
                         if (wdata[7] && wdata[0]) begin
-                            if (software_reset_allowed && (!P_AON_CFG_BOUND || (power_cfg_idle && pwr_cmd_ready_i)))
+                            if (software_reset_allowed && (!P_AON_CFG_BOUND || pwr_cmd_ready_i))
                                 reset_armed<=1'b1;
                             else begin
                                 if (P_AON_CFG_BOUND) reset_armed<=1'b0;
@@ -381,9 +385,14 @@ module ad4080_regs #(
                         else if (!pwr_cmd_valid_o || !pwr_cmd_ready_i) reject_write(REJECT_NOT_IDLE);
                     end
                     16'h000A: scratch_r<=wdata[7:0];
-                    // Rev. B p80 与表43/44 对非零循环的支持相冲突。
-                    // 两个寄存器仍为已定义的读零、可写复位值的实体。
-                    16'h000E,16'h000F: if (wdata[7:0] != 8'd0) reject_write(REJECT_UNSUPPORTED);
+                    // Rev. B p.80 明示不支持非零 LOOP_COUNT。表44 的保留
+                    // 标志可独立配置；当前计数恒零，置位也不启动循环。
+                    16'h000E: if (wdata[7:0] != 8'd0) reject_write(REJECT_UNSUPPORTED);
+                    16'h000F: begin
+                        if (wdata[7:3] != 5'd0 || wdata[1:0] != 2'd0)
+                            reject_write(REJECT_UNSUPPORTED);
+                        else keep_stream_length_r<=wdata[2];
+                    end
                     16'h0010: begin
                         strict_r<=wdata[5]; send_status_r<=wdata[4];
                         crc_enable_bits_r<=wdata[7:6]; crc_inverse_bits_r<=wdata[1:0];

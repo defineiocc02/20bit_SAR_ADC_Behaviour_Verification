@@ -8,7 +8,7 @@
 // 设计说明   : 核心域标记代表已同步的真实 CNV 上升沿。正常用例为原码、校正和
 //              滤波留足时；故障用例有意提前、漏送或压缩间隔，不注入内部数据。
 //              仅按公开图文检查沿序与真实值，物理 GPIO 建立/传播需另验。
-// 变更记录   : 初始版本，暂无变更记录。
+// 变更记录   : 补充 Direct LVDS 的 FILTER_SYNC 多 CNV 保持与恢复用例。
 // =============================================================================
 module ad4080_cnv_phases_tb;
     // =========================================================================
@@ -246,6 +246,31 @@ module ad4080_cnv_phases_tb;
         $display("PASS FIG97 same 0x29 direct restart without GPIO, retained=52 next_E7=92");
     endtask
 
+    task automatic run_direct_sync_hold;
+        reset_top(); cfg_filter(8'h01);
+        // Rev. B 表 25：低有效 SYNC 持续时应保持滤波复位。直读在图 98
+        // 的同步释放后从最新一段原码重算，复位期间的完成码不得进入平均值。
+        @(negedge clk); gpio_i[1]=0;
+        repeat (5) @(negedge clk);
+        drive_tick(0,0,6);
+        for (int edge_no=2; edge_no<=3; edge_no++) begin
+            drive_tick(1,4096,6);
+            $display("DIRECT_SYNC_HOLD low_edge=%0d rdy_n=%0b fault=%0b results=%0d",
+                     edge_no,gpio_o[0],cnv_data_timing_error_o,direct_words);
+            check(gpio_o[0] && !cnv_data_timing_error_o && direct_words==0,
+                  "Direct LVDS FILTER_SYNC held low must hold reset across CNVs without fault");
+        end
+        gpio_i[1]=1;
+        repeat (5) @(negedge clk);
+        drive_tick(0,0,6);
+        drive_tick(1,8,6); drive_tick(1,16,6);
+        check(gpio_o[0] && direct_words==0,"only the new pair is collected after SYNC releases");
+        drive_tick(0,0,6);
+        check(!gpio_o[0] && dout==20'd12 && direct_words==1 && !cnv_data_timing_error_o,
+              "Direct LVDS publishes the first clean SINC1 result after multi-CNV SYNC");
+        $display("PASS Direct LVDS FILTER_SYNC held for three CNVs then clean result 12");
+    endtask
+
     task automatic run_fig83;
         reset_top();
         write_csr(15'h0019,1,16'h000d);
@@ -438,7 +463,7 @@ module ad4080_cnv_phases_tb;
     endtask
 
     initial begin
-        run_fig99(15ns,5ns); run_fig99(20ns,10ns); run_fig97(); run_fig83();
+        run_fig99(15ns,5ns); run_fig99(20ns,10ns); run_fig97(); run_direct_sync_hold(); run_fig83();
         run_event_capture(); run_clock_error(); run_bad_timing();
         for (int code=0; code<10; code++) run_sinc_rate(1,code,2<<code);
         run_sinc_rate(1,15,1024);

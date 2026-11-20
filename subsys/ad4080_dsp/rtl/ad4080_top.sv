@@ -17,6 +17,7 @@
 // 依赖: spi_slave、ad4080_regs、ad4080_dsp_chain、event_detect、fifo_capture、gpio_ctrl。
 // 边界: 引脚实际建立与传播由接入方确认。未知绑定按参数关闭对应功能。
 // 变更记录   : 新增旁路/SINC1 的真实 CNV 公布拍，分离 GPIO 与 CSR 的保存状态。
+//              Direct LVDS 支持跨多个 CNV 保持低有效 FILTER_SYNC。
 // =============================================================================
 `timescale 1ns/1ps
 `default_nettype none
@@ -162,8 +163,12 @@ module ad4080_top #(
         wire [5:0] warm_group_limit = pf1_on ? 6'd34 : 6'd4;
         wire fifo_new_arm = (arm | fifo_arm) && !capture_active && fifo_mode != 0;
         wire restart = fsync_pulse || fifo_clear_request || fifo_new_arm;
+        // 表 25 允许直读在 SYNC 低时跨 CNV 保持复位。图 99 的 FIFO 建批则
+        // 要求 E1 采到低电平且 E2 前释放，避免把不合法的起点标为同一有效记录。
+        wire direct_path = fifo_mode == 2'd0 && !captured;
+        wire repeated_fifo_sync = !direct_path && sync_tick_seen_q;
         // 只有直读允许写 0x29 自己重启滤波。FIFO 模式改变导致的重启不替 GPIO 建批。
-        wire direct_filter_start = fsync_pulse && fifo_mode == 0 && !captured;
+        wire direct_filter_start = fsync_pulse && direct_path;
         wire raw_slot = cnv_tick_i && accepting_q && !skip_edge_q;
         wire drained_now = raw_slot && !valid_in && seen_raw_q && raw_left_q == group_size;
         wire raw_fault = (valid_in && !raw_slot) || (raw_slot && !valid_in && !drained_now);
@@ -180,7 +185,7 @@ module ad4080_top #(
         wire last_word_drained = drained_q && !due_q && !store_pending_q && !(|filter_delay_valid_q);
         wire raw_take = raw_slot && valid_in && !pin_sync && !restart && !fault_q && !fault_now;
         wire interrupted_capture = (pin_sync && !sync_prev_q && seen_raw_q) ||
-                                   (pin_sync && cnv_tick_i && sync_tick_seen_q) ||
+                                   (pin_sync && cnv_tick_i && repeated_fifo_sync) ||
                                    fault_q || fault_now || last_word_drained;
 
         assign chain_input_valid = raw_take;
@@ -201,7 +206,8 @@ module ad4080_top #(
 
         // ---------------------------------------------------------------------
         // [优先级] 物理 SYNC 优先于同沿布防/CSR 重启，从而 E1 不会被误丢。
-        //          SYNC 若还跨到 E2 则报失配。故障取消尚未交付的结果与部分记录。
+        //          直读以最后一个处于复位的 CNV 作为起点，FIFO 若跨 E2 则报失配。
+        //          故障取消尚未交付的结果与部分记录。
         // [末尾] 数值脉冲已提前到时先暂存；恰在公布沿前建立的数值可直接消费。
         //        一次公布不取新 raw 做替代。RDY 到下次预计结果的前一 CNV 回高。
         // ---------------------------------------------------------------------
@@ -243,13 +249,13 @@ module ad4080_top #(
                         seen_raw_q <= 1'b0;
                         drained_q <= 1'b0;
                         raw_left_q <= group_size;
-                        accepting_q <= pin_sync && cnv_tick_i && !sync_tick_seen_q;
+                        accepting_q <= pin_sync && cnv_tick_i && !repeated_fifo_sync;
                         skip_edge_q <= filter_sel != 2'd0;
                     end
                     if (pin_sync && cnv_tick_i) begin
                         sync_tick_seen_q <= 1'b1;
                         auto_start_q <= 1'b0;
-                        fault_q <= sync_tick_seen_q;
+                        fault_q <= repeated_fifo_sync;
                     end else if (!pin_sync) begin
                         auto_start_q <= !fault_now && (filter_sel == 2'd0 || direct_filter_start);
                         fault_q <= fault_now;

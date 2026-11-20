@@ -331,6 +331,14 @@ def run_audit(args):
                           Path(paths[0])/"simulation.log"], ROOT, env, stage/"edges.log")
         return observations + matched(oracle, ("AD4080_SIGNAL_EDGES PASS",))
     steps.append(("product_binding", product_pin_trial))
+    # 同一速率构建分开冷启单线和双线，判据同时要求短保持和三档首位延迟。
+    # 名义时钟结构由 Yosys 核对，避免继续用原 100 MHz 结构解释 400 MHz 结果。
+    script("product_speed", ["bash", ROOT/"integration/product/run_product.sh", "--at-speed"],
+           ("AD4080_PRODUCT_AT_SPEED PASS", "PRODUCT_STRUCTURE PASS",
+            "low_ns=9/11 sdi_hold_ps=1 scratch_roundtrips=8 id_reads=2",
+            "lanes=1 corrected=0 fs_msps=40 words=128 first_bit_ps=46250",
+            "lanes=1 corrected=1 fs_msps=40 words=128 first_bit_ps=51250",
+            "lanes=2 corrected=1 fs_msps=40 words=128 first_bit_ps=52500"))
     script("product_calibration", ["bash",ROOT/"integration/product/run_product.sh","--calibration"],
            ("AD4080_PRODUCT_CALIBRATION PASS","PRODUCT_STRUCTURE PASS"))
 

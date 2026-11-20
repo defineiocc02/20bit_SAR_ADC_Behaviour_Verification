@@ -113,6 +113,12 @@ jobs:
           build_dir=$(sed -n 's/^Build directory //p' "$RUNNER_TEMP/ad4080-pin-edges.txt")
           test -n "$build_dir"
           python -B "$p/verify/check_signal_edges.py" "$build_dir/simulation.log"
+      # 表2 配置 SDI 短保持与表21 连续转换，使用实际产品顶层至出码。
+      - name: Test Table 2 and 21 product rates end to end
+        shell: bash
+        run: |
+          export DSP_UPSTREAM_REPO="$GITHUB_WORKSPACE"
+          bash subsys/ad4080_peripherals/integration/product/run_product.sh --at-speed | tee "$RUNNER_TEMP/ad4080-at-speed.txt"
       # 单独检查每种抽取档的实测幅度，原厂图表读数不用于生成 DUT 输出。
       - name: Measure all filter settings on RTL output
         run: python -B subsys/ad4080_peripherals/interfaces/dsp_review/verify_filter_response.py --repo . --output "$RUNNER_TEMP/filter-response"
@@ -124,4 +130,5 @@ jobs:
             ${{ runner.temp }}/ad4080-system-calibration.json
             ${{ runner.temp }}/ad4080-calibrated-record.txt
             ${{ runner.temp }}/ad4080-pin-edges.txt
+            ${{ runner.temp }}/ad4080-at-speed.txt
             ${{ runner.temp }}/filter-response

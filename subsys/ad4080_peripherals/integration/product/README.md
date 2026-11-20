@@ -41,6 +41,7 @@ CAL_PYTHON=/path/to/adctoolbox-venv/bin/python bash integration/product/run_prod
 | `--all-pins` | `AD4080_PRODUCT_ALL_PINS PASS` |
 | `--pin-edges` | `AD4080_PRODUCT_PIN_EDGES PASS` |
 | `--filters` | `AD4080_PRODUCT_FILTERS PASS` |
+| `--at-speed` | `AD4080_PRODUCT_AT_SPEED PASS` |
 | `--result-spi` | `AD4080_PRODUCT_RESULT_SPI PASS` |
 | `--control-pins` | `AD4080_PRODUCT_CONTROL_PINS PASS` |
 | `--full-record` | `AD4080_PRODUCT_FULL_RECORD PASS` |
@@ -50,13 +51,22 @@ CAL_PYTHON=/path/to/adctoolbox-venv/bin/python bash integration/product/run_prod
 
 `--all-pins` 在同一具名工作目录使用一份 SHIFT=14 二进制，分别冷启动常规、滤波、结果 SPI、AON 控制和完整记录。常规收据为 `simulation.log` 和 `pin_edges.csv`，其余收据为 `simulation_<组名>.log`。实际采后 SPI 刺激使用 400 MHz 服务时钟与 50 MHz DCLK。校准为另外一次 SHIFT=15 构建。
 
+## 标称速率及上板所需条件
+
+运行 `bash integration/product/run_product.sh --at-speed`，同一构建在两次冷启动中分别验收单 lane 400 MHz 和双 lane 200 MHz。两次均按核心 400 MHz 复验配置和实际出码。
+
+- 配置 SPI 为 50 MHz，低电平分别用 9 和 11 ns。SDI 在每个 SCLK 上升沿后 1 ps 改为相反电平，暂存寄存器与器件 ID 仍能按实际 SDO 读回。400 MHz 是现有 SPI 过采样口达到 50 MHz 的需要。Pad AC 保障需要目标库与板级条件。[Rev. B 表 2](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=7)
+- 连续读出固定注入 25 ns 的译码 CNV 及 20 位转换结果。对 3 种速率配置各收满 128 笔，按每个路由边沿、标签、数值和首位相位比较。A/B 分别为单线 `40/50`（单位增益）、单线 `40/70`（有增益校正）及双线 `44/20`（有增益校正）。逻辑首位分别在 46.25、51.25 和 52.50 ns。[Rev. B p.48–50](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=48) · [速率验收记录](evidence/at-speed.txt)
+
+数字接口集成与器件验收的操作步骤、参数及证据见[产品复验](ACCEPTANCE.md)。
+
 ## 可复查的记录
 
 | 用例 | 整帧或实际判据 |
 | --- | --- |
 | Fig.83 | 输入向上、向下越过阈值后两次 CNV 到 GPIO ALERT。原 SPI 回读 0x14 sticky 再 W1C。另用实际 20 ns 间隔查 ADC_CNV_ERR。 |
 | Fig.99 / Fig.89 | GPIO SYNC，SINC1 N2，RDY 低 E5/E7/E9，实际带数写 E6/E8/E10。三字 200、600、1000，46 个逐拍逻辑双沿对 `AA_000C8_00258_003E8_CED817`。单字 W1 在同一次首末装载更新 FULL/DONE，26 对 `AA_00123_578475`。 |
-| SINC5 / PF1 | 真 SPI 0x29 写 `0x02` 或 `0x03`。SINC5 D2 输出 74、164、114，PF1 D4 输出 1024、1020、984。两种独立原码组均在 GPIO RDY 和真实物理写时核对，读回完整三个式样字。 |
+| SINC5 / PF1 | 真 SPI 0x29 写 `0x02` 或 `0x03`。SINC5 D2 输出 74、164、114，PF1 D4 输出 744、1481、480。两种独立原码组均在 GPIO RDY 和真实物理写时核对，读回完整三个式样字。 |
 | 阈值触发记录 | 真实 `OFFSET=-64`、`GAIN=0x300`、SINC1 N4、水位 3 及模式 `10`。195 未触发，1105 触发后不进入记录，随后三字 1885、2535、−3315 以 `AA_0075D_009E7_FF30D_C69FFD` 输出。 |
 | 空、未完、满及环形 | 空与未完拒绝读取。模式 01 接受恰 16384 次物理写，末地址 `0x3FFF`，额外码不入记录。已满模式 11 试验查物理地址 `0x3FFF→0x0000`，回读前缀 `03FFF_04000`。完整四模式定向另跑。 |
 | 电源与自测恢复 | IOVDD 掉压时保留未读记录、作废已取半记录。独占 MBIST 后实际中止原因 3，清元数据并重新捕获到零地址。 |

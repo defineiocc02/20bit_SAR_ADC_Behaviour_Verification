@@ -112,7 +112,7 @@ def main():
     # 的实际派生模块参数，而非把 runner 的命令行值重复报告为证据。
     dsp_type = modules[top]["cells"]["u_dsp"]["type"]
     dsp_params = modules[dsp_type]["parameter_default_values"]
-    shift = int(sys.argv[2]) if len(sys.argv) == 3 else 14
+    shift = int(sys.argv[2]) if len(sys.argv) > 2 else 14
     if shift not in (14, 15):
         raise SystemExit(f"unsupported product fixture shift: {shift}")
     profile = {
@@ -126,7 +126,8 @@ def main():
         if int_value(dsp_params[name]) != expected:
             raise SystemExit(f"wrong elaborated binding {name}")
     top_params = modules[top]["parameter_default_values"]
-    if int_value(top_params["CORE_CLOCK_HZ"]) != 100_000_000 or int_value(top_params["P_CNV_TIMING_BOUND"]) != 1:
+    core_hz = int(sys.argv[3]) if len(sys.argv) > 3 else 100_000_000
+    if int_value(top_params["CORE_CLOCK_HZ"]) != core_hz or int_value(top_params["P_CNV_TIMING_BOUND"]) != 1:
         raise SystemExit("wrong elaborated CNV timing/profile")
     banks = sorted((path, shape) for path, _, shape in nodes if shape)
     # SRAM/运输队列保留抽象宏样式便于算阵列规模。连续两个寄存器槽另验，
@@ -141,7 +142,7 @@ def main():
     print("PRODUCT_CONTINUOUS_STRUCTURE PASS: original DSP code/tag routed through two 52-bit CDC registers")
     print(f"DSP engineering mapping K_GAIN=1 SHIFT={shift}")
     print("DSP config SPI P_WRITE_SDO_DRIVE=1")
-    print("PRODUCT_TIMING_BOUND CORE_CLOCK_HZ=100000000 P_CNV_TIMING_BOUND=1")
+    print(f"PRODUCT_TIMING_BOUND CORE_CLOCK_HZ={core_hz} P_CNV_TIMING_BOUND=1")
     for path, shape in banks:
         print(f"{path}: {shape[0]}x{shape[1]}")
 

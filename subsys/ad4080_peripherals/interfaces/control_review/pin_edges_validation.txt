@@ -114,10 +114,16 @@ source_sha256 bdd9d199b649c5c3d08493ede73f2066cdd30e3d7c78f6e2d924efde1b8ab1f0 s
 SPI_ENTITY_CONTRACT_COMPLETE requests=12 read_compares=16 crc_compares=11 status_compares=4 partial_errors=2 crc_errors=1 notready_errors=1 prepare_end_cases=1 checks=943
 non_code_note=direct bench received only one explanatory comment after this run
 
+[ historical fixture notes ]
+earlier_fixture_red_at_16f113e=156 cases, 16509 checks, 7796 failures
+fixture_fix=drive full SPI permission explicitly on the reset-release edge. Verilator 5.30 lowered the old declaration initializer to zero in the combined bench.
+exact_waveform_comparison=gpio0_edges.csv byte-identical between 16f113e and 353f745 with corrected fixture
+fixture_comments_before_after=74/377 (19.63%) -> 77/382 (20.16%)
+
 [ final frozen DSP and combined pin fixture ]
 outcome=pass
-scratch_run=cfg-pins-ccqekwxo
-baseline=353f745b872a66aaac29fa0e858a13c30b5e8f07
+tool=Verilator 5.030
+baseline=36f42a1b370093d3817bec5619dd488db0504e75
 spi_candidate=False
 dsp_candidate=False
 lvds_profile=True
@@ -125,7 +131,7 @@ crc_stream=True
 init_poll=True
 source_sha256 5f1a03b55f5c70b994fd18030c63f8d32975576450dc32341fee9e0a1ec836b5 cfg_spi_pin_edges_tb.sv
 source_sha256 0ddd925cddd34f89b2cd3c0d47c75baff8e83d3207f5be19bc9772616bf4999a ad4080_top.sv
-source_sha256 ba25e0416e220aa28ee88f0fb076d75caf1666722b7c025042ed50bc316ae4df spi_slave.sv
+source_sha256 a6d8cd29064e67d492b1f583920478f84c7cd5c8fa88c023adc12043558beca7 spi_slave.sv
 source_sha256 a7bf1dcd00fc732dd7d4b023a6c99a994328bb9024cbe54964f34489e3545178 ad4080_regs.sv
 source_sha256 bf8fdbdd7461fe8e566e9c1b142075edcbedf37bb1decc6a4aa805fe66633155 ad4080_dsp_chain.sv
 source_sha256 035c5c869c14b8e4555855f05251c673327685f8f447c487fb91b111fc3d3f80 sys_error_corr.sv
@@ -141,8 +147,4 @@ CFG_SPI_PIN_EDGES_COMPLETE cases=156 checks=16509 failures=0
 LVDS_CFG_SPI_COMPLETE A=54 B=28 rawC=f0 single_clock8_code5=1 dual_clock5_code2=1 SPI_41_45=1
 CFG_SPI_STREAM_CRC_COMPLETE first_and_later=1 write_abort_retried=1 short_wrap=7fff
 CFG_SPI_RESET_POLL_COMPLETE legal_80_to_00=1 ignored_write=1 sticky_W1C=1 unqualified_block=1
-csv_variant=353f745_frozen_combined
-earlier_fixture_red_at_16f113e=156 cases, 16509 checks, 7796 failures
-fixture_fix=drive full SPI permission explicitly on the reset-release edge. Verilator 5.30 lowered the old declaration initializer to zero in the combined bench.
-exact_waveform_comparison=gpio0_edges.csv byte-identical between 16f113e and 353f745 with corrected fixture
-fixture_comments_before_after=74/377 (19.63%) -> 77/382 (20.16%)
+csv_variant=36f42a1_frozen_combined

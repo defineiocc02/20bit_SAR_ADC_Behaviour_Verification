@@ -181,7 +181,7 @@ python3 -B interfaces/control_review/run_pin_edges.py \
   --verilator /path/to/verilator
 ```
 
-最终冻结提交的联合回归通过 **156 帧、16,509 次检查、零失败**。逐帧 CSV 中的 `353f745_frozen_combined` 是完整的最终结果，`fall_*` 与 `rise_*` 按先到的位在高位打包。`expect_oe` 为逐位有效掩码，CS 收尾释放的目标 OE=0。采用同一冻结提交的真 SPI/AON 薄桥及原版 no-OS C 回执已复跑。[逐帧 CSV](pin_edges_validation.csv) · [配置引脚回执](pin_edges_validation.txt) · [控制面回执](validation.txt) · [原版 no-OS 回执](noos_validation.txt)
+冻结 DSP 的联合回归通过 **156 帧、16,509 次检查、零失败**。逐帧 CSV 的 `36f42a1_frozen_combined` 是当前结果，`fall_*` 与 `rise_*` 按先到的位在高位打包。`expect_oe` 为逐位有效掩码，CS 收尾释放的目标 OE=0。采用同一冻结提交的真 SPI/AON 薄桥及原版 no-OS C 回执已复跑。产品顶层另加入 50 MHz 时钟采样沿后 1 ps 改值的用例。[逐帧 CSV](pin_edges_validation.csv) · [配置引脚回执](pin_edges_validation.txt) · [控制面回执](validation.txt) · [原版 no-OS 回执](noos_validation.txt) · [产品速率回执](../../integration/product/evidence/at-speed.txt)
 
 
 ### 连续 LVDS 配置的引脚回读

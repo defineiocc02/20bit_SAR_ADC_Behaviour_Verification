@@ -16,9 +16,12 @@ here=$(cd -- "$(dirname -- "$0")" && pwd)
 project=$(cd -- "$here/../.." && pwd)
 upstream=${DSP_UPSTREAM_REPO:?set DSP_UPSTREAM_REPO to the protected source repository}
 gain_shift=14
+core_hz=100000000
 pass_marker='AD4080_PRODUCT_BINDING PASS'
 calibration=0
 all_pins=0
+speed=0
+all_speed=0
 run_group=''
 if [[ $# -eq 1 && $1 == --calibration ]]; then
     calibration=1
@@ -41,8 +44,18 @@ elif [[ $# -eq 1 && $1 == --full-record ]]; then
 elif [[ $# -eq 1 && $1 == --filters ]]; then
     run_group=filters
     pass_marker='AD4080_PRODUCT_FILTERS PASS'
+elif [[ $# -eq 1 && ( $1 == --speed-single || $1 == --speed-dual || $1 == --at-speed ) ]]; then
+    speed=1
+    core_hz=400000000
+    if [[ $1 == --at-speed ]]; then
+        all_speed=1
+        run_group=speed_single
+    else
+        run_group=speed_${1#--speed-}
+    fi
+    pass_marker='AD4080_PRODUCT_SPEED PASS'
 elif [[ $# -ne 0 ]]; then
-    printf '%s\n' 'Usage: run_product.sh [--all-pins|--calibration|--pin-edges|--result-spi|--control-pins|--full-record|--filters]' >&2
+    printf '%s\n' 'Usage: run_product.sh [--all-pins|--calibration|--pin-edges|--result-spi|--control-pins|--full-record|--filters|--speed-single|--speed-dual|--at-speed]' >&2
     exit 2
 fi
 # ============================================================================
@@ -62,7 +75,7 @@ python3 "$here/bind_dsp.py" "$upstream" "$build/bound_dsp" | tee upstream.log
 lists=(integration/files.f integration/readback_files.f integration/product/rtl.f)
 for file in "${lists[@]}"; do cat "$project/$file"; done > all.f
 tb=integration/product/tb_ad4080_peripheral_product.sv
-pin_tasks=(integration/product/{continuous_pin_tasks,result_spi_tasks,control_pin_tasks,full_record_tasks}.svh)
+pin_tasks=(integration/product/{continuous_pin_tasks,result_spi_tasks,control_pin_tasks,full_record_tasks,product_speed_tasks}.svh)
 while IFS= read -r file; do
     if [[ $file != bound_dsp/* ]]; then
         mkdir -p "$(dirname -- "$file")"
@@ -112,7 +125,7 @@ verilator_cmd=${VERILATOR:-verilator}
 "$verilator_cmd" --binary --timing --assert --compiler clang -CFLAGS '-std=c++20' -j 2 \
     --unroll-count 4 --output-split 12000 \
     -MAKEFLAGS 'VM_PARALLEL_BUILDS=1 OPT_FAST=-O0 OPT_SLOW=-O0 CXX=clang++ CFG_CXXFLAGS_PCH_I=-include-pch CFG_GCH_IF_CLANG=.gch' \
-    "-GCALIBRATION_RUN=$calibration" \
+    "-GCALIBRATION_RUN=$calibration" "-GPRODUCT_SPEED_RUN=1'b$speed" \
     --Mdir obj_dir --top-module tb_ad4080_peripheral_product -Ibound_dsp -Iintegration/product -f all.f "$tb" \
     > compile.log 2>&1 || { cat compile.log; exit 1; }
 if [[ $calibration -eq 1 ]]; then
@@ -123,6 +136,11 @@ else
     ./obj_dir/Vtb_ad4080_peripheral_product 2>&1 | tee simulation.log
 fi
 python3 integration/check_tool_run.py simulation simulation.log "$pass_marker"
+if [[ $all_speed -eq 1 ]]; then
+    # 两种输入时钟独立冷启动，同一可执行文件保留所有有效位及首/末时序。
+    ./obj_dir/Vtb_ad4080_peripheral_product +product_group=speed_dual 2>&1 | tee simulation_speed_dual.log
+    python3 integration/check_tool_run.py simulation simulation_speed_dual.log "$pass_marker"
+fi
 # 成功标记之后才提取本轮实际采纳的边沿。其它定向档不应拼入图示收据。
 if [[ $calibration -eq 0 && -z $run_group ]]; then
     rg '^PIN_EDGE,' simulation.log > pin_edges.csv
@@ -158,7 +176,7 @@ if [[ -n ${YOSYS:-} ]]; then
     cat > synth.ys <<YS
 read_verilog -sv -Ibound_dsp -D SYNTHESIS synth_sources.sv
 chparam -set OTP_WORD_WIDTH 8 -set GAIN_BOUND 1 -set GAIN_K 1 -set GAIN_SHIFT $gain_shift -set SPI_MULTIBYTE_ORDER 0 -set OFFSET_LSB_ADDRESS 37 -set SPI_WRITE_SDO_DRIVE 1 ad4080_peripheral_product
-chparam -set CORE_CLOCK_HZ 100000000 -set P_CNV_TIMING_BOUND 1 ad4080_peripheral_product
+chparam -set CORE_CLOCK_HZ $core_hz -set P_CNV_TIMING_BOUND 1 ad4080_peripheral_product
 hierarchy -check -top ad4080_peripheral_product
 proc
 opt
@@ -170,10 +188,13 @@ YS
     "$YOSYS" -l synth.log -Q -T -s synth.ys > synth_console.log 2>&1 \
         || { cat synth_console.log; exit 1; }
     python3 integration/check_tool_run.py yosys synthesized.json synth.log ad4080_peripheral_product
-    python3 integration/product/check_product_netlist.py synthesized.json "$gain_shift" | tee structure.log
+    python3 integration/product/check_product_netlist.py synthesized.json "$gain_shift" "$core_hz" | tee structure.log
 fi
 # 共享源改动可能恰好发生在编译运行之间，退出前再核对本轮输入。
 shasum -a 256 -c sources.sha256 > source_check.log
 if [[ $all_pins -eq 1 ]]; then
     printf '%s\n' 'AD4080_PRODUCT_ALL_PINS PASS'
+fi
+if [[ $all_speed -eq 1 ]]; then
+    printf '%s\n' 'AD4080_PRODUCT_AT_SPEED PASS'
 fi

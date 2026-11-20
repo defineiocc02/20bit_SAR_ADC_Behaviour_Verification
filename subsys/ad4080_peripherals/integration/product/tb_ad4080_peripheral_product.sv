@@ -13,8 +13,21 @@
 // -----------------------------------------------------------------------------
 // [校准] 同一 DUT 增加 SHIFT=15 的 SPI 实写和留出码整记录比较。
 // [SPI] 按 Rev. B p.35 检查无 CRC 返回的写数据相驱动 0 和 CS 后释放。
+// [速率] 保留各模式冷启动，使速率组与普通记录组分别验证实际时钟。
 // =============================================================================
-module tb_ad4080_peripheral_product #(parameter int CALIBRATION_RUN = 0);
+// 独立皮秒时基先用整数 $time 取边沿，避免仿真器在 ns 域过早取整。
+package ad4080_product_test_time;
+    timeunit 1ps;
+    timeprecision 1ps;
+    function automatic longint now_ps();
+        return longint'($time);
+    endfunction
+endpackage
+
+module tb_ad4080_peripheral_product #(
+    parameter int CALIBRATION_RUN = 0,
+    parameter bit PRODUCT_SPEED_RUN = 1'b0
+);
     // =========================================================================
     // 1. 三域时钟及专用试验余数
     // =========================================================================
@@ -35,6 +48,9 @@ module tb_ad4080_peripheral_product #(parameter int CALIBRATION_RUN = 0);
     // 三字均离开1024基线，可区分错误旁路与早/晚一个抽取相位。
     localparam logic [91:0] PF1_GOLDEN = 92'hAA_002E8_005C9_001E0_024943;
     localparam int FIXTURE_GAIN_SHIFT = CALIBRATION_RUN == 0 ? 14 : 15;
+    // 50 MHz 配置 SPI 的八倍过采样和 25 ns 的 CNV 同时约束核心时基。
+    localparam int FIXTURE_CORE_HZ = PRODUCT_SPEED_RUN ? 400_000_000 : 100_000_000;
+    localparam realtime CORE_HALF_PERIOD = PRODUCT_SPEED_RUN ? 1250ps : 5ns;
     localparam logic [23:0] CRC_INIT = 24'hB704CE, CRC_POLY = 24'h864CFB;
     localparam logic [7:0] OTP_TEST_WORD = 8'hA5;
 
@@ -118,13 +134,13 @@ module tb_ad4080_peripheral_product #(parameter int CALIBRATION_RUN = 0);
     bit fixture_ready = 0, normal_io_checked = 0;
 
     always #50ns clk_aon_i = aon_clock_enabled && !clk_aon_i;
-    always #5ns clk_core_i = ~clk_core_i;
+    always #(CORE_HALF_PERIOD) clk_core_i = ~clk_core_i;
     always #(io_half_period) clk_io_i = io_clock_enabled && !clk_io_i;
 
     ad4080_peripheral_product #(
         .OTP_WORD_WIDTH(8), .GAIN_BOUND(1'b1), .GAIN_K(1), .GAIN_SHIFT(FIXTURE_GAIN_SHIFT),
         .SPI_MULTIBYTE_ORDER(0), .OFFSET_LSB_ADDRESS(37), .SPI_WRITE_SDO_DRIVE(1),
-        .P_CNV_TIMING_BOUND(1'b1), .CORE_CLOCK_HZ(100_000_000)
+        .P_CNV_TIMING_BOUND(1'b1), .CORE_CLOCK_HZ(FIXTURE_CORE_HZ)
     ) dut (
         .clk_aon_i, .clk_core_i, .clk_io_i, .external_io_i,
         .por_d_ok_async_i, .vdd33_ok_async_i, .ref_ok_async_i,
@@ -664,6 +680,7 @@ module tb_ad4080_peripheral_product #(parameter int CALIBRATION_RUN = 0);
     // 4. 生产绑定验收
     // =========================================================================
     `include "continuous_pin_tasks.svh"
+    `include "product_speed_tasks.svh"
     `include "result_spi_tasks.svh"
     `include "control_pin_tasks.svh"
     `include "full_record_tasks.svh"
@@ -1124,14 +1141,18 @@ module tb_ad4080_peripheral_product #(parameter int CALIBRATION_RUN = 0);
         if (!$value$plusargs("product_group=%s", fixture_group)) fixture_group = "";
         case (fixture_group)
             "", "result_spi", "control", "full_record", "filters": ;
+            "speed_single", "speed_dual": begin
+                if (!PRODUCT_SPEED_RUN) $fatal(1, "Speed fixture not compiled");
+                io_half_period = fixture_group == "speed_dual" ? 2500ps : 1250ps;
+            end
             default: $fatal(1, "Unknown product_group: %s", fixture_group);
         endcase
         @(negedge clk_aon_i);
         por_d_ok_async_i = 1;
         // I/O 与配置先起来，产品冷启动路径没有隐式假设参考已到。
         wait (record_ready_core_o && continuous_config_ready_core_o);
-        $display("PRODUCT_TIMING_BOUND CORE_CLOCK_HZ=100000000 P_CNV_TIMING_BOUND=1");
-        audit_config_sdo();
+        $display("PRODUCT_TIMING_BOUND CORE_CLOCK_HZ=%0d P_CNV_TIMING_BOUND=1", FIXTURE_CORE_HZ);
+        if (!PRODUCT_SPEED_RUN) audit_config_sdo();
         if (CALIBRATION_RUN != 0 || fixture_group != "") begin
             ref_ok_async_i = 1'b1;
             wait (conversion_allow_core_o && record_ready_core_o);
@@ -1147,7 +1168,14 @@ module tb_ad4080_peripheral_product #(parameter int CALIBRATION_RUN = 0);
     endtask
 
     generate
-        if (CALIBRATION_RUN != 0) begin : g_calibration_fixture
+        if (PRODUCT_SPEED_RUN) begin : g_speed_fixture
+            initial begin
+                wait (fixture_ready);
+                audit_product_speed(fixture_group == "speed_dual");
+                $display("AD4080_PRODUCT_SPEED PASS");
+                $finish;
+            end
+        end else if (CALIBRATION_RUN != 0) begin : g_calibration_fixture
             initial begin
                 wait (fixture_ready);
                 assert_initial_empty();

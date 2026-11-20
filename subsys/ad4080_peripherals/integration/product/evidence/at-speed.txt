@@ -1,0 +1,30 @@
+AD4080 DSP source revision 36f42a1b370093d3817bec5619dd488db0504e75
+ADI AD4080 Rev. B, Table 2 (p.7), Tables 20 and 21 (p.49–50)
+Verilator 5.030 | run_product.sh --at-speed | core 400 MHz
+Prior public checkout 7afa115a5b1a6eea2806cb52f83783f17a5bcb4e
+Prior frozen DSP 353f745b872a66aaac29fa0e858a13c30b5e8f07
+RED Table 2 SDI hold at 50 MHz failed: low=9.00 ns phase=0 read=ff expected=a6
+Current CNV period: 25000 ps. Data and tag supplied on the following decoded conversion.
+First bit measured from the matching decoded CNV to the falling CLK+ carrying its MSB.
+
+PRODUCT_SPEED_CFG PASS sclk_mhz=50 low_ns=9/11 sdi_hold_ps=1 scratch_roundtrips=8 id_reads=2
+PRODUCT_SPEED_LVDS PASS lanes=1 corrected=0 fs_msps=40 words=128 first_bit_ps=46250
+PRODUCT_SPEED_LVDS PASS lanes=1 corrected=1 fs_msps=40 words=128 first_bit_ps=51250
+PRODUCT_SPEED_CFG PASS sclk_mhz=50 low_ns=9/11 sdi_hold_ps=1 scratch_roundtrips=8 id_reads=2
+PRODUCT_SPEED_LVDS PASS lanes=2 corrected=1 fs_msps=40 words=128 first_bit_ps=52500
+
+Yosys 0.69 (git sha1 9f75ca1f9, Release, Clang /workspace/YoWASP/yosys/wasi-sdk-33.0-x86_64-linux/share/cmake/../..//bin/clang++ 22.1.0)
+Checking module ad4080_peripheral_product...
+Found and reported 0 problems.
+PRODUCT_STRUCTURE PASS: original DSP/control leaves, four 4096x20 result banks, one 8x22 transport queue
+PRODUCT_CONTINUOUS_STRUCTURE PASS: original DSP code/tag routed through two 52-bit CDC registers
+DSP engineering mapping K_GAIN=1 SHIFT=14
+DSP config SPI P_WRITE_SDO_DRIVE=1
+PRODUCT_TIMING_BOUND CORE_CLOCK_HZ=400000000 P_CNV_TIMING_BOUND=1
+ad4080_peripheral_product.u_record.u_readback.u_transport.fifo_memory_q: 8x22
+ad4080_peripheral_product.u_services.u_result_store.banks[0].bank.mem: 4096x20
+ad4080_peripheral_product.u_services.u_result_store.banks[1].bank.mem: 4096x20
+ad4080_peripheral_product.u_services.u_result_store.banks[2].bank.mem: 4096x20
+ad4080_peripheral_product.u_services.u_result_store.banks[3].bank.mem: 4096x20
+Source digest list verified in the build directory.
+AD4080_PRODUCT_AT_SPEED PASS

@@ -1,4 +1,4 @@
-AD4080 DSP source revision 353f745b872a66aaac29fa0e858a13c30b5e8f07
+AD4080 DSP source revision 36f42a1b370093d3817bec5619dd488db0504e75
 Verilator 产品数字联调，SHIFT=14
 
 [常规] simulation.log

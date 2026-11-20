@@ -14,6 +14,8 @@ git rev-parse HEAD
 
 [**打开数字 IP 图册（四页主图＋算法与状态机附录）**](docs/algorithms/digital-ip-atlas.pdf) · [在线读算法、状态机与可编辑原图](docs/algorithms/README.md) · [逐图对照论文与授权专利](docs/algorithms/README.md#直接核对原图与原文)
 
+[**AD4080 产品外围数字端验收**](subsys/ad4080_peripherals/integration/product/ACCEPTANCE.md)涵盖配置 SPI、40 MS/s 连续 LVDS、滤波与结果存储的复现方法。[逐模块手册对照 PDF](subsys/ad4080_peripherals/report/manual-trace.pdf)
+
 ![实测 tag 54，沿字 53 的两条采样通路追到 410304 码](docs/algorithms/figures/digital-transaction-flow.svg)
 
 <a id="先选你要看的东西"></a>

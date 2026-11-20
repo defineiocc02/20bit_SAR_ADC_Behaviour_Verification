@@ -13,7 +13,10 @@ on:
       - 'subsys/ad4080_peripherals/calibration/**'
       - 'subsys/ad4080_peripherals/integration/**'
       - 'subsys/ad4080_peripherals/**/*.sv'
-      - 'subsys/ad4080_dsp/rtl/sys_error_corr.sv'
+      - 'subsys/ad4080_peripherals/evidence/MANUAL_TRACE.md'
+      - 'subsys/ad4080_peripherals/report/manual-trace.*'
+      - 'subsys/ad4080_peripherals/verify/check_manual_trace.mjs'
+      - 'subsys/ad4080_dsp/rtl/**'
       - 'subsys/ad4080_dsp/model/ad4080_cal_model.py'
       - '.github/workflows/ad4080-calibration.yml'
   workflow_dispatch:
@@ -38,6 +41,15 @@ jobs:
         with:
           # 硬件算术参考按提交读 Git 对象，浅克隆可能只有 PR merge 对象。
           fetch-depth: 0
+      - name: Check each module against the manual evidence inventory
+        shell: bash
+        run: |
+          p=subsys/ad4080_peripherals
+          node "$p/verify/check_manual_trace.mjs" --check-local
+          # 可打印稿由同一份 Markdown 生成。干净检出也要核对这次发布的内容。
+          digest=$(sha256sum "$p/evidence/MANUAL_TRACE.md" | cut -d' ' -f1)
+          grep -Fxq "% Markdown SHA-256 $digest" "$p/report/manual-trace.tex"
+          python3 "$p/verify/check_delivery.py"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -66,6 +78,22 @@ jobs:
           clang++ --version
       - name: Compare held-out samples with the existing DSP RTL
         run: python "$CAL/verify_rtl.py" --repo . --out "$RUNNER_TEMP/ad4080-system-calibration.json"
+      - name: Publish the independent Figure 96 result
+        shell: bash
+        run: |
+          # 工程回归和手册符合性有独立判据，摘要给出两个码值以便复核。
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          result = json.loads((Path(os.environ["RUNNER_TEMP"]) / "ad4080-system-calibration.json").read_text())
+          with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a") as summary:
+              print("### AD4080 Rev. B 图 96 运算顺序", file=summary)
+              print("", file=summary)
+              print("```json", file=summary)
+              print(json.dumps(result["manual_order_check"], ensure_ascii=False, indent=2), file=summary)
+              print("```", file=summary)
+          PY
       - name: Write the estimated coefficients through SPI and read both records
         shell: bash
         run: |

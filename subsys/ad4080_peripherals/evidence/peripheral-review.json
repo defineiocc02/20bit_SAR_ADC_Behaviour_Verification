@@ -20,7 +20,7 @@
     "area": {
       "status": "PASS",
       "observed": [
-        "Ran 34 tests in 0.378s",
+        "Ran 34 tests in 0.124s",
         "OK"
       ]
     },
@@ -83,7 +83,7 @@
       "status": "PASS",
       "observed": [
         "SAT proof finished - no model found: SUCCESS!",
-        "End of script. Logfile hash: c2b24b16bd, time: 0.07s, user: 0.08s, system: 0.00s"
+        "End of script. Logfile hash: c2b24b16bd, time: 0.09s, user: 0.11s, system: 0.00s"
       ]
     },
     "record_frame_0": {
@@ -179,14 +179,14 @@
     "adi_crc_analysis": {
       "status": "PASS",
       "observed": [
-        "Ran 12 tests in 0.028s",
+        "Ran 12 tests in 0.039s",
         "OK"
       ]
     },
     "adctoolbox_host": {
       "status": "PASS",
       "observed": [
-        "Ran 13 tests in 5.730s",
+        "Ran 14 tests in 5.847s",
         "OK"
       ]
     },
@@ -233,21 +233,21 @@
     {
       "id": "DSP-MAP",
       "scope": "用户校正与补偿",
-      "blocking_evidence": "ADCToolbox与原DSP已闭环验证工程增益，板上有效增益码表、偏移试调、滤波补偿真实系数仍需实测",
+      "blocking_evidence": "Rev.B p64 图96先加OFFSET再乘GAIN；原DSP反例x=0、O=1024、g=129/128时输出1024，图示1032。工程K/SHIFT及补偿滤波系数非厂商披露。",
       "owner": "片外校准岗和外围RTL",
-      "acceptance": "两点测量与滤波幅频/相位样本建立与器件相符的系数及饱和舍入规则"
+      "acceptance": "由DSP所有者统一运算顺序并过图96独立断言；以实物增益表、所选档OFFSET灵敏度和滤波频响核实增益、舍入及补偿响应。"
     },
     {
       "id": "CNV-READY",
       "scope": "结果就绪与设备时基",
-      "blocking_evidence": "数值valid与真实CNV不是同一事件且全倍率器件首笔相位未实绑",
+      "blocking_evidence": "滤波数值valid尚未接器件RDY，单独起录保护未进产品；图98/99的外部同步和采样首字尚待全链验证。",
       "owner": "外围RTL与模拟时序负责人",
       "acceptance": "按手册图97至99与合法倍率逐笔对照真实CNV及接口首字"
     },
     {
       "id": "PRODUCT-JOIN",
       "scope": "真实转换核和产品单存储集成",
-      "blocking_evidence": "原 DSP 及一份四银行已在数字产品绑定中联合验证；真实转换源、板级I/O和产品最终使能/时钟仍需接入",
+      "blocking_evidence": "已通过单存储的采后单LVDS逻辑记录；实时连续输出、结果SPI、设备CSR到AON和记录保护尚未在产品顶层接通。",
       "owner": "总后端",
       "acceptance": "固定一个产品网表将记录控制接唯一物理存储并以真实转换源验证取得到引脚的带标识结果"
     },
@@ -261,14 +261,14 @@
     {
       "id": "OTP-FACTORY",
       "scope": "量产OTP/校准数据/DFT",
-      "blocking_evidence": "训练镜像与逻辑MBIST有回归而实际镜像格式编程电压和ATE流程尚待交",
+      "blocking_evidence": "p39表16、p83表47给ROM_CRC_ERR，产品该位没有接真实故障；手册未披露上电OTP、一次性宏或影子表，当前MBIST和装载为工程约定。",
       "owner": "产品测试与NVM宏负责人",
       "acceptance": "交授权宏数据目录/读回/镜像完整性及生产测试证据并确认软复位与掉电策略"
     },
     {
       "id": "POWER-PHY",
       "scope": "电源和真实POR",
-      "blocking_evidence": "逻辑PG事件与模式许可有模型而LDO/比较器/隔离单元和真实最小脉宽未验证",
+      "blocking_evidence": "数字PG与低功耗许可已有夹具；p24初始无REFIN与上电后移除REFIN对测试字的不同语义尚未处理，图44精度恢复以及真实LDO/隔离/POR未实绑。",
       "owner": "模拟电源负责人",
       "acceptance": "给出PVT/环稳/恢复和跨域PG边界并结合功耗状态验证硅宏"
     },
@@ -282,7 +282,7 @@
     {
       "id": "GPIO-STATE",
       "scope": "事件与配置控制面",
-      "blocking_evidence": "原寄存器和独立桥的读写检查已跑而HI_DTCT回窗时序与图83和正文之间的适用口径尚待确认",
+      "blocking_evidence": "产品初始未绑定短指令、ID低字节、引脚RDY，拒绝0x15–17实际改配置；独立控制桥的POR/W1C、非法GPIO及no-OS验收未接产品；事件回窗及READ_DONE资料有歧义。",
       "owner": "接口验证岗和外围RTL",
       "acceptance": "用阈值上下穿越及迟滞窗口的原始码逐CNV同时录GPIO和粘滞位并核对W1C与新事件碰撞"
     }
@@ -298,12 +298,12 @@
     "calibration/characterize_registers.py": "16e24cf85110a1c6c806502e18b8ff8e934010e71f034716bdb71cb1b5ced6d5",
     "calibration/example_dc.csv": "376401e47049f9eeb30469d0252db997dd77267ad9276b8e8562d0c24d8cf0aa",
     "calibration/requirements.txt": "24fc022b6049bf753aaf2efce50ef86063012eba3e93886ed8f89ba7496d2e5c",
-    "calibration/system_cal.py": "3f7f928b22c38a790ea1b83afc54e45c2525cb473b24e8e31184c91bf363d887",
+    "calibration/system_cal.py": "ad0a2dc4c73f6838a2884efc8014856605d37ce76214e72907fd62a66dd3eb2c",
     "calibration/test_characterize_registers.py": "ef09b74ee54c408e6702afc5ce25d750b371abfc6056756961e80455c29c0350",
-    "calibration/test_system_cal.py": "5c7094bb4f34c391e324ad15d07570d88028b294c4cba92e8c32e9d2551823e7",
-    "calibration/verify_rtl.py": "356f42987e70bb50a20cfe635fc87db260de4b031107db956265ce5b3795fca3",
+    "calibration/test_system_cal.py": "339ffe1cba281697247df21b5e2b0f1dd74541cc44bb17d54d944d0aca599b0e",
+    "calibration/verify_rtl.py": "d8845964f375da357f4bc42ab71205a34e9f92e79f40c6793a99a5f3568c72a1",
     "evidence/isscc_digital_area.py": "200f4db1f6a351f3dc18966de754f034706768375e549bf2592b2a1a62f3061e",
-    "evidence/peripheral_open_items.csv": "c6daf5978538c41360571b5215da7f9adf1728fcd1cca92184fc43f556fba0a8",
+    "evidence/peripheral_open_items.csv": "889c10b64b87329da6bab93b995e7674bdc66ef28ff0a8e33fe8437d5bb1154f",
     "figures/render_floorplan.py": "5ef1d8ee50d093687571ae519ff7957caec803bf80a3b8cfa05fdd7e81c93be8",
     "floorplan/block_binding.csv": "2038bf4a9bc49bf690711518fa528b763a84cf4ac06840f727b508e221d499a6",
     "floorplan/build.py": "b595cd51833631744be1f65ed0436fa609b8a25e8b6120e48f7ede7403676dca",
@@ -316,14 +316,14 @@
     "integration/lint.vlt": "08f5aa5ab2084e35fa1b8f352f073c8bb6c10941a3d2fd321b762d1416c54c9a",
     "integration/peripheral_readback_link_tb.sv": "122577e7830b5903ab403109c3aa459a2c535d71ec7262293a13ad8f2e840e06",
     "integration/peripheral_services_tb.sv": "25b0596ef53759939f28f15855a09c5cf0ecb490c24bb2ea30264a176cbfcc74",
-    "integration/product/ad4080_peripheral_product.sv": "a5a6c9926cfad448e57e9bc4d8db9cdeeb8333ddeb9d4c609a09cd420a432896",
+    "integration/product/ad4080_peripheral_product.sv": "4cdc9ca0a164b5582b27850920cb47bee8cfb540e975e6b1579179f5f5ce253d",
     "integration/product/ad4080_product_record_session.sv": "01b05e4959b80996ea4045561b13dff20185b0cab3ae8c31ed220b36e2afcfd4",
     "integration/product/bind_dsp.py": "7dae0145bdbe918abc5774524fefe15ec96b8b3d326a4c867818b43eed5a9984",
-    "integration/product/check_product_netlist.py": "0c053765f992043f973da2be07c9c867393400961e4256aa02b8725b8bc37a80",
+    "integration/product/check_product_netlist.py": "8ce01d8da07fc9d74ed31fc90f79edfedc215e39438eff605db0a0ef1194c5ec",
     "integration/product/prepare_calibration.py": "7477c244af5eecd2b7e83cdc09bbdee6a86e35edc3adf67175efccfc7a7b6ba9",
     "integration/product/rtl.f": "7fa07424fec62fb192b1cf192db05d491a747d4ad28b8e635b5eb5a9cbac040e",
-    "integration/product/run_product.sh": "5539305ea792f7ab0edb84a984b4939f0b5487f74f0eb268617008afd31d327f",
-    "integration/product/tb_ad4080_peripheral_product.sv": "102ce92ddf3746315fc8acef1e4383c839e6f1bbf810a0b2954045d18e7b67d8",
+    "integration/product/run_product.sh": "0d0e653bb282720d7dd173ecd56c0a84d051c0ab4bb21a0942c8de283fc1e691",
+    "integration/product/tb_ad4080_peripheral_product.sv": "c13e6afa93a8d13f19c600cc7f07d41fd9c66d645015fb1c7026905ade91ceac",
     "integration/readback_files.f": "9067942dd9ede7a46eccfaee3352c70b4912927b060c6ac069e3199f4de4e1a6",
     "integration/run_linked.sh": "442628e04c5706c1b73237badea73ba854ef2f434694233dd248b9b25943cdd0",
     "integration/run_verify.sh": "0062cf8488393445bbcfc0f907a15e657068b2c7e69594adc90e58d1ad1e318a",
@@ -338,7 +338,7 @@
     "interfaces/dsp_review/ad4080_record_guard.sv": "363cbee29fa294741c6f744b7cbe54085cb10866a41b49a3e7786b4e0386dda2",
     "interfaces/dsp_review/run.sh": "138351a7b6997fd699cb16edcc08734337822f9da6218dd89ed4b36c3bbc6bf8",
     "interfaces/dsp_review/tb_dsp_path.sv": "4f2fc5da06c42f4eb3ec1d27327198e67c437b920d035ea40065a6cb285d7f3b",
-    "interfaces/function_ownership.csv": "abcbde10a98745d96a72c669e924e5967bec26d1f6a9be96f285d791216718bd",
+    "interfaces/function_ownership.csv": "61fc5f64d388c7ddff8bf0b0f02a9f677f113185b56cc7350f4a29e29ca5357a",
     "io/ad4080_ddr_edge_words.sv": "5ce0894e7d921cdb582dd3e5984447c1f2f0a1a0443f1bd971745b41486b633c",
     "io/ad4080_ddr_edge_words_properties.sv": "5dc47ea8455b86d1a90fa616f71283f59d17eab5d83a8b7ad21456a4aad9e856",
     "io/ad4080_ddr_edge_words_tb.sv": "eaa702a4c2004107b3cc4c1cf42e966afb628c4a71acaa8158103587a4a315b5",

@@ -83,7 +83,7 @@ if [[ -n ${YOSYS:-} ]]; then
     done < all.f > synth_sources.sv
     cat > synth.ys <<YS
 read_verilog -sv -D SYNTHESIS synth_sources.sv
-chparam -set OTP_WORD_WIDTH 8 -set GAIN_BOUND 1 -set GAIN_K 1 -set GAIN_SHIFT $gain_shift -set SPI_MULTIBYTE_ORDER 0 -set OFFSET_LSB_ADDRESS 37 -set SPI_WRITE_SDO_DRIVE 0 ad4080_peripheral_product
+chparam -set OTP_WORD_WIDTH 8 -set GAIN_BOUND 1 -set GAIN_K 1 -set GAIN_SHIFT $gain_shift -set SPI_MULTIBYTE_ORDER 0 -set OFFSET_LSB_ADDRESS 37 -set SPI_WRITE_SDO_DRIVE 1 ad4080_peripheral_product
 hierarchy -check -top ad4080_peripheral_product
 proc
 opt

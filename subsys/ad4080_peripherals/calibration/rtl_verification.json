@@ -23,9 +23,9 @@
   "source_sha256": {
     "subsys/ad4080_dsp/rtl/sys_error_corr.sv": "45e5022bab911e02a9d3b737b978ba29b1b0daacb7b97377792ae3748fdea3d3",
     "subsys/ad4080_dsp/model/ad4080_cal_model.py": "46e0a7d5d75c08cb3ccfb4f52e63ad6a1a02e240316bdf98d165dee02e0b5855",
-    "subsys/ad4080_peripherals/calibration/system_cal.py": "3f7f928b22c38a790ea1b83afc54e45c2525cb473b24e8e31184c91bf363d887",
+    "subsys/ad4080_peripherals/calibration/system_cal.py": "ad0a2dc4c73f6838a2884efc8014856605d37ce76214e72907fd62a66dd3eb2c",
     "subsys/ad4080_peripherals/calibration/calibration_verify_tb.sv": "3ac32e4d4de2176e0b4590f3ded2552fbf7420168df6296c58e213654bb91eb6",
-    "subsys/ad4080_peripherals/calibration/verify_rtl.py": "356f42987e70bb50a20cfe635fc87db260de4b031107db956265ce5b3795fca3"
+    "subsys/ad4080_peripherals/calibration/verify_rtl.py": "d8845964f375da357f4bc42ab71205a34e9f92e79f40c6793a99a5f3568c72a1"
   },
   "coverage": {
     "cycles": 8254,
@@ -213,5 +213,31 @@
         }
       }
     }
+  },
+  "manual_order_check": {
+    "status": "OPEN_MISMATCH",
+    "manual_reference": {
+      "document": "ADI AD4080 Rev. B",
+      "page": 64,
+      "figure": 96,
+      "caption": "Digital Filter Selection Options",
+      "url": "https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=64",
+      "diagram_path": "ADC -> OFFSET CORRECTION (+) -> GAIN CORRECTION (×) -> filter selection"
+    },
+    "input_sample_lsb20": 0,
+    "offset_code": 1024,
+    "gain_code": 768,
+    "comparison_scope": "operation order using a common engineering gain factor",
+    "k_gain": 1,
+    "shift": 15,
+    "engineering_gain_factor": 1.0078125,
+    "manual_order_formula": "(x + OFFSET) * engineering_gain_factor",
+    "manual_order_expected_lsb20": 1032,
+    "frozen_sys_corr_result_lsb20": 1024,
+    "rtl_observed_lsb20": 1024,
+    "rtl_minus_manual_lsb20": -8,
+    "rtl_matches_frozen_sys_corr": true,
+    "probe_cycles": 3,
+    "valid_probe_outputs": 1
   }
 }

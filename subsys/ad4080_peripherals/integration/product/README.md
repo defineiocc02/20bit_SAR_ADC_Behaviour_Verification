@@ -29,10 +29,11 @@ DSP_UPSTREAM_REPO="$(git rev-parse --show-toplevel)" \
 YOSYS=yosys bash integration/product/run_product.sh
 ```
 
-脚本在每轮独立 `/tmp/ad4080-product.*` 树留存 `upstream.log`、源哈希、编译与仿真日志、`synthesized.json` 和 `structure.log`。带 `YOSYS` 的运行要求实际 `check -assert`、指定顶层和 JSON。结构检查验证原 SPI、DSP、SINC1、事件、捕获和队列控制叶各一份，`u_services.u_result_store` 下四个 4096×20 阵列，外加 `u_record` 的一个 8×22 队列。编译绑定的工程参数和仿真对齐，采用降序多字节、`OFFSET` 低地址 `0x25`、写相释放 SDO、非单位增益 `K=1`、`SHIFT=14`。器件未给定的补偿系数默认未绑定。根目录原三域和读回脚本仍可独立运行。
+脚本在每轮独立 `/tmp/ad4080-product.*` 树留存 `upstream.log`、源哈希、编译与仿真日志、`synthesized.json` 和 `structure.log`。带 `YOSYS` 的运行要求实际 `check -assert`、指定顶层和 JSON。结构检查验证原 SPI、DSP、SINC1、事件、捕获和队列控制叶各一份，`u_services.u_result_store` 下四个 4096×20 阵列，外加 `u_record` 的一个 8×22 队列。编译绑定的工程参数和仿真对齐，采用降序多字节、`OFFSET` 低地址 `0x25`、非单位增益 `K=1`、`SHIFT=14`。四线配置写在无 CRC 返回的数据相驱动 SDO 为 0，片选结束后释放。器件未给定的补偿系数默认未绑定。根目录原三域和读回脚本仍可独立运行。[AD4080 Rev. B p.35，Write Access](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=35)
 
 | 实测 | 观察 |
 | --- | --- |
+| 四线配置 SPI | 对暂存寄存器 `0x0A` 正常逐位写 `0xA5`。每个写数据位在主机采样点均为 `sdo_oe=1`、`sdo=0`，`CS` 后释放并正确读回。 |
 | 真 SPI 到完整记录 | 实际写入 `OFFSET=-64`、`GAIN=0x300`、`SINC1 N=4`、HI 阈值码 4、水位 3 和捕获模式 `10`。196 未触发，1106 触发但未被写为事件后第一字。真实存储写三次、读三次，I/O 端重组 `AA_0075E_009E8_FF30E_71F3EC`，依次为头、1886、2536、−3314 和试验 CRC。 |
 | 空与未完成 | 零读请求、AON 模式/软复位/BIST 被挡住，实际 SPI 软复位第一段也被原 CSR 拒绝。格式不合格时未耗任何读地址。 |
 | 物理满与冲刷 | 配置旁路、水位 16384 和模式 `01`。接受 16384 次物理写，末址 `0x3FFF`，额外样本未入记录。未读时 IOVDD 掉电保留；再在实际载荷发送时掉电，当前记录和搬运会话退场，复电后无旧记录。 |

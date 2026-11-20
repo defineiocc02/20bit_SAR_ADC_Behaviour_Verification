@@ -67,7 +67,7 @@ def main():
         raise SystemExit(f"unsupported product fixture shift: {shift}")
     profile = {
         "FIFO_DEPTH": 16384, "IN_W": 20, "P_GAIN_MAP_VALID": 1, "K_GAIN": 1, "SHIFT": shift,
-        "P_MULTIBYTE_ORDER": 0, "P_OFFSET_LSB_ADDR": 37, "P_WRITE_SDO_DRIVE": 0, "P_COMP_COEFF_VALID": 0,
+        "P_MULTIBYTE_ORDER": 0, "P_OFFSET_LSB_ADDR": 37, "P_WRITE_SDO_DRIVE": 1, "P_COMP_COEFF_VALID": 0,
     }
     for name, expected in profile.items():
         if int_value(dsp_params[name]) != expected:
@@ -79,6 +79,7 @@ def main():
         raise SystemExit(f"unexpected physical/transport storage: {banks}")
     print("PRODUCT_STRUCTURE PASS: original DSP/control leaves, four 4096x20 result banks, one 8x22 transport queue")
     print(f"DSP engineering mapping K_GAIN=1 SHIFT={shift}")
+    print("DSP config SPI P_WRITE_SDO_DRIVE=1")
     for path, shape in banks:
         print(f"{path}: {shape[0]}x{shape[1]}")
 

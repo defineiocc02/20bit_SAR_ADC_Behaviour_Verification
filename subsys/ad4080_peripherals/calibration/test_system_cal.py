@@ -227,6 +227,29 @@ class CalibrationTests(unittest.TestCase):
                 with self.assertRaisesRegex(CalibrationError, "OFFSET"):
                     quantize_registers(overflow, k_gain=1, shift=15)
 
+    def test_gain_table_applies_offset_before_gain(self) -> None:
+        # [区分顺序] 约 9.16 mV 的零偏仍在可调范围。训练电平远离轨端，
+        # 同一增益档下两种顺序会差八码，不能由舍入或饱和掩盖。
+        injected_bias = 1600.0
+        estimate = fit_dc(*_dc_capture(injected_bias), vref_v=VREF_V)
+        rtl = quantize_registers(estimate, k_gain=1, shift=15)
+        assert rtl is not None
+        # 同一增益倍率作为实测表的合成夹具。邻近低一码确保涵盖实际目标，
+        # 令两个分支的选定倍率一致，便能单独对照 OFFSET 选号。
+        measured = quantize_registers(estimate, gain_table={
+            rtl.gain_code - 1: rtl.applied_gain - 2**-15,
+            rtl.gain_code: rtl.applied_gain,
+            512: 1.0,
+        })
+        assert measured is not None
+        self.assertEqual((rtl.gain_code, rtl.applied_gain),
+                         (measured.gain_code, measured.applied_gain))
+        self.assertEqual((rtl.offset_code, measured.offset_code), (-1592, -1600))
+        # 零输入时原码为注入的零偏，各自只在对应节点上消除零偏。
+        self.assertLess(abs(rtl.applied_gain * injected_bias + rtl.offset_code), 0.5)
+        self.assertLess(abs(measured.applied_gain * (injected_bias + measured.offset_code)), 0.5)
+        self.assertGreater(abs(measured.applied_gain * (injected_bias + rtl.offset_code)), 7)
+
 
 # =============================================================================
 # 3. CSV 命令行与 JSON 交接

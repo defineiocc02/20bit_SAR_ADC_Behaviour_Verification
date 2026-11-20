@@ -4,6 +4,8 @@
 
 [可直接查看的整芯片布局](figures/floorplan.png) · [后端交付报告排版源](report/handoff.tex) · [分项面积账](floorplan/area_by_scope.csv) · [可打开的 GDS](floorplan/chip.gds) · [DEF](floorplan/chip.def) · [抽象 LEF](floorplan/planning.lef)
 
+**器件功能认可。** [逐模块核对 Rev. B](evidence/MANUAL_TRACE.md)逐项给出 30 个 RTL 模块与 3 个校准程序的手册页、源码、实测和裁定。图 96 要求先加 OFFSET 再乘 GAIN；冻结 DSP 在一个无舍入歧义的例子上输出 1024，按图应为 1032。工程回归通过与器件一致性分别报告。[可打印 PDF](report/manual-trace.pdf) · [可复编 TeX](report/manual-trace.tex)
+
 ## 工作树入口
 
 从仓库根目录进入 `subsys/ad4080_peripherals/`。相邻目录 `../ad4080_dsp/` 提供[已有后处理源码](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/tree/7408edf/subsys/ad4080_dsp/rtl)。DSP 的主要任务是把收到的 20 位码做用户校正和可选滤波，例如 40 MS/s 选择 SINC1 四倍抽取后得到 10 MS/s。它的参考顶层还提供事件和捕获控制。外围包只存自己的装配、存储和 I/O 边界，冻结 DSP 源由 Git 对象导入独立临时目录。`rtl/v21/` 和 ADC 的生产 filelist 继续由转换组维护。

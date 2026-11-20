@@ -27,7 +27,7 @@ module ad4080_peripheral_product #(
     parameter int COMP_C2 = 0,
     parameter int SPI_MULTIBYTE_ORDER = -1,
     parameter int OFFSET_LSB_ADDRESS = -1,
-    parameter int SPI_WRITE_SDO_DRIVE = -1,
+    parameter int SPI_WRITE_SDO_DRIVE = 1, // Rev. B p.35，四线写数据相无 CRC 返回时驱动 0
     localparam int unsigned OTP_ADDR_WIDTH = OTP_WORDS > 1 ? $clog2(OTP_WORDS) : 1,
     localparam int unsigned OTP_IMAGE_WIDTH = OTP_WORDS * OTP_WORD_WIDTH
 ) (

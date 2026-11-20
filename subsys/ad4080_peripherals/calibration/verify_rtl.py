@@ -11,7 +11,7 @@
 #     目录。对照同仓 sys_corr 的输出、拒绝和两个饱和标志，不另写校正公式。
 #   * 工程增益映射为 K=1、SHIFT=15，回执只用于此映射和可重复的合成仿真。
 #
-# 变更记录   : 初始版本，暂无变更记录。
+# 变更记录   : 2026-11-20 独立复核 Rev. B 图 96 的 OFFSET 和 GAIN 运算顺序。
 # =============================================================================
 """生成合成输入并复核工程增益映射下 DSP 的整数功能。"""
 
@@ -28,6 +28,7 @@ import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
+from fractions import Fraction
 from importlib.metadata import version
 from pathlib import Path
 from random import Random
@@ -301,6 +302,64 @@ def check_trace(cycles, rows, reference):
     return sample_pairs, coverage
 
 
+def check_manual_order(vector, rows, first_cycle, reference):
+    """核对图 96 的独立一笔激励，比较同一工程增益下的整数结果。"""
+    # [来源] Rev. B p.64 图 96 从 ADC 依次经过 OFFSET CORRECTION 加法
+    # 和 GAIN CORRECTION 乘法。两边共用示例增益，比较只针对运算次序。
+    # 分数形式保留 129/128 的精确值，差异不能被浮点表示或向半步舍入解释。
+    gain_factor = 1 + Fraction((vector.gain - UNITY_GAIN_CODE) * MAP_K, 1 << MAP_SHIFT)
+    manual_result = (vector.sample + vector.offset) * gain_factor
+    if manual_result.denominator != 1 or not MIN_CODE <= manual_result <= MAX_CODE:
+        raise RuntimeError("Figure 96 probe must have an exact, in-range manual-order result")
+
+    # [观察] 独立三拍子窗应仅在第二个完整周期结束时返回一笔有效结果。
+    # 夹位、拒绝或流水错误要报测试失败，运算顺序差异由下方单独裁定。
+    if len(rows) != 3:
+        raise RuntimeError("Figure 96 probe is missing a clock sample")
+    for index, row in enumerate(rows):
+        stamp, valid, twos, offset_binary, low, high, reject = row.split()
+        if int(stamp) != first_cycle + index or int(valid) != int(index == 2):
+            raise RuntimeError(f"Figure 96 probe valid/latency mismatch ({row})")
+        if int(low) or int(high) or int(reject):
+            raise RuntimeError(f"Figure 96 probe clipped or rejected ({row})")
+
+    # 末拍经过 RTL 的补码和偏移二进制输出，独立校验码制一致后再作比较。
+    y_twos, y_ob = int(twos, 16), int(offset_binary, 16)
+    actual = y_twos if y_twos < CODE_ZERO else y_twos - 2 * CODE_ZERO
+    if not MIN_CODE <= actual <= MAX_CODE or actual + CODE_ZERO != y_ob:
+        raise RuntimeError("Figure 96 probe output code format mismatch")
+    reference_code = reference(
+        vector.sample, vector.offset, vector.gain, gain_numerator=MAP_K, gain_shift=MAP_SHIFT,
+    )[0]
+    expected = manual_result.numerator
+    return {
+        "status": "MATCHED" if actual == expected else "OPEN_MISMATCH",
+        "manual_reference": {
+            "document": "ADI AD4080 Rev. B",
+            "page": 64,
+            "figure": 96,
+            "caption": "Digital Filter Selection Options",
+            "url": "https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=64",
+            "diagram_path": "ADC -> OFFSET CORRECTION (+) -> GAIN CORRECTION (×) -> filter selection",
+        },
+        "input_sample_lsb20": vector.sample,
+        "offset_code": vector.offset,
+        "gain_code": vector.gain,
+        "comparison_scope": "operation order using a common engineering gain factor",
+        "k_gain": MAP_K,
+        "shift": MAP_SHIFT,
+        "engineering_gain_factor": float(gain_factor),
+        "manual_order_formula": "(x + OFFSET) * engineering_gain_factor",
+        "manual_order_expected_lsb20": expected,
+        "frozen_sys_corr_result_lsb20": reference_code,
+        "rtl_observed_lsb20": actual,
+        "rtl_minus_manual_lsb20": actual - expected,
+        "rtl_matches_frozen_sys_corr": actual == reference_code,
+        "probe_cycles": len(rows),
+        "valid_probe_outputs": 1,
+    }
+
+
 # 留出数据使用自己的理想码和相同原始样本比较两种寄存器设置，避免重训带来的乐观误差。
 # 此处是码域的标定残差；模拟噪声、实际 VREF 不确定度与源的标定误差需另记。
 def error_metrics(pairs):
@@ -355,6 +414,8 @@ def main():
                         help="仓库根目录，包含冻结 subsys/ad4080_dsp")
     parser.add_argument("--out", type=Path, required=True, help="JSON 回执路径")
     parser.add_argument("--verilator", default="verilator", help="PATH 中的命令或 Verilator 路径")
+    parser.add_argument("--require-manual-order", action="store_true",
+                        help="图 96 运算顺序存在实测差异时，仍写回执并以状态码 2 退出")
     args = parser.parse_args()
     repo = args.repo.resolve()
     verilator = shutil.which(args.verilator)
@@ -378,8 +439,15 @@ def main():
         cases = training_data(directory)
         holdout = holdout_samples([sample for case in cases.values() for sample in case["samples"]])
         cycles = exercise_cycles(cases, holdout)
-        rows, rtl_version = replay_rtl(repo, directory, cycles, verilator)
-        samples, coverage = check_trace(cycles, rows, reference)
+        # 独立尾窗与已有向量共用同一个实际 RTL 二进制，原回归覆盖和残差不纳入这笔。
+        # 零原码去掉输入斜率项，非零寄存器偏移留下可区分两种次序的交叉项。
+        figure_96_probe = Cycle(sample=0, offset=1024, gain=0x300)
+        # 只送入一个有效码；随后两个空拍让该码穿过原有两级流水。
+        probe_cycles = [figure_96_probe, Cycle(valid=False), Cycle(valid=False)]
+        rows, rtl_version = replay_rtl(repo, directory, cycles + probe_cycles, verilator)
+        samples, coverage = check_trace(cycles, rows[:len(cycles)], reference)
+        # 单列结果可让同一份回放分别服务于工程模型回归和器件符合性签收。
+        manual_order = check_manual_order(figure_96_probe, rows[len(cycles):], len(cycles), reference)
         reports = results_by_method(cases, samples)
 
     if any(hashlib.sha256(path.read_bytes()).hexdigest() != source_hashes[key]
@@ -397,10 +465,15 @@ def main():
         "source_sha256": source_hashes,
         "coverage": coverage,
         "methods": reports,
+        # 严格模式也要保留观察值，调用方才能区分已知次序偏差和工具失败。
+        "manual_order_check": manual_order,
     }
     output.write_text(json.dumps(report, indent=2, ensure_ascii=False, allow_nan=False) + "\n", encoding="utf-8")
     print(f"Verified {coverage['model_comparisons']} RTL outputs against sys_corr")
+    print(f"Figure 96 order: {manual_order['status']} "
+          f"(RTL {manual_order['rtl_observed_lsb20']}, manual order {manual_order['manual_order_expected_lsb20']})")
+    return 2 if args.require_manual_order and manual_order["status"] == "OPEN_MISMATCH" else 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

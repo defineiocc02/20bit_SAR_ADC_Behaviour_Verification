@@ -12,6 +12,7 @@
 // 变更记录
 // -----------------------------------------------------------------------------
 // [校准] 同一 DUT 增加 SHIFT=15 的 SPI 实写和留出码整记录比较。
+// [SPI] 按 Rev. B p.35 检查无 CRC 返回的写数据相驱动 0 和 CS 后释放。
 // =============================================================================
 module tb_ad4080_peripheral_product #(parameter int CALIBRATION_RUN = 0);
     // =========================================================================
@@ -73,7 +74,7 @@ module tb_ad4080_peripheral_product #(parameter int CALIBRATION_RUN = 0);
 
     ad4080_peripheral_product #(
         .OTP_WORD_WIDTH(8), .GAIN_BOUND(1'b1), .GAIN_K(1), .GAIN_SHIFT(FIXTURE_GAIN_SHIFT),
-        .SPI_MULTIBYTE_ORDER(0), .OFFSET_LSB_ADDRESS(37), .SPI_WRITE_SDO_DRIVE(0)
+        .SPI_MULTIBYTE_ORDER(0), .OFFSET_LSB_ADDRESS(37), .SPI_WRITE_SDO_DRIVE(1)
     ) dut (
         .clk_aon_i, .clk_core_i, .clk_io_i, .external_io_i(1'b1),
         .por_d_ok_async_i, .vdd33_ok_async_i(1'b1), .ref_ok_async_i(1'b1),
@@ -172,12 +173,16 @@ module tb_ad4080_peripheral_product #(parameter int CALIBRATION_RUN = 0);
     // =========================================================================
     // [SPI] CPOL 高，预置输入过负沿，在正沿取 SDO。半拍远长于内部同步链，
     // 这段只验协议和实际数值控制，目的不包括配置口极限频率。
-    task automatic spi_byte(input logic [7:0] value, output logic [7:0] received);
+    task automatic spi_byte(input logic [7:0] value, output logic [7:0] received, input bit check_write_sdo);
         for (int idx = 7; idx >= 0; idx--) begin
             sdi = value[idx];
             #80ns sclk = 0;
             #80ns sclk = 1;
             received[idx] = sdo;
+            // 写相查主机采样点上的有效驱动和零电平。只查数据位，指令相
+            // 的状态回传属于独立合同。测试未启用 CRC 返回。
+            if (check_write_sdo && (sdo_oe !== 1'b1 || sdo !== 1'b0))
+                $fatal(1, "Four-wire no-CRC SPI write bit %0d did not drive SDO to zero", idx);
             #80ns;
         end
     endtask
@@ -189,22 +194,32 @@ module tb_ad4080_peripheral_product #(parameter int CALIBRATION_RUN = 0);
         @(negedge clk_core_i);
         cs_n = 0;
         repeat (8) @(negedge clk_core_i);
-        spi_byte({read_cmd, address[14:8]}, reply);
-        spi_byte(address[7:0], reply);
+        spi_byte({read_cmd, address[14:8]}, reply, 1'b0);
+        spi_byte(address[7:0], reply, 1'b0);
         // 严格长指令和降序实体从高地址开始，完整传输才有配置提交。
         for (int idx = nbytes-1; idx >= 0; idx--) begin
-            spi_byte(value[8*idx+:8], reply);
+            spi_byte(value[8*idx+:8], reply, !read_cmd);
             returned[8*idx+:8] = reply;
         end
         // 尾部等同步 CS 退回，检查读端不会仍占着配置 SDO。
         cs_n = 1;
         repeat (8) @(negedge clk_core_i);
-        if (sdo_oe) $fatal(1, "SPI kept SDO ownership after CS");
+        if (sdo_oe !== 1'b0) $fatal(1, "SPI kept SDO ownership after CS");
     endtask
 
     task automatic write_reg(input logic [14:0] address, input int nbytes, input logic [15:0] value);
         logic [15:0] unused_reply;
         spi_access(0, address, nbytes, value, unused_reply);
+    endtask
+
+    task automatic audit_config_sdo();
+        logic [15:0] readback;
+        // 通用暂存寄存器的正常写不受捕获、滤波或校准状态影响。写时每位
+        // 检查 SDO 驱动，片选后检查释放，再读回以确认该笔是有效配置写。
+        write_reg(15'h000A, 1, 16'h00A5);
+        spi_access(1, 15'h000A, 1, 0, readback);
+        if (readback != 16'h00A5) $fatal(1, "SPI scratch write did not commit");
+        $display("PASS four-wire config write drives SDO zero in data phase and releases it after CS");
     endtask
 
     task automatic quartet(input int a,b,c,d);
@@ -557,6 +572,7 @@ module tb_ad4080_peripheral_product #(parameter int CALIBRATION_RUN = 0);
         request_record();
         if (!record_rejected_core_o || !fifo_empty_core_o || physical_reads != 0)
             $fatal(1, "Empty capture created a record request");
+        audit_config_sdo();
         if (CALIBRATION_RUN != 0) audit_calibration();
         else audit_product();
         $finish;

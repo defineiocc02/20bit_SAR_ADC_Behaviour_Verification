@@ -3,8 +3,9 @@ Twelve archived RTL files; only external-storage adapters differ
 
 Verilator product regression, SHIFT=14
 - V e r i l a t i o n   R e p o r t:  rev UNKNOWN.REV
-- Verilator: Built from 2.575 MB sources in 27 modules, into 1.121 MB in 5 C++ files needing 0.000 MB
-- Verilator: Walltime 2.015 s (elab=0.072, cvt=0.376, bld=0.000); cpu 1.846 s on 1 threads
+- Verilator: Built from 2.575 MB sources in 27 modules, into 1.120 MB in 5 C++ files needing 0.000 MB
+- Verilator: Walltime 2.107 s (elab=0.094, cvt=0.409, bld=0.000); cpu 1.961 s on 1 threads
+PASS four-wire config write drives SDO zero in data phase and releases it after CS
 PASS empty/incomplete rejection through DSP CSR and AON
 PASS SPI OFFSET/GAIN -> SINC1 -> HI event -> three SRAM words -> 46 pairs aa0075e009e8ff30e71f3ec
 PASS physical full: 16384 accepted writes and address 3fff, extra sample held outside record
@@ -12,10 +13,10 @@ PASS IOVDD retained unread record, then revoked and cleared the partially consum
 PASS MBIST same-bank handoff, reason 3 abort, metadata clear, fresh record address zero
 PASS mode11 full-history: event 3ffb, frozen SRAM addresses 3fff->0000, wire prefix 03fff04000
 AD4080_PRODUCT_BINDING PASS
-- integration/product/tb_ad4080_peripheral_product.sv:562: Verilog $finish
+- integration/product/tb_ad4080_peripheral_product.sv:578: Verilog $finish
 - S i m u l a t i o n   R e p o r t: Verilator 5.30
-- Verilator: $finish at 1ms; walltime 0.228 s; speed 5.182 ms/s
-- Verilator: cpu 0.220 s on 1 threads; alloced 0 MB
+- Verilator: $finish at 1ms; walltime 0.293 s; speed 4.062 ms/s
+- Verilator: cpu 0.284 s on 1 threads; alloced 0 MB
 
 Yosys logical structure and elaborated engineering profile
 Yosys 0.69 (git sha1 9f75ca1f9, Release, Clang /workspace/YoWASP/yosys/wasi-sdk-33.0-x86_64-linux/share/cmake/../..//bin/clang++ 22.1.0)
@@ -23,12 +24,13 @@ Checking module ad4080_peripheral_product...
 Found and reported 0 problems.
 PRODUCT_STRUCTURE PASS: original DSP/control leaves, four 4096x20 result banks, one 8x22 transport queue
 DSP engineering mapping K_GAIN=1 SHIFT=14
+DSP config SPI P_WRITE_SDO_DRIVE=1
 ad4080_peripheral_product.u_record.u_readback.u_transport.fifo_memory_q: 8x22
 ad4080_peripheral_product.u_services.u_result_store.banks[0].bank.mem: 4096x20
 ad4080_peripheral_product.u_services.u_result_store.banks[1].bank.mem: 4096x20
 ad4080_peripheral_product.u_services.u_result_store.banks[2].bank.mem: 4096x20
 ad4080_peripheral_product.u_services.u_result_store.banks[3].bank.mem: 4096x20
-2ee1049fa326150df5587181ad45bca80c34bc3d9a782b7f471e2a8c085ede28  /tmp/ad4080-product.hLvezl/synthesized.json
+e2cec242db867106644bdf98a421f322ae5aa50b6817afcf3d4ec22755798591  /tmp/ad4080-product.5vZFSm/synthesized.json
 
 Source identity verified after all stages
 power/ad4080_pwr_reset_sync.sv: OK

@@ -1,0 +1,70 @@
+# =============================================================================
+# 文件名     : ad4080-calibration.yml
+# 模块名     : 独立外围的板级校准回归
+# 版本       : v1.0
+# 功能       : 用固定 ADCToolbox 源码和仓内原 DSP，验证主机估算及定点寄存器计划。
+# 设计说明   : 触发范围限定在外围校准、实际修正模块与参考模型。无需商业 EDA 或实物写入。
+# 变更记录   : 两点、正弦、实测寄存器和独立留出向量在同一作业中运行。
+# =============================================================================
+name: AD4080 system calibration
+on:
+  pull_request:
+    paths:
+      - 'subsys/ad4080_peripherals/calibration/**'
+      - 'subsys/ad4080_dsp/rtl/sys_error_corr.sv'
+      - 'subsys/ad4080_dsp/model/ad4080_cal_model.py'
+      - '.github/workflows/ad4080-calibration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+concurrency:
+  group: ad4080-calibration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  calibration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      MPLBACKEND: Agg
+      OPENBLAS_NUM_THREADS: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      CAL: subsys/ad4080_peripherals/calibration
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 硬件算术参考按提交读 Git 对象，浅克隆可能只有 PR merge 对象。
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the pinned host estimator
+        run: python -m pip install --retries 3 -r "$CAL/requirements.txt"
+      - name: Exercise the estimators, measured table and offset trim
+        run: python -m unittest discover -s "$CAL" -p 'test_*.py' -v
+      - name: Prepare open-source simulator
+        shell: bash
+        run: |
+          if ! command -v verilator >/dev/null; then
+            source /etc/os-release
+            arch="$(dpkg --print-architecture)"
+            list="$RUNNER_TEMP/ad4080-calibration-ubuntu.list"
+            options=(-o "Dir::Etc::sourcelist=$list" -o Dir::Etc::sourceparts=-
+                     -o Acquire::Languages=none -o Acquire::Retries=2 -o Acquire::https::Timeout=15)
+            for mirror in https://azure.archive.ubuntu.com/ubuntu https://mirrors.edge.kernel.org/ubuntu; do
+              for suite in "$VERSION_CODENAME" "$VERSION_CODENAME-updates" "$VERSION_CODENAME-security"; do
+                printf 'deb [arch=%s signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg] %s %s main universe\n' "$arch" "$mirror" "$suite"
+              done > "$list"
+              if sudo apt-get "${options[@]}" -o APT::Update::Error-Mode=any update &&
+                 sudo apt-get "${options[@]}" install -y --no-install-recommends verilator; then break; fi
+            done
+          fi
+          verilator --version
+          clang++ --version
+      - name: Compare held-out samples with the existing DSP RTL
+        run: python "$CAL/verify_rtl.py" --repo . --out "$RUNNER_TEMP/ad4080-system-calibration.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ad4080-system-calibration
+          path: ${{ runner.temp }}/ad4080-system-calibration.json

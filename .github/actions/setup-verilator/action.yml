@@ -1,0 +1,58 @@
+# =============================================================================
+# 文件名     : action.yml
+# 模块名     : GitHub Actions 开源仿真器安装
+# 版本       : v1.0
+# 功能       : 为两个 Ubuntu 24.04 作业准备同一 Verilator 版本和运行库。
+# 设计说明   : 5.028 开始支持模块输入默认值，5.030 与本地已验证版本一致。
+# 变更记录   : 固定上游源码及摘要，替代 Ubuntu 24.04 自带的 5.020。
+# =============================================================================
+name: Set up Verilator 5.030
+description: Build and cache the pinned upstream Verilator frontend and runtime.
+runs:
+  using: composite
+  steps:
+    # ========================================================================
+    # 1. 缓存匹配本作业的系统、架构及完整安装配方
+    # ========================================================================
+    - uses: actions/cache@v4
+      id: verilator-cache
+      with:
+        path: ${{ runner.temp }}/verilator-5.030
+        key: verilator-ubuntu-24.04-${{ runner.arch }}-${{ hashFiles('.github/actions/setup-verilator/action.yml') }}
+
+    # ========================================================================
+    # 2. 冷缓存从校验后的上游源码构建并保存相对路径布局
+    # ========================================================================
+    - name: Build the pinned optimized simulator
+      if: steps.verilator-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        work=$(mktemp -d "$RUNNER_TEMP/verilator-build.XXXXXX")
+        cd "$work"
+        curl --fail --location --silent --show-error --retry 3 --output source.tar.gz \
+          https://codeload.github.com/verilator/verilator/tar.gz/refs/tags/v5.030
+        printf '%s  source.tar.gz\n' b9e7e97257ca3825fcc75acbed792b03c3ec411d6808ad209d20917705407eac | sha256sum --check
+        tar -xzf source.tar.gz
+        cd verilator-5.030
+        # GNU 默认 PCH 规则和原 Ubuntu 包一致。产品台架单独指定 Clang 的 PCH 规则。
+        # 用系统 Python 生成可缓存的运行库，避免记录 setup-python 的补丁版本路径。
+        autoconf
+        CC=gcc CXX=g++ PYTHON3=/usr/bin/python3 ./configure --disable-tcmalloc
+        VERILATOR_SRC_VERSION=v5.030 make -C src -j "$(nproc)" opt
+        prefix="$RUNNER_TEMP/verilator-5.030"
+        mkdir -p "$prefix"
+        cp -R bin include "$prefix/"
+
+    # ========================================================================
+    # 3. 验证所选程序和运行库后，供后续所有 RTL 入口按 ./bin 相对布局调用
+    # ========================================================================
+    - name: Check the selected simulator and Clang
+      shell: bash
+      run: |
+        prefix="$RUNNER_TEMP/verilator-5.030"
+        test -f "$prefix/include/verilated.mk"
+        version=$("$prefix/bin/verilator" --version)
+        printf '%s\n' "$version"
+        [[ "$version" == 'Verilator 5.030 '* ]]
+        clang++ --version
+        printf '%s\n' "$prefix/bin" >> "$GITHUB_PATH"

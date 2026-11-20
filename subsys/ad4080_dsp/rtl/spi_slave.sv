@@ -50,15 +50,24 @@ module spi_slave #(
     localparam logic [3:0] REJECT_UNBOUND = 4'd1, REJECT_ADDRESS = 4'd3,
         REJECT_READONLY = 4'd4, REJECT_PARTIAL = 4'd5, REJECT_CRC = 4'd6,
         REJECT_CLOCK = 4'd7, REJECT_NOT_READY = 4'd8;
+    // 指令收齐后用 PREPARE 锁住该实体的 bank 元数据，随后启用数据边沿。
+    // CRC 先检查再生成提交，ADVANCE 保证提交完成才允许换地址。
     typedef enum logic [2:0] {IDLE, INSTRUCTION, PREPARE, DATA, CRC,
                               ADVANCE, WAIT_CS} phase_t;
     phase_t phase;
+    // CS/SCLK 的双级同步切断外部边沿到状态机的异步路径。
+    // SDI 依主机保持窗口在同步后的采样沿读取，不能用器件 pad 的零保持
+    // 规范直接替代这个内部时钟域约定。
     (* ASYNC_REG = "TRUE" *) logic cs_meta, cs_sync, sck_meta, sck_sync;
     logic cs_prev, sck_prev;
     wire cs_fall = cs_prev && !cs_sync;
     wire cs_rise = !cs_prev && cs_sync;
     wire sck_fall = sck_prev && !sck_sync;
     wire sck_rise = !sck_prev && sck_sync;
+    // Table 2 允许 CS 在末个 SCLK 采样沿上升。同拍先收当前位，
+    // 下一拍才按更新后的状态检查是否完成。独立同步器下只裁决已采到的沿。
+    logic cs_close_pending;
+    wire close_with_sample = cs_rise && sck_rise;
     logic crc_frame, status_frame, single_frame, short_frame, ascend_frame, strict_frame;
     logic read_command, poisoned, optional_entity, data_started, wrap_unbound;
     logic framing_write;
@@ -76,15 +85,23 @@ module spi_slave #(
     wire [15:0] payload_next = {rx_shift[14:0], sdi};
     wire [7:0] crc_rx_next = {crc_rx[6:0], sdi};
     wire instruction_done = instruction_bits == (short_frame ? 5'd7 : 5'd15);
+    // bank 选择每个实体的线宽。严格双字节的最后一个数据位晚于普通
+    // 字节模式一个字节，避免先落下半个字段再报告部分访问。
     wire payload_done = data_bits == (length_r == 2'd2 ? 5'd15 : 5'd7);
+    // wdata 保持第一线序字节在 [7:0]，高低意义由已绑定的 bank 解码。
+    // 这个换位与 ADDR_ASCENSION 分开，避免发送降序时反两次。
     wire [15:0] completed_write = (length_r == 2'd2) ?
                                    {payload_next[7:0], payload_next[15:8]} :
                                    {8'd0, payload_next[7:0]};
 
+    // Table 19 首实体从 0xA5 与实际线序开始。写时两路消耗同一 SDI，
+    // 读时主机 CRC 覆盖填充，而器件 CRC 覆盖本拍实际输出的数据。
     function automatic [7:0] crc_bit(input logic [7:0] state, input logic bit_in);
         crc_bit = {state[6:0], 1'b0} ^ ((state[7] ^ bit_in) ? 8'h07 : 8'h00);
     endfunction
 
+    // 记录该帧首次失败后进入 WAIT_CS。到 CS 重新选择前隔离后续时钟，
+    // CRC 错误、地址不支持等情况不会把后续负载误当成新事务。
     task automatic reject_frame(input logic [3:0] reason);
         begin
             cfg_reject <= 1'b1;
@@ -106,9 +123,11 @@ module spi_slave #(
         if (!rst_n) begin
             cs_meta <= 1'b1; cs_sync <= 1'b1; cs_prev <= 1'b1;
             sck_meta <= 1'b1; sck_sync <= 1'b1; sck_prev <= 1'b1;
+            cs_close_pending <= 1'b0;
         end else begin
             cs_meta <= cs_n; cs_sync <= cs_meta; cs_prev <= cs_sync;
             sck_meta <= sclk; sck_sync <= sck_meta; sck_prev <= sck_sync;
+            cs_close_pending <= close_with_sample;
         end
     end
 
@@ -137,13 +156,19 @@ module spi_slave #(
             partial_err_pulse <= 1'b0; addr_err_pulse <= 1'b0;
             readonly_err_pulse <= 1'b0; not_ready_err_pulse <= 1'b0;
             cfg_reject <= 1'b0; cfg_reject_reason <= '0;
-            if (cs_rise) begin
+            // 即使须等下一拍确认收帧结果，末位采样之后就释放外部输出。
+            if (close_with_sample) sdo_oe <= 1'b0;
+            if ((cs_rise && !close_with_sample) || cs_close_pending) begin
+                // 完成状态 ADVANCE 可直接收帧。仍在 CRC 阶段说明首个待提交
+                // 实体缺校验。数据缺位时按严格实体宽度区分少字节和钟数错。
                 if (!poisoned) begin
                     if (phase == CRC) begin
                         crc_err_pulse <= 1'b1;
                         cfg_reject <= 1'b1; cfg_reject_reason <= REJECT_CRC;
                     end else if ((phase == INSTRUCTION && instruction_bits != 0) ||
                                  (phase == PREPARE && !optional_entity) ||
+                                 // 流末尾预读下个地址是可选实体。未启动其数据相的
+                                 // 事务可在上个实体之后正常退出。
                                  (phase == DATA && (!optional_entity || data_started))) begin
                         clk_cnt_err_pulse <= 1'b1;
                         cfg_reject <= 1'b1;
@@ -162,21 +187,36 @@ module spi_slave #(
                 crc_frame <= crc_en; status_frame <= send_status;
                 single_frame <= single_inst; short_frame <= short_instr;
                 ascend_frame <= addr_asc; strict_frame <= strict_access;
-                instruction_bits <= '0; instruction_shift <= '0;
-                host_crc <= 8'hA5; device_crc <= 8'hA5;
+                // 图 67/70 的首采样可与 CS 下降同拍。此位参与指令
+                // 和 CRC 起始累计，避免后续把首数据位当成地址末位。
+                instruction_bits <= sck_rise ? 5'd1 : 5'd0;
+                instruction_shift <= sck_rise ? {14'd0, sdi} : 15'd0;
+                host_crc <= sck_rise ? crc_bit(8'hA5, sdi) : 8'hA5;
+                device_crc <= sck_rise ? crc_bit(8'hA5, sdi) : 8'hA5;
                 poisoned <= 1'b0; optional_entity <= 1'b0;
                 data_started <= 1'b0; wrap_unbound <= 1'b0;
                 sdo <= 1'b0; sdo_oe <= send_status;
+                // 首降沿若与选片同拍，状态首位也在这个拍预装。首升沿同拍时
+                // 预装后续状态位，外部首位建立仍由 pad/主机实际时序保证。
+                if (send_status && (sck_fall || sck_rise)) begin
+                    sdo <= short_instr ? status_short[7] : status_long[15];
+                    status_shift <= short_instr ? {status_short[6:0], 9'd0} :
+                                                  {status_long[14:0], 1'b0};
+                end
                 if (interface_ready !== 1'b1) begin
                     not_ready_err_pulse <= 1'b1;
                     reject_frame(REJECT_NOT_READY);
                 end else if (short_instr && P_SHORT_ADDR_BITS != 7)
                     reject_frame(REJECT_UNBOUND);
-            end else if (!cs_sync) begin
+            end else if (!cs_sync || close_with_sample) begin
+                // 已开始的配置事务若失去电源/接口许可，撤销尚未提交的实体。
+                // 闲置及等待退场路径不会因重复采样该许可而重复报错。
                 if (phase != IDLE && phase != WAIT_CS && interface_ready !== 1'b1) begin
                     not_ready_err_pulse <= 1'b1;
                     reject_frame(REJECT_NOT_READY);
                 end else if (phase == PREPARE) begin
+                    // 译码组合字段只在地址稳定后取一次，防止数据推进过程
+                    // 中部分访问宽度、只读属性或有效地址被串到下一个实体。
                     length_r <= entity_bytes;
                     address_valid_r <= address_valid;
                     read_only_r <= read_only;
@@ -187,6 +227,8 @@ module spi_slave #(
                     phase <= DATA;
                 end else if (phase == ADVANCE) begin
                     // 寄存器堆完成提交的整个时钟沿保持 addr 不变，再推进到下一实体。
+                    // 0x00/01/10 会改变帧格式。完成当前实体后等待新 CS，
+                    // 后续指令和 CRC 的模式开关只在新帧生效。
                     if (framing_write) begin
                         poisoned <= 1'b0;
                         phase <= WAIT_CS;
@@ -212,6 +254,8 @@ module spi_slave #(
                 end else if (sck_fall) begin
                     case (phase)
                         INSTRUCTION: begin
+                            // 普通指令阶段只有 SEND_STATUS 时设备才获得 SDO。
+                            // 状态宽度随帧指令格式选择，后续逐位从同一快照推出。
                             sdo_oe <= status_frame;
                             if (instruction_bits == 0) begin
                                 sdo <= short_frame ? status_short[7] : status_long[15];
@@ -232,6 +276,8 @@ module spi_slave #(
                                 end
                                 else if (!read_command && read_only_r) begin
                                     readonly_err_pulse <= 1'b1; reject_frame(REJECT_READONLY);
+                                // 写时 SDO 驱动方式是独立绑定，未知时不能用
+                                // 高阻替代真实写数据相的驱动零要求。
                                 end else if (!read_command && P_WRITE_SDO_DRIVE != 0 && P_WRITE_SDO_DRIVE != 1)
                                     reject_frame(REJECT_UNBOUND);
                                 else begin
@@ -277,6 +323,8 @@ module spi_slave #(
                                     pending_write <= completed_write;
                                     framing_write <= !read_command &&
                                         ((addr == 16'h0000) || (addr == 16'h0001) || (addr == 16'h0010));
+                                    // 暂存完整数据并切至校验相。CRC 模式此时
+                                    // 仍没有 bank 写脉冲，收到完整校验才能提交。
                                     if (crc_frame) begin
                                         host_crc_expected <= crc_bit(host_crc, sdi);
                                         crc_tx <= crc_bit(device_crc, read_command ? sdo : sdi);
@@ -295,6 +343,8 @@ module spi_slave #(
                         CRC: begin
                             crc_rx <= crc_rx_next[6:0];
                             if (crc_bits == 3'd7) begin
+                                // 校验在第八个 CRC 位进入后比较，包含最后一位。
+                                // 错帧走相同 WAIT_CS 丢弃，旧寄存器继续有效。
                                 if (crc_rx_next != host_crc_expected) begin
                                     crc_err_pulse <= 1'b1;
                                     reject_frame(REJECT_CRC);

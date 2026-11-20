@@ -1,5 +1,15 @@
 `timescale 1ns/1ps
 // 检查未绑定参数的真实寄存器堆：受影响功能须明确拒绝，无关 CSR 仍可访问。
+// =============================================================================
+// 文件名     : ad4080_regs_rejection_tb.sv
+// 模块名     : ad4080_regs_rejection_tb
+// 版本       : v1.0
+// 功能       : 对未绑定的真实 bank 参数，检查明确拒绝与旧值保持。
+// 设计说明   :
+//   * 以完整一字节实体直接访问原寄存器，覆盖元数据拒绝和写事件。
+//   * GPIO 双 nibble 必须同意才整体提交。测试把合法的另一项也选为
+//     新值，能发现只挡非法 nibble 导致备选输出被悄悄改写的错误。
+// -----------------------------------------------------------------------------
 module ad4080_regs_rejection_tb;
   logic clk=0,rst_n=0,we=0;logic[15:0]addr=0,wdata=0;
   wire[15:0]rdata;wire[1:0]entity_bytes;wire address_valid,read_only,access_supported;
@@ -7,9 +17,11 @@ module ad4080_regs_rejection_tb;
   wire[9:0]gain_code;wire[1:0]filter_sel,fifo_mode;wire[14:0]fifo_watermark;
   int checks=0,rejects=0,metadata_rejects=0,preserved=0;
   always #5 clk=~clk;
-  ad4080_regs dut(.clk(clk),.rst_n(rst_n),.addr(addr),.wdata(wdata),.write_bytes(2'd1),.we(we),
+  ad4080_regs dut(.por_ana_event_i(1'b0),.clk(clk),.rst_n(rst_n),.addr(addr),.wdata(wdata),.write_bytes(2'd1),.we(we),
     .rdata(rdata),.entity_bytes(entity_bytes),.address_valid(address_valid),.read_only(read_only),.access_supported(access_supported),.access_reject_reason(access_reject_reason),
     .adc_idle(1'b1),.gpio_levels(4'd0),.capture_active(1'b0),.capture_incomplete(1'b0),.capture_io_active(1'b0),
+    .data_config_ready_i(1'b1),.data_intf_config_a_o(),.data_intf_config_b_o(),
+    .conversion_timing_error_i(1'b0),.cnv_error_alert_o(),
     .st_fifo_full(1'b0),.st_fifo_read_done(1'b0),.st_hi_flag(1'b0),.st_lo_flag(1'b0),
     .crc_err_pulse(1'b0),.clk_cnt_err_pulse(1'b0),.partial_err_pulse(1'b0),.addr_err_pulse(1'b0),.readonly_err_pulse(1'b0),.not_ready_err_pulse(1'b0),
     .hi_clr(),.lo_clr(),.offset_code(),.gain_code(gain_code),.filter_sel(filter_sel),.dec_sel(),.fsync_pulse(),.fifo_mode(fifo_mode),.fifo_watermark(fifo_watermark),.fifo_arm(),.fifo_clear(),
@@ -40,10 +52,17 @@ module ad4080_regs_rejection_tb;
     write_checked(16'h0028,8'h00,1);require(gain_code==512,"unbound gain0 endpoint accepted");preserved++;
     write_checked(16'h0029,8'h03,1);require(filter_sel==0,"missing COMP coefficients became identity");preserved++;
     write_checked(16'h001a,8'h03,2);read_checked(16'h001a,0);
+    // 原 bank 两个选择地址均须原子拒绝 1010，另一 nibble 设置为不同合法值。
+    write_checked(16'h001a,8'h71,0);read_checked(16'h001a,8'h71);
+    write_checked(16'h001a,8'h2a,2);read_checked(16'h001a,8'h71);
+    write_checked(16'h001a,8'ha2,2);read_checked(16'h001a,8'h71);
+    write_checked(16'h001b,8'h97,0);read_checked(16'h001b,8'h97);
+    write_checked(16'h001b,8'h6a,2);read_checked(16'h001b,8'h97);
+    write_checked(16'h001b,8'ha6,2);read_checked(16'h001b,8'h97);
     write_checked(16'h0002,8'h01,2);read_checked(16'h0002,0);
     write_checked(16'h001e,8'h00,0);write_checked(16'h001d,8'h03,0);require(fifo_watermark==3,"explicit invalid mode11 watermark fixture");
     write_checked(16'h001c,8'h03,9);require(fifo_mode==0,"bad mode11 WM changed mode");preserved++;
-    require(rejects==7&&metadata_rejects==4&&preserved>=7,"nonzero rejection/preservation coverage");
+    require(rejects==11&&metadata_rejects==4&&preserved>=13,"nonzero rejection/preservation coverage");
     $display("AD4080_REG_REJECTION_COMPLETE rejected_writes=%0d metadata_rejects=%0d preserved_compares=%0d checks=%0d",rejects,metadata_rejects,preserved,checks);$finish;
   end
   initial begin #10000;$fatal(1,"register rejection watchdog");end

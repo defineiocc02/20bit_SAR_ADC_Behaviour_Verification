@@ -1,5 +1,16 @@
 `timescale 1ns/1ps
-// 主机驱动明确提供停止与排空确认，不从输入空拍推断 ADC 空闲，也不验证器件物理时序。
+// =============================================================================
+// 文件名     : ad4080_top_tb.sv
+// 模块名     : ad4080_top_tb
+// 版本       : v1.0
+// 功能       : 验证旧并行 DSP、配置 SPI、FIFO 和已完成记录的软复位行为。
+// 设计说明   :
+//   * 主机驱动明确提供停止与排空确认，不从输入空拍推断 ADC 空闲。
+//   * CS/SCLK/SDI 从真实配置引脚进入，状态在核心处理沿后检查。
+//   * 旧路径只推进同域 valid。器件 CNV 拍点用独立 ad4080_cnv_phases_tb 验证。
+//   * 完成记录允许经合法软复位保留。未完成的捕获和正在进行的读回禁止软复位。
+// 变更记录   : 给新增的可选物理时基和配置交接端提供确定的旧路径绑值。
+// =============================================================================
 module ad4080_top_tb;
   localparam int DEPTH=32;
   logic clk=0,rst_n=0,cs_n=1,sclk=1,sdi=0,interface_ready=1,adc_idle=0;
@@ -9,29 +20,44 @@ module ad4080_top_tb;
   wire[3:0]gpio_o,gpio_oe,cfg_reject_reason;wire[19:0]dout;wire[7:0]status;
   bit ascending=0;int checks=0,read_compares=0,resets=0,idle_assertions=0,rejections=0,route_checks=0;
   always #5 clk=~clk;
-  ad4080_top #(.FIFO_DEPTH(DEPTH),.P_MULTIBYTE_ORDER(0),.P_OFFSET_LSB_ADDR(37),.P_PRODUCT_ID_L(55),.P_SHORT_ADDR_BITS(7),.P_WRITE_SDO_DRIVE(0)) dut(.*);
+  // =========================================================================
+  // 1. 保持独立数值用例的绑定
+  // =========================================================================
+  // 参数默认关闭全部物理适配，旧样本从 valid_in 直接推进；为 .* 补全新增端口。
+  ad4080_top #(.FIFO_DEPTH(DEPTH),.P_MULTIBYTE_ORDER(0),.P_OFFSET_LSB_ADDR(37),.P_PRODUCT_ID_L(55),.P_SHORT_ADDR_BITS(7),.P_WRITE_SDO_DRIVE(0)) dut(
+    .por_ana_event_i(1'b0),
+    .cnv_tick_i(1'b0), .conversion_timing_error_i(1'b0), .cnv_data_timing_error_o(),
+    .phy_fifo_full_i(1'b0), .phy_fifo_read_done_i(1'b0), .csr_fifo_full_i(1'b0), .csr_fifo_read_done_i(1'b0),
+    .data_config_ready_i(1'b0), .sample_tag_i(32'd0), .data_intf_config_a_o(), .data_intf_config_b_o(),
+    .continuous_bypass_o(), .continuous_word_valid_o(), .continuous_word_o(), .continuous_word_tag_o(), .*
+  );
   task automatic require(input bit yes,input string why);checks++;if(!yes)$fatal(1,"DSP_TOP: %s",why);endtask
   always @(posedge clk)begin
+    // SPI 接受、寄存器提交和错误各有脉冲。用累计数核对整条主机帧。
     #1;if(rst_n)begin if(dut.unused_sw_reset_pulse)resets++;if(cfg_reject)rejections++;end
   end
   task automatic byte_io(input logic[7:0]tx,output logic[7:0]rx,input int oe);
     for(int i=7;i>=0;i--)begin sdi=tx[i];#80;sclk=0;#80;sclk=1;rx[i]=sdo;if(oe>=0)require(sdo_oe==1'(oe),"SDO ownership");#80;end
   endtask
   task automatic frame_start;
+    // 维持 CS 跨过输入同步器，避免把同步延迟误判为指令拒绝。
     @(negedge clk);cs_n=0;sclk=1;sdi=0;repeat(8)@(negedge clk);
   endtask
   task automatic frame_end;
+    // CS 高等足够周期才观察 OE，验证下一次事务不会继承本次 SDO。
     cs_n=1;sclk=1;sdi=0;repeat(8)@(negedge clk);#1;require(!sdo_oe,"CS-high SPI release");
   endtask
   task automatic write1(input logic[14:0]a,input logic[7:0]v);
     logic[7:0]r;frame_start();byte_io({1'b0,a[14:8]},r,0);byte_io(a[7:0],r,0);byte_io(v,r,0);frame_end();
   endtask
   task automatic write2(input logic[14:0]base,input logic[15:0]v);
+    // 严格模式的两个字节作为一个实体交付，首地址/字节序成对改变。
     logic[14:0]a;logic[7:0]r;a=ascending?base:base+15'd1;
     frame_start();byte_io({1'b0,a[14:8]},r,0);byte_io(a[7:0],r,0);
     byte_io(ascending?v[7:0]:v[15:8],r,0);byte_io(ascending?v[15:8]:v[7:0],r,0);frame_end();
   endtask
   task automatic read_reg(input logic[14:0]a,input logic[7:0]expected);
+    // 真实 SDO 返回用固定期望比较，避免检查到内部寄存器但漏掉 SPI 接线。
     logic[7:0]r;frame_start();byte_io({1'b1,a[14:8]},r,0);byte_io(a[7:0],r,0);byte_io(0,r,1);
     require(r===expected,"known CSR readback");read_compares++;frame_end();
   endtask
@@ -65,6 +91,9 @@ module ad4080_top_tb;
     require(dut.fifo_mode==0&&dut.watermark==16384&&dut.addr_asc,"config reset defaults or retained ADDR_ASC");
     require(status[3]&&status[0],"software reset did not restore POR bits");read_reg(15'h000a,0);
   endtask
+  // =========================================================================
+  // 2. 停收、捕获记录、复位及路由
+  // =========================================================================
   initial begin
     int reject_before,reset_before;
     repeat(4)@(negedge clk);rst_n=1;quiesce();

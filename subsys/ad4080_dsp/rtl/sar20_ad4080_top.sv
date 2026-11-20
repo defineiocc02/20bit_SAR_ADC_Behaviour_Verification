@@ -87,6 +87,13 @@ module sar20_ad4080_top #(
         .C0(C0),.C1(C1),.C2(C2),.P_MULTIBYTE_ORDER(P_MULTIBYTE_ORDER),
         .P_OFFSET_LSB_ADDR(P_OFFSET_LSB_ADDR),.P_PRODUCT_ID_L(P_PRODUCT_ID_L),
         .P_SHORT_ADDR_BITS(P_SHORT_ADDR_BITS),.P_WRITE_SDO_DRIVE(P_WRITE_SDO_DRIVE)) u_dsp (
+    // 此适配器的既有契约是并行结果与标记；设备计时、串行发射及 AON 由产品装配接入。
+    .cnv_tick_i(1'b0), .conversion_timing_error_i(1'b0), .por_ana_event_i(1'b0),
+    .cnv_data_timing_error_o(), .phy_fifo_full_i(1'b0), .phy_fifo_read_done_i(1'b0),
+    .csr_fifo_full_i(1'b0), .csr_fifo_read_done_i(1'b0), .data_config_ready_i(1'b0),
+    .sample_tag_i(sar_sample_id), .data_intf_config_a_o(), .data_intf_config_b_o(),
+    .continuous_bypass_o(), .continuous_word_valid_o(), .continuous_word_o(),
+    .continuous_word_tag_o(),
         .clk(clk),.rst_n(dsp_rst_n),.cs_n(cs_n),.sclk(sclk),.sdi(sdi),.sdo(sdo),.sdo_oe(sdo_oe),
         .adc_idle(adc_idle),.interface_ready(interface_ready),
         .valid_in(sample_accepted),.x(signed_input),.filter_sync(filter_sync),

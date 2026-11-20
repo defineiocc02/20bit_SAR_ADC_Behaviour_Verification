@@ -1,5 +1,17 @@
 `timescale 1ns/1ps
-// 使用非单位数值 FIR 测试系数检查运算，不声称复现厂家补偿频率响应。
+// =============================================================================
+// 文件名     : sinc5_comp_contract_tb.sv
+// 模块名     : sinc5_comp_contract_tb
+// 版本       : v1.0
+// 功能       : 用独立整数参考核对显式绑定的工程补偿 FIR。
+// 设计说明   :
+//   * 用真实 SINC5 输出作为本级输入，再用 64 位独立整式求 FIR 值。
+//     选定系数用于分辨正、负及非单位乘法，厂商响应另行绑定。
+//   * 第三个 SINC5 输出是首个拥有三点历史的偶抽取点。组末停样后
+//     仍会收到最后一个 SINC5 结果，计数须包含此尾组。
+//   * 在有本级待提交结果时施加 FILTER_SYNC，检查取消及重新填充。
+// 变更记录   : 2026-11-20 核对重定时后的真实前级启动及末组排空数。
+// =============================================================================
 module sinc5_comp_contract_tb;
   logic clk=0,rst_n=0,filter_sync=0,valid_in=0;logic[19:0]data_in=0;logic[3:0]dec_sel=1;
   wire[19:0]data_out,reference_s5,missing_out;wire valid_out,s5_valid,missing_valid,processing_reject,missing_reject;
@@ -58,7 +70,8 @@ module sinc5_comp_contract_tb;
     repeat(3)@(negedge clk);rst_n=1;
     @(negedge clk);filter_sync=1;@(negedge clk);filter_sync=0;
     old_compare=compares;old_s5=s5_total;feed(512);
-    require(s5_total-old_s5==126&&compares-old_compare==62,"2N output rate/priming");
+    // 512 笔经 D=4 得到 128 组。零基索引 2、4、…、126 提交 63 个 FIR 结果。
+    require(s5_total-old_s5==128&&compares-old_compare==63,"2N output rate/priming");
     // 先确认输出已排队，再测试取消，避免只在空流水上检查同步复位。
     waited=0;
     while(expected_queue.size()==0&&waited<200)begin @(negedge clk);valid_in=1;data_in=20'd40000;waited++;end
@@ -66,8 +79,9 @@ module sinc5_comp_contract_tb;
     @(negedge clk);filter_sync=0;valid_in=0;sync_cancels++;repeat(6)@(negedge clk);
     require(expected_queue.size()==0,"sync left oracle pending");
     old_compare=compares;old_s5=s5_total;feed(128);
-    require(s5_total-old_s5==30&&compares-old_compare==14,"post-sync priming and2N rate");
-    require(compares>=76&&positives>10&&negatives>10&&changed>50&&rejects>=640&&sync_cancels==1,"nonzero changing signed FIR checks");
+    // 清同步后 128 笔的 32 个前级结果只允许在索引 2、4、…、30 提交。
+    require(s5_total-old_s5==32&&compares-old_compare==15,"post-sync priming and 2N rate");
+    require(compares==78&&positives>10&&negatives>10&&changed>50&&rejects>=640&&sync_cancels==1,"nonzero changing signed FIR checks");
     $display("SINC5_COMP_CONTRACT_COMPLETE fir_compares=%0d positive=%0d negative=%0d changed_s5=%0d unbound_rejects=%0d sync_cancels=%0d checks=%0d",compares,positives,negatives,changed,rejects,sync_cancels,checks);$finish;
   end
   initial begin #100000;$fatal(1,"COMP watchdog");end

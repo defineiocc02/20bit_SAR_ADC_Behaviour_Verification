@@ -1,3 +1,14 @@
+# =============================================================================
+# 文件名     : ad4080_cal_model.py
+# 模块名     : ad4080_cal_model
+# 版本       : v1.0
+# 功能       : 对给定工程增益映射求逐样本的整数校正结果及饱和标志。
+# 设计说明   :
+#   * 使用 Rev. B p.64 图 96 的先加 OFFSET 后缩放次序。整数运算保留
+#     偏置后样本的全位宽，最终才饱和到 20 位补码。
+#   * 样本和 OFFSET 同一 LSB。增益步长及零码支持由调用方绑定。
+# 变更记录   : 2026-11-20 更新系统校正运算顺序。
+# =============================================================================
 """显式 DSP 算术约定的整数系统校正参考。
 
 AD4080 Rev.B pp.71/93 未唯一确定非单位增益码的步长。调用方须提供
@@ -53,10 +64,10 @@ def sys_corr(
 ):
     """应用调用方绑定的增益传递、OFFSET 和有符号饱和。
 
-    非单位增益斜率为
-    ``1 + (gain - 512) * gain_numerator / 2**gain_shift``。整数乘积先加
-    半个量化步长再算术右移，正好半步时向正无穷方向舍入。这是工程数值规则，
-    不代表器件未披露的内部舍入实现。GAIN=512 时不使用增益映射参数。
+    先计算 ``biased = x + off``，再按
+    ``1 + (gain - 512) * gain_numerator / 2**gain_shift`` 缩放。
+    增益增量乘积先加半个量化步长再算术右移，正好半步时向正无穷方向舍入。
+    这是工程数值规则。GAIN=512 时无需增益映射参数。
 
     Args:
         x: 20 bit 补码样本，范围 [-524288, 524287]，单位为 ADC 码。
@@ -68,7 +79,7 @@ def sys_corr(
 
     Returns:
         四元组：饱和后的整数码、低端溢出布尔值、高端溢出布尔值和增益增量。
-        两个溢出标志根据饱和前结果判断，增益增量仍采用 ADC 码。
+        两个溢出标志根据饱和前结果判断，增益增量相对于偏置后的整数样本。
 
     Raises:
         ValueError: 整数码或映射参数类型/范围非法，缺少非单位增益映射，
@@ -77,6 +88,8 @@ def sys_corr(
     x = _integer("x", x, MINC, MAXC, "ADC codes")
     off = _integer("off", off, -2048, 2047, "ADC codes")
     gain = _integer("gain", gain, 0, 1023, "GAIN codes")
+    # 偏置后可能越过原输入轨端。保留该值可在随后衰减时回到有效范围。
+    biased = x + off
     if type(gain_code_zero_supported) is not bool:
         raise ValueError("gain_code_zero_supported: expected an explicit bool")
     if gain == 512:
@@ -95,8 +108,8 @@ def sys_corr(
         gain_shift = _integer("gain_shift", gain_shift, 1, 30, "fraction bits")
         if gain == 0 and not gain_code_zero_supported:
             raise ValueError("sys_corr: GAIN=0 requires an explicit endpoint binding")
-        delta = (x * (gain - 512) * gain_numerator + (1 << (gain_shift - 1))) >> gain_shift
-    corrected = x + delta + off
+        delta = (biased * (gain - 512) * gain_numerator + (1 << (gain_shift - 1))) >> gain_shift
+    corrected = biased + delta
     return clip(corrected), corrected < MINC, corrected > MAXC, delta
 
 

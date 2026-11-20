@@ -1,4 +1,13 @@
 `timescale 1ns/1ps
+// =============================================================================
+// 文件名     : spi_slave_tb.sv
+// 模块名     : spi_slave_tb
+// 版本       : v1.0
+// 功能       : 通过主机串行位流核对配置 SPI、寄存器实体、状态和拒绝路径。
+// 设计说明   : 本台架同时推进时钟域中的从机与寄存器堆。独立的管脚对拍台架
+//              才施加规范给出的零建立/保持边界，与此处的逻辑事务检查并用。
+// 变更记录   : 将设备时序输入显式接空闲值，维持独立协议试验的边界。
+// =============================================================================
 // 检查真实寄存器堆的实体访问协议；显式绑定参数属于测试输入。
 module spi_slave_tb;
   logic clk=0,rst_n=0,cs_n=1,sclk=1,sdi=0,interface_ready=1,adc_idle=1;
@@ -17,6 +26,10 @@ module spi_slave_tb;
   int reason_count[16];bit frame_crc,frame_status;
   logic[15:0]last_instruction_status;
   always #5 clk=~clk;
+  // =============================================================================
+  // 1. 独立从机与寄存器实体
+  // =============================================================================
+  // 此用例选择从机的释放写相能力。产品要求的四线写数据相驱动 0 另由引脚用例检查。
   spi_slave #(.P_SHORT_ADDR_BITS(7),.P_WRITE_SDO_DRIVE(0)) spi(
     .clk(clk),.rst_n(rst_n),.cs_n(cs_n),.sclk(sclk),.sdi(sdi),.sdo(sdo),.sdo_oe(sdo_oe),
     .interface_ready(interface_ready),.crc_en(crc_en),.send_status(send_status),.single_inst(single_inst),
@@ -27,6 +40,9 @@ module spi_slave_tb;
     .partial_err_pulse(partial_err_pulse),.addr_err_pulse(addr_err_pulse),.readonly_err_pulse(readonly_err_pulse),
     .not_ready_err_pulse(not_ready_err_pulse),.cfg_reject(spi_reject),.cfg_reject_reason(spi_reason));
   ad4080_regs #(.P_MULTIBYTE_ORDER(0),.P_OFFSET_LSB_ADDR(37),.P_PRODUCT_ID_L(55),.P_SHORT_ADDR_BITS(7)) bank(
+    // 本夹具只验证配置帧，不把缺省外部监测事件接成真实的片上故障。
+    .data_config_ready_i(1'b0), .data_intf_config_a_o(), .data_intf_config_b_o(),
+    .conversion_timing_error_i(1'b0), .cnv_error_alert_o(), .por_ana_event_i(1'b0),
     .clk(clk),.rst_n(rst_n),.addr(addr),.wdata(wdata),.write_bytes(write_bytes),.we(we),.rdata(rdata),
     .entity_bytes(entity_bytes),.address_valid(address_valid),.read_only(read_only),.access_supported(access_supported),
     .access_reject_reason(access_reject_reason),.adc_idle(adc_idle),.gpio_levels(4'ha),
@@ -55,15 +71,21 @@ module spi_slave_tb;
       if(bank_reject)reason_count[bank_reason]++;
     end
   end
+  // =============================================================================
+  // 2. 主机端协议预期和事务驱动
+  // =============================================================================
+  // CRC 从主机真正送出的指令和数据字节计算，以便检测移位和端序两种错误。
   function automatic[7:0]crc_byte(input logic[7:0]state,input logic[7:0]data);
     logic[7:0]c;c=state^data;
     for(int i=0;i<8;i++)c=c[7]?((c<<1)^8'h07):(c<<1);
     return c;
   endfunction
+  // 在 CS 前冻结该帧 CRC 和状态设置，修改配置的那笔事务仍遵循原帧格式。
   task automatic begin_frame;
     @(negedge clk);sclk=1;sdi=0;frame_crc=crc_en;frame_status=send_status;cs_n=0;
     repeat(8)@(negedge clk);
   endtask
+  // 片选升高后让同步链退场。下一帧不能继承上一实体的 CRC 或剩余位数。
   task automatic end_frame;
     cs_n=1;sclk=1;sdi=0;repeat(8)@(negedge clk);#1;require(!sdo_oe,"CS high must release SDO");
   endtask
@@ -140,6 +162,7 @@ module spi_slave_tb;
     h=crc_byte(instruction_crc(16'h800a),8'd0);d=crc_byte(instruction_crc(16'h800a),8'ha7);require(h!=d,"read CRC comparison would be vacuous");
     before_requests=requests;before_errors=crc_errors;
     begin_frame();instruction(16'h000a);byte_io(8'h55,r,0);c=crc_byte(instruction_crc(16'h000a),8'h55);finish_crc(c,c,0);
+    // 单个坏实体还影响同片选的后续写；同时看接口错误计数和实际寄存器读回。
     // 当前帧发生 CRC 错误后，后续正确指令和 CRC 也不能恢复本帧写入。
     byte_io(8'h00,r,0);byte_io(8'h0a,r,0);byte_io(8'h66,r,0);c=crc_byte(instruction_crc(16'h000a),8'h66);byte_io(c,r,0);end_frame();
     require(requests==before_requests&&crc_errors==before_errors+1,"CRC poison allowed later write");read1(15'h000a,8'ha7);
@@ -162,8 +185,10 @@ module spi_slave_tb;
     begin_frame();byte_io(8'h80,r,-1);end_frame();require(requests==before_requests&&notready_errors==before_errors+1,"not-ready frame");interface_ready=1;
     repeat(8)@(negedge clk);
     require(status==8'ha0&&interface_status==8'h80,"independent status register packing");
+    // 长帧的两字节各自有位映射；重复短状态字会把 POR 与接口错误混在一起。
     require(status_long==16'h2820&&status_short==8'h20,"Table16/17 packing, no repeated-byte golden");status_compares+=2;
     read1(15'h000a,8'ha7);require(last_instruction_status==16'h2820,"long instruction status serialization");status_compares++;
+    // 同一个寄存器采用短/长指令时的数据一致，而附带状态字段长度不同。
     // 短格式显式绑定为七位地址；状态按 Table 17 输出一个字节。
     write1(15'h0001,8'h88);require(short_instr&&single_inst,"bound short format enable");
     begin_frame();byte_io(8'h8a,r,1);require(r==8'h20,"short status packing");status_compares++;

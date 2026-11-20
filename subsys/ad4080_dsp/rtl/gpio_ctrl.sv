@@ -20,7 +20,9 @@
 `timescale 1ns/1ps
 `default_nettype none
 
-module gpio_ctrl (
+module gpio_ctrl #(
+    parameter bit P_CNV_TIMING_BOUND = 1'b0  // 仅使用已在真实 CNV 沿产生的低有效 RDY。
+) (
     input  logic [3:0]       gpio_i,                      // GPIO 引脚输入（已同步）
     input  logic [3:0]       gpio_dir,     // 为 1 时配置为输出。
     input  logic [3:0]       gpio_reg,     // GPIO_x_DATA
@@ -30,6 +32,7 @@ module gpio_ctrl (
     input  logic             spi_sdo_oe,                  // 仅在有效时允许 SPI 驱动所选引脚。
     input  logic             fifo_full,                   // SEL 0001
     input  logic             fifo_read_done,              // SEL 0010
+    input  logic             filter_rdy_n,               // SEL 0011，保留公布沿的物理相位。
     input  logic             hi_dtct,                     // SEL 0100（电平，迟滞）
     input  logic             lo_dtct,                     // SEL 0101（电平，迟滞）
     input  logic             alert_n,                     // SEL 0110（已是低有效电平）
@@ -70,10 +73,11 @@ module gpio_ctrl (
                         end
                         4'b0001: gpio_o[i] = fifo_full;
                         4'b0010: gpio_o[i] = fifo_read_done;
-                        // 器件 FILTER_RDY 的时序未绑定，选择此功能时释放输出使能。
+                        // RDY 与其它 GPIO 输出一样直接连到选通，不能额外经过同步级。
+                        // 时基参数为零时释放驱动，旧数值用例不依赖未接引脚状态。
                         4'b0011: begin
-                            gpio_o[i] = 1'b0;
-                            gpio_oe[i] = 1'b0;
+                            gpio_o[i] = P_CNV_TIMING_BOUND ? filter_rdy_n : 1'b0;
+                            gpio_oe[i] = P_CNV_TIMING_BOUND;
                         end
                         4'b0100: gpio_o[i] = hi_dtct;      // 电平型检测
                         4'b0101: gpio_o[i] = lo_dtct;      // 电平型检测

@@ -6,11 +6,11 @@
 
 **从信号和实测结果查手册。** [逐模块对照表](evidence/MANUAL_TRACE.md)列出每条信号的手册页、实现、观察点和判据。[引脚时序图](figures/signal-timing.svg)来自产品实际逐沿输出；[逐拍数据](integration/product/evidence/pin_edges.csv)可独立复核。系统校正先加 OFFSET、再乘 GAIN；图 96 的定向输入在现用 RTL 实测为 1032。[校准回执](calibration/rtl_verification.json) · [可打印审查 PDF](report/manual-trace.pdf)
 
-**从可运行的产品顶层开始。** 50 MHz 配置 SPI 已通过 1 ps 保持的数字复验。40 MS/s 连续读出使用三组单线／双线配置，逐位核对 384 笔。集成端口、配置顺序和实物签核条件见[产品数字端复验](integration/product/ACCEPTANCE.md)，实际断言结果见[速率回执](integration/product/evidence/at-speed.txt)。
+**从可运行的产品顶层开始。** 50 MHz 配置 SPI 已通过 1 ps 保持的数字复验。40 MS/s 连续读出使用三组单线／双线配置，逐位核对 384 笔。每项手册原文位置、对应回归及观测见[逐功能对拍矩阵](evidence/manual-functional-coverage.csv)。[产品使用与复验](integration/product/ACCEPTANCE.md) · [速率回执](integration/product/evidence/at-speed.txt)
 
 ## 工作树入口
 
-从仓库根目录进入 `subsys/ad4080_peripherals/`。相邻目录 `../ad4080_dsp/` 提供[产品当前绑定的后处理源码](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/tree/36f42a1b370093d3817bec5619dd488db0504e75/subsys/ad4080_dsp/rtl)。DSP 的主要任务是把收到的 20 位码做用户校正和可选滤波，例如 40 MS/s 选择 SINC1 四倍抽取后得到 10 MS/s。它的参考顶层还提供事件和捕获控制。外围包只存自己的装配、存储和 I/O 边界，冻结 DSP 源由 Git 对象导入独立临时目录。`rtl/v21/` 和 ADC 的生产 filelist 继续由转换组维护。
+从仓库根目录进入 `subsys/ad4080_peripherals/`。相邻目录 `../ad4080_dsp/` 提供[产品当前绑定的后处理源码](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/tree/2ad7b069dd76239f2fec7670b28488ca22fce46b/subsys/ad4080_dsp/rtl)。DSP 的主要任务是把收到的 20 位码做用户校正和可选滤波，例如 40 MS/s 选择 SINC1 四倍抽取后得到 10 MS/s。它的参考顶层还提供事件和捕获控制。外围包只存自己的装配、存储和 I/O 边界，冻结 DSP 源由 Git 对象导入独立临时目录。`rtl/v21/` 和 ADC 的生产 filelist 继续由转换组维护。
 
 - [系统 OFFSET/GAIN 校准](calibration/README.md)提供可运行的主机程序。可接两个已标定的直流电平，也可用 ADCToolbox 拟合已知正弦。原 DSP 执行逐样本校正；[产品入口](integration/product/README.md)用配置 SPI 写系数，并从同一份结果 SRAM 读回校正码。
 - `integration/`、`transport/`、`io/` 收拢外围装配、跨时钟搬运和读出协议。`memory/`、`rtl/`、`otp/`、`power/` 是存储和电源服务。`interfaces/` 记录所有权，并含复用现有 DSP 的真实测试接口。
@@ -18,7 +18,7 @@
 
 ## 数字滤波器如何配置
 
-`0x29` 是实际的八位滤波配置寄存器。上电复位为 `0x00`，输出直通。位 [1:0] 选择路径，位 [6:3] 填基础抽取率 N 的编码，N = 2^(编码 + 1)。三条滤波路径均由配置 SPI 选通。现有实现中普通五阶和补偿五阶共享同一个 CIC。补偿 FIR 的定点系数由公开带宽和频响数据设计。[寄存器表 62](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=94) · [带宽表 28](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=64) · [数字后处理 RTL](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/36f42a1b370093d3817bec5619dd488db0504e75/subsys/ad4080_dsp/rtl/ad4080_dsp_chain.sv)
+`0x29` 是实际的八位滤波配置寄存器。上电复位为 `0x00`，输出直通。位 [1:0] 选择路径，位 [6:3] 填基础抽取率 N 的编码，N = 2^(编码 + 1)。三条滤波路径均由配置 SPI 选通。现有实现中普通五阶和补偿五阶共享同一个 CIC。补偿 FIR 的定点系数由公开带宽和频响数据设计。[寄存器表 62](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=94) · [带宽表 28](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=64) · [数字后处理 RTL](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/2ad7b069dd76239f2fec7670b28488ca22fce46b/subsys/ad4080_dsp/rtl/ad4080_dsp_chain.sv)
 
 | 输入 40 MS/s，基础 N=4 | 写入 0x29 | 输出速率 | 手册 −3 dB 带宽 |
 | --- | --- | ---: | ---: |

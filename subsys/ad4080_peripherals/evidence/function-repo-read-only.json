@@ -38,7 +38,7 @@
     "original_worktree": "clean",
     "original_function_ip_edits": false,
     "vendor_eda_runs": false,
-    "feature_dsp_source_revision": "36f42a1b370093d3817bec5619dd488db0504e75",
+    "feature_dsp_source_revision": "2ad7b069dd76239f2fec7670b28488ca22fce46b",
     "combined_regression_receipt": "peripheral-review.json"
   }
 }

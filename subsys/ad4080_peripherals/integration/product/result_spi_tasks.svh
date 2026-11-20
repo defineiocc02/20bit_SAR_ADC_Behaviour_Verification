@@ -58,17 +58,28 @@ task automatic spi_result_setup(input bit quad);
     spi_access(1, 15'h0015, 1, 0, readback);
     if (readback !== (quad ? 16'h0045 : 16'h0041) || gpio_oe[3:2] !== 2'b11)
         $fatal(1, "Official result SPI format or status GPIO failed to apply");
+    // 表49的 LVDS_CNV_EN 设置在 SPI 档只保存供回读，不能再选用关断的 LVDS 接收器。
+    spi_access(1, 15'h0016, 1, 0, readback);
+    if (readback !== 16'h0001 || lvds_cnv_input_select_io_o !== 1'b0)
+        $fatal(1, "Table49 result SPI lanes=%0d CSR_0x16=%02h CNV_SELECT=%b expected 01/0",
+               quad ? 4 : 1, readback[7:0], lvds_cnv_input_select_io_o);
+    $display("PASS Table49 result SPI lanes=%0d CSR_0x16=%02h CNV_SELECT=%b",
+             quad ? 4 : 1, readback[7:0], lvds_cnv_input_select_io_o);
     if (result_sdo_oe_o !== (quad ? 4'b0001 : 4'b0000))
         $fatal(1, "Unselected result OE must only retain SDOD in four-lane mode");
     write_reg(15'h001E, 2, 16'h0002);
     write_reg(15'h001C, 1, 16'h0001);
 endtask
 
-task automatic spi_result_capture_two();
+task automatic spi_result_capture_two(input bit continue_conversions);
     // E1 建批，再给两笔真实完成码，最后两次 CNV 使原 DSP/捕获尾部退场。
     begin_bypass();
     cnv_step(1'b1, 20'h81234);
     cnv_step(1'b1, 20'h12468);
+    // 图91仍送实际 CNV。捕获冻结后，这些新码不能覆盖两个已存字。
+    // 32 个 60ns 样本覆盖从 FULL 到单线最长 56 拍传输的整个窗口。
+    if (continue_conversions)
+        for (int j = 0; j < 32; j++) cnv_step(1'b1, 20'(j));
     finish_cnv_batch();
 endtask
 
@@ -116,7 +127,7 @@ task automatic spi_result_try_empty(input bit quad, input bit hold_dcs_low = 1'b
 endtask
 
 task automatic spi_result_transaction(input bit quad, input bit close_early, input bit lose_power,
-                                      input bit standby_read = 1'b0, input bit early_dcs_held = 1'b0);
+                                      input bit standby_read = 1'b0, input bit early_dcs_held = 1'b0, input bit continue_conversions = 1'b0);
     int writes_before, reads_before, done_before, failures_before, expected_groups, observed_groups;
     bit standby_entered;
     realtime full_seen_time;
@@ -137,7 +148,7 @@ task automatic spi_result_transaction(input bit quad, input bit close_early, inp
 
     fork
         begin
-            spi_result_capture_two();
+            spi_result_capture_two(continue_conversions);
             if (standby_read) begin
                 // 已冻结的物理银行保持原样，未选 DCS 不得预读锁住捕获。
                 // 真配置 SPI 写表11操作模式，等许可的退出而非直接改电源状态。
@@ -180,6 +191,9 @@ task automatic spi_result_transaction(input bit quad, input bit close_early, inp
             end
             if (result_spi_ready_io_o)
                 $fatal(1, "Earliest DCS test accidentally waited for payload prefetch");
+            // 两端均检查转换源资格，避免测试在 FULL 之后悄悄停钟。
+            if (continue_conversions && (sample_source_idle_core_i || !conversion_allow_core_o))
+                $fatal(1, "Fig91 conversion source stopped before result read");
             result_dcs_ni = 0;
             #1ps;
             $display("RESULT_SPI_DCS,lanes=%0d,full_ns=%0.3f,first_fall_ns=%0.3f,standby=%0d,old_window=%0d",
@@ -203,6 +217,8 @@ task automatic spi_result_transaction(input bit quad, input bit close_early, inp
                 #1ps;
                 if (result_sdo_oe_o !== 4'b0000) $fatal(1, "I/O power loss failed to isolate SDOD and other lanes");
             end
+            if (continue_conversions && (sample_source_idle_core_i || !conversion_allow_core_o))
+                $fatal(1, "Fig91 conversion source stopped before DCS release");
             result_dcs_ni = 1;
             #1ps;
             if (!lose_power && (result_sdo_oe_o !== (quad ? 4'b0001 : 4'b0000) ||
@@ -229,6 +245,13 @@ task automatic spi_result_transaction(input bit quad, input bit close_early, inp
             $fatal(1, "Physical first/last FIFO status boundary or successful prefix mismatch");
         $display("PASS result SPI lanes=%0d prefix=%0d real_DCLK_20ns first_load=%0d last_load=%0d DCS_release=complete",
                  quad ? 4 : 1, spi_pin_falls, spi_pin_first_at, spi_pin_last_at);
+        if (continue_conversions) begin
+            // 并行刺激全部结束后看事务数，捕获冻结起必须始终剩原记录。
+            if (physical_writes != writes_before+2 || physical_reads != reads_before+2)
+                $fatal(1, "Fig91 continuing CNV altered frozen record write/read counts");
+            $display("PASS Fig91 active CNV_60ns during result SPI lanes=%0d DCLK_20ns=%0d writes=2 reads=2",
+                     quad ? 4 : 1, spi_pin_falls);
+        end
         if (standby_read) begin
             if (physical_writes != writes_before+2 || conversion_allow_core_o ||
                 continuous_da_oe_o || continuous_db_oe_o || continuous_dco_oe_o)
@@ -239,18 +262,57 @@ task automatic spi_result_transaction(input bit quad, input bit close_early, inp
     #40ns;
 endtask
 
+// [表11] GPIO1..3 为已配置高电平输出。进入任一省电态后按供电方式
+// 比较实际管脚 OE，唤醒后同一 GPO 配置继续生效。GPIO0 留给配置 SDO。
+task automatic audit_gpio_low_power();
+    logic [3:0] expected_oe;
+    for (int external_supply = 0; external_supply < 2; external_supply++) begin
+        control_pin_boot(1'(external_supply));
+        write_reg(15'h001A, 1, 16'h0070);
+        write_reg(15'h001B, 1, 16'h0077);
+        write_reg(15'h0019, 1, 16'h00EF);
+        if (gpio_oe !== 4'b1110 || gpio_o[3:1] !== 3'b111)
+            $fatal(1, "Table11 normal GPIO setup did not reach the pins");
+        for (int mode = 2; mode < 4; mode++) begin
+            write_reg(15'h0002, 1, 16'(mode));
+            wait (!conversion_allow_core_o);
+            repeat (5) @(negedge clk_aon_i);
+            expected_oe = external_supply != 0 ? 4'b1110 : 4'b0000;
+            if (gpio_oe !== expected_oe || (external_supply != 0 && gpio_o[3:1] !== 3'b111))
+                $fatal(1, "Table11 GPIO external=%0d mode=%0d OE=%b expected=%b",
+                       external_supply, mode, gpio_oe, expected_oe);
+            $display("PASS Table11 GPIO external=%0d mode=%0d OE=%b", external_supply, mode, gpio_oe);
+            // 内供睡眠时只发管理写，唤醒握手走真实 AON 保护时间。
+            spi_write_without_sdo(15'h0002, 1, 16'h0000);
+            wait (wake_recover_req_aon_o);
+            @(negedge clk_aon_i);
+            wake_recover_done_aon_i = 1'b1;
+            wait (conversion_allow_core_o);
+            @(negedge clk_aon_i);
+            wake_recover_done_aon_i = 1'b0;
+            if (gpio_oe !== 4'b1110 || gpio_o[3:1] !== 3'b111)
+                $fatal(1, "Table11 wake did not restore configured GPIO drive");
+        end
+    end
+endtask
+
 task automatic run_result_spi_pin_check();
     // 更改输入时基只在空闲边界。实际 DCLK 每周期 20ns，服务 CLK 2.5ns。
     @(negedge clk_io_i);
     io_half_period = 1.25ns;
     repeat (4) @(negedge clk_io_i);
+    // 先在 LVDS 档选择差分 CNV，然后带着同一 B 寄存器值进入单线和四线 SPI。
+    write_reg(15'h0016, 1, 16'h0001);
+    wait (continuous_config_ready_core_o);
+    if (lvds_cnv_input_select_io_o !== 1'b1)
+        $fatal(1, "Table49 LVDS CNV selection did not apply before switching to SPI");
     spi_pin_observe = 1'b1;
     spi_result_setup(1'b0);
     spi_result_try_empty(1'b0);
-    spi_result_transaction(1'b0, 1'b0, 1'b0);
+    spi_result_transaction(1'b0, 1'b0, 1'b0, .continue_conversions(1'b1));
     spi_result_setup(1'b1);
     spi_result_try_empty(1'b1);
-    spi_result_transaction(1'b1, 1'b0, 1'b0);
+    spi_result_transaction(1'b1, 1'b0, 1'b0, .continue_conversions(1'b1));
     spi_result_setup(1'b1);
     spi_result_transaction(1'b1, 1'b1, 1'b0);
     // 重新开始必须由原捕获生成新记录。中断后重新完成一次真实 SPI 回归。
@@ -266,8 +328,13 @@ task automatic run_result_spi_pin_check();
     write_reg(15'h001C, 1, 16'h0000);
     write_reg(15'h0015, 1, 16'h0040);
     wait (continuous_config_ready_core_o);
+    // 切回 LVDS 直接恢复已保存的选择，无须重写 B 寄存器。
+    if (lvds_cnv_input_select_io_o !== 1'b1)
+        $fatal(1, "Table49 saved CNV selection did not return in LVDS mode");
+    $display("PASS Table49 saved CNV_SELECT restored on return to LVDS");
     spi_pin_observe = 1'b0;
     @(negedge clk_io_i);
     io_half_period = 11ns;
+    audit_gpio_low_power();
     $display("AD4080_RESULT_SPI_PINS PASS");
 endtask

@@ -103,6 +103,16 @@ def run_checks(args):
     csv_path = work / "gpio0_edges.csv"
     csv_path.write_text("\n".join((*columns, *cases)) + "\n")
     print(f"cases_csv={csv_path}")
+    # 表 44 的独立验据取真实引脚帧。缺一类、同名重复或逐沿失败均不出通过标记。
+    transfer = [case.split(",") for case in cases if case.startswith("keep_stream_")]
+    expected_transfer = {"keep_stream_" + item for item in
+                         ("default", "enable", "enabled", "reserved_reject",
+                          "reserved_preserves", "disable", "disabled")}
+    transfer_ok = (len(transfer) == len(expected_transfer)
+                   and {case[0] for case in transfer} == expected_transfer
+                   and all(case[-1] == "0" for case in transfer))
+    if transfer_ok:
+        print("PASS TABLE44_KEEP_STREAM_LEN reset=00 set=04 masked_reject=04 clear=00")
     summary = [line for line in rows if line.startswith("CFG_SPI_PIN_EDGES_COMPLETE")]
     for line in summary:
         print(line)
@@ -116,7 +126,7 @@ def run_checks(args):
     poll = [line for line in rows if line.startswith("CFG_SPI_RESET_POLL_COMPLETE")]
     for line in poll:
         print(line)
-    finished = bool(summary and summary[0].endswith("failures=0") and
+    finished = bool(transfer_ok and summary and summary[0].endswith("failures=0") and
                     (not args.lvds_profile or lvds) and (not args.crc_stream or stream) and
                     (not args.init_poll or poll))
     return 0 if result.returncode == 0 and finished else 1

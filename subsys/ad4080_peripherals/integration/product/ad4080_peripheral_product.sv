@@ -146,6 +146,7 @@ module ad4080_peripheral_product #(
     logic capture_fifo_full, capture_metadata_clear;
     logic fifo_pin_status_reset_n, first_payload_seen_io_q, last_payload_seen_io_q;
     logic pin_fifo_full, pin_fifo_read_done;
+    logic [3:0] gpio_oe_core;            // DSP 方向选择，隔离由本层应用
     logic por_ana_event_core;
     (* ASYNC_REG = "TRUE" *) logic [1:0] csr_fifo_meta_q, csr_fifo_sync_q;
     logic [7:0] data_cfg_a_core, data_cfg_b_core, data_cfg_c_core, filter_cfg_core;
@@ -227,6 +228,11 @@ module ad4080_peripheral_product #(
                            (capture_fifo_full || record_locked) && !first_payload_seen_io_q;
     assign pin_fifo_read_done = last_payload_seen_io_q;
 
+    // 表11 IOVDD 不可用时切断 GPO。软初始化仅保留已核供电的 GPIO0/SDO
+    // 状态只读回路，且必须有实际 SPI 发射资格，不能绕过其他 GPIO 的隔离。
+    assign gpio_oe = io_reset_n ? gpio_oe_core :
+                     (cfg_poll_allow_core && sdo_oe ? (gpio_oe_core & 4'b0001) : 4'b0000);
+
     // [CSR] SPI 在另一个时钟域看到的是稳定的双级取样。GPIO 视图用原始
     // 管脚状态，不能将这两个时钟的报告延迟加到物理输出沿。
     always_ff @(posedge clk_core_i or negedge fifo_reset_n) begin
@@ -297,7 +303,7 @@ module ad4080_peripheral_product #(
         .pwr_rsp_op_i(pwr_rsp_op), .pwr_mode_i(pwr_mode), .pwr_ldo_pd_i(pwr_ldo_pd),
         .valid_in(sample_valid_core_i && conversion_allow_core_o), .x(sample_signed_core_i),
         .filter_sync(filter_sync_core_i), .ext_event(ext_event_core_i), .arm(1'b0), .rd_en(read_taken),
-        .gpio_i, .gpio_o, .gpio_oe, .dout(), .dout_valid(), .status(status_o),
+        .gpio_i, .gpio_o, .gpio_oe(gpio_oe_core), .dout(), .dout_valid(), .status(status_o),
         .cnv_tick_i(cnv_tick_core_i), .conversion_timing_error_i(conversion_timing_error_core_o),
         .cnv_data_timing_error_o(cnv_data_timing_error_core_o),
         .por_ana_event_i(por_ana_event_core),
@@ -396,7 +402,10 @@ module ad4080_peripheral_product #(
     ad4080_product_record_session u_session (
         .clk_core_i, .clk_io_i, .rst_core_ni(fifo_reset_n), .io_reset_ni(io_reset_n), .io_allow_i(io_record_epoch_o),
         .command_valid_core_i(command_core_launch), .command_ready_core_o(record_ready_core_o),
-        .can_lock_core_i(config_idle_pipe_q[3] && sample_source_idle_core_i && !bist_hold_core &&
+        // 图91在 CNV 自由运行时读出已冻结记录。只有冻结资格允许在上游
+        // 仍送码时取锁；空记录命令仍在原静默窗口处理。
+        .can_lock_core_i(config_idle_pipe_q[3] &&
+                         (sample_source_idle_core_i || record_available_core_o) && !bist_hold_core &&
                          link_idle && !discard_record && !capture_clear_q),
         .captured_core_i(record_available_core_o), .captured_words_core_i(record_count_core), .read_taken_core_i(read_taken),
         .locked_core_o(record_locked), .reject_core_o(command_core_reject),
@@ -487,7 +496,8 @@ module ad4080_peripheral_product #(
     // 控制量本身由宏消费，默认幅值编码 010 对应无效配置时的安全请求。
     // 输出来自已经生效的同组配置，避免半字节换档带动 IO 偏置。
     assign lvds_rx_double_io_o = cfg_valid_io && data_cfg_c_io[7];
-    assign lvds_cnv_input_select_io_o = cfg_valid_io && data_cfg_b_io[0];
+    // 表49只在 LVDS 接口生效；SPI 档保留 CSR 原值，切回 LVDS 时恢复。
+    assign lvds_cnv_input_select_io_o = cfg_valid_io && !data_cfg_a_io[0] && data_cfg_b_io[0];
     always_comb begin
         case (cfg_valid_io ? data_cfg_c_io[6:4] : 3'b000)
             3'b001, 3'b010, 3'b100: lvds_vod_control_io_o = data_cfg_c_io[6:4];

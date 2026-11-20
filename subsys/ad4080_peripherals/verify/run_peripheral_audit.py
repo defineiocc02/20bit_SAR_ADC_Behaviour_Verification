@@ -243,7 +243,8 @@ def run_audit(args):
                   if name.startswith("bound_dsp/")]
     bench("dsp_cnv_phases", "ad4080_cnv_phases_tb",
           [*(dsp_path+"rtl/"+name for name in dsp_leaves), dsp_path+"sim/tb/ad4080_cnv_phases_tb.sv"],
-          ("AD4080_CNV_PHASES_COMPLETE", "PASS FIG99"), ("-Wno-fatal",), frozen=True)
+          ("AD4080_CNV_PHASES_COMPLETE", "PASS FIG99", "PASS FIG97", "PASS Direct LVDS FILTER_SYNC"),
+          ("-Wno-fatal",), frozen=True)
     bench("por_ana_csr", "por_ana_csr_tb",
           [dsp_path+"rtl/ad4080_regs.sv", "integration/por_ana_csr_tb.sv"],
           ("POR_ANA_CSR PASS",), ("-Wno-fatal",), frozen=True)
@@ -258,7 +259,7 @@ def run_audit(args):
     script("config_spi_pins", [sys.executable, "-B", ROOT/"interfaces/control_review/run_pin_edges.py",
            "--repo", repo, "--revision", REV, "--verilator", vlt, "--scratch", work/"spi-edges",
            "--lvds-profile", "--crc-stream", "--init-poll"],
-           ("CFG_SPI_PIN_EDGES_COMPLETE", "failures=0", "LVDS_CFG_SPI_COMPLETE",
+           ("CFG_SPI_PIN_EDGES_COMPLETE", "failures=0", "PASS TABLE44_KEEP_STREAM_LEN", "LVDS_CFG_SPI_COMPLETE",
             "CFG_SPI_STREAM_CRC_COMPLETE", "CFG_SPI_RESET_POLL_COMPLETE"))
     script("result_spi_pins", ["sh", ROOT/"io/run_result_spi_pins.sh"],
            ("AD4080_RESULT_SPI_PIN_ENGINE PASS tail=0", "AD4080_RESULT_SPI_PIN_ENGINE PASS tail=1"))
@@ -310,7 +311,8 @@ def run_audit(args):
            "-p","test_*.py"], ("Ran ","OK"))
     script("adctoolbox_rtl", [cal_python,"-B",ROOT/"calibration/verify_rtl.py","--repo",repo,
            "--verilator",vlt,"--out",work/"system-calibration.json","--require-manual-order"],
-           ("Verified 8234 RTL outputs against sys_corr", "Figure 96 order: MATCHED"))
+           ("Verified 8234 RTL outputs against sys_corr", "Figure 96 order: MATCHED",
+            "PASS TABLE61_NOMINAL_GAIN codes=001,200,3ff signs=2"))
     script("filter_response", [cal_python, "-B", ROOT/"interfaces/dsp_review/verify_filter_response.py",
            "--repo", repo, "--verilator", vlt, "--output", work/"filter-response"],
            ("AD4080_FILTER_RESPONSE_COMPLETE rates=26 clamps=3",))
@@ -321,9 +323,26 @@ def run_audit(args):
         # 分开保存上电、滤波、结果 SPI 和长记录各次实际启动。图 83/89/99 的独立判据只读对应原始沿。
         product_env = dict(env, AD4080_PRODUCT_WORK_PARENT=str(stage))
         log = checked(["bash", ROOT/"integration/product/run_product.sh", "--all-pins"], ROOT, product_env, run_log)
+        # 手册功能逐项绑定观测，避免只有组末尾结束线时仍声称覆盖具体字段。
+        # 地址方向必须同时过硬复位下降和软复位后上升。FIFO 复位须真读旧字。
+        # 图 91 比较启动后的真实 DCLK，内供及外供 GPIO 各保留独立模式判据。
+        # 四种捕获模式从唯一物理存储消费，模式 11 另看满历史与早事件。
         observations = matched(log, ("AD4080_PRODUCT_ALL_PINS PASS", "AD4080_PRODUCT_PIN_EDGES PASS",
             "AD4080_PRODUCT_FILTERS PASS", "AD4080_PRODUCT_RESULT_SPI PASS", "AD4080_PRODUCT_CONTROL_PINS PASS",
-            "AD4080_PRODUCT_FULL_RECORD PASS", "PRODUCT_STRUCTURE PASS"))
+            "AD4080_PRODUCT_FULL_RECORD PASS", "PRODUCT_STRUCTURE PASS",
+            "TABLE31_RESET addresses=37 ascending=0", "TABLE31_RESET addresses=37 ascending=1",
+            "SOFTWARE_RESET_FIFO words=2 data=53a71,53a72", "SPI_INIT_POLL p28",
+            "SPI_AON_MODE", "SPI_AON_LDO", "Table49 result SPI lanes=1 CSR_0x16=01 CNV_SELECT=0",
+            "Table49 result SPI lanes=4 CSR_0x16=01 CNV_SELECT=0", "saved CNV_SELECT restored",
+            "Fig91 active CNV_60ns during result SPI lanes=1 DCLK_20ns=56",
+            "Fig91 active CNV_60ns during result SPI lanes=4 DCLK_20ns=20",
+            "Table11 GPIO external=0 mode=2 OE=0000", "Table11 GPIO external=0 mode=3 OE=0000",
+            "Table11 GPIO external=1 mode=2 OE=1110", "Table11 GPIO external=1 mode=3 OE=1110",
+            "configured product ID", "PF1_D4 actual SPI/filter/RDY/three physical words",
+            "SINC5_D2 actual SPI/filter/RDY/three physical words",
+            "FULL_RECORD_CHECK case=mode00_disabled", "FULL_RECORD_CHECK case=mode01_immediate",
+            "FULL_RECORD_CHECK case=mode10_latest", "FULL_RECORD_CHECK case=mode11_wrapped",
+            "FULL_RECORD_CHECK case=mode11_early_known_previous"))
         paths = [line.removeprefix("Build directory ") for line in log.splitlines() if line.startswith("Build directory ")]
         if len(paths) != 1 or Path(paths[0]).resolve().parent != stage:
             raise ValueError("产品逐沿记录缺少本次构建路径")

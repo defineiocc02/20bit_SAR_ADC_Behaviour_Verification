@@ -13,7 +13,7 @@
 | 31–33，总表、0x00/0x01 指令控制 | 长指令首位是读写，默认 15 位地址。表 33 和第 35 页给出短指令 7 位地址，可显式绑定。第 35 页说明写数据相 SDO 驱动 0，因此测试绑定 `P_WRITE_SDO_DRIVE=1`。第 27 页与 ADI `ad4080_soft_reset` 都要求两次写，首步置两个复位位，次步清一个或两个。ADDR_ASCENSION 在合格软复位后保留。 |
 | 34，0x02 DEVICE_CONFIG | 表 11 及表 34 一致给出 `00` 正常、`10` 待机、`11` 睡眠。新桥拒绝 `01` 与非零保留位。原 bank 对非零模式拒绝并始终读回 0。 |
 | 35–42，器件 ID 与 Scratch | 表 36 字段和 ADI no-OS 的 AD4080 产品 ID 低字节为 0x50，基线未绑定时拒绝读取。第 77 页寄存器标题给出 0x00，与表 36 字段不同，本次用表项与驱动共同值作验证绑定。 |
-| 43–45，流模式与 CRC/严格访问 | 0x0E STREAM_MODE、0x0F TRANSFER_CONFIG 未进入 bank 地址表，循环属性待实现。现有严格实体、地址方向、补充状态可独立复放。无来源的地址回绕与后续流式 CRC 种子维持拒绝。 |
+| 43–45，流模式与 CRC/严格访问 | 表 44 的 0x0F[2] 已实测普通及 CRC 流式读写、保留位拒绝和复位。0x0E 非零循环按 p.80 的不支持条款拒绝。正常 ASC/DESC、严格实体和后续 CRC 种子有独立回放。 |
 | 46–47，0x11 接口状态与 0x14 设备状态 | 本次真实 SPI 触发部分写、越址、只读写、未就绪及 W1C。原 0x14 有数字/模拟 POR 初值和事件位，转换周期错误及 ROM CRC/ECC 位固定为 0。模拟掉参考事件由新桥接入。 |
 | 48–51，数据接口与 LDO 开关 | 0x15–0x17 原实现只返回固定字段并拒绝写入。0x18 PWR_CTRL 不在原地址表。数据串行端、LDO 选择和供电隔离循各自接口合约。 |
 | 52–55，GPIO 与事件使能 | 真实 SPI 可选择 HI/LO/ALERT 和低有效 FILTER_SYNC。表 53/54 指定 0xA 勿用，0xB–0xF 未列出功能。新桥在 0x1A/0x1B 对两字段同时校验，已列出但尚未绑定的 FILTER_RDY 仍由冻结 bank 拒绝。 |
@@ -181,7 +181,7 @@ python3 -B interfaces/control_review/run_pin_edges.py \
   --verilator /path/to/verilator
 ```
 
-冻结 DSP 的联合回归通过 **156 帧、16,509 次检查、零失败**。逐帧 CSV 的 `36f42a1_frozen_combined` 是当前结果，`fall_*` 与 `rise_*` 按先到的位在高位打包。`expect_oe` 为逐位有效掩码，CS 收尾释放的目标 OE=0。采用同一冻结提交的真 SPI/AON 薄桥及原版 no-OS C 回执已复跑。产品顶层另加入 50 MHz 时钟采样沿后 1 ps 改值的用例。[逐帧 CSV](pin_edges_validation.csv) · [配置引脚回执](pin_edges_validation.txt) · [控制面回执](validation.txt) · [原版 no-OS 回执](noos_validation.txt) · [产品速率回执](../../integration/product/evidence/at-speed.txt)
+冻结 DSP 的联合回归通过 **166 帧、17,329 次检查、零失败**。逐帧 CSV 的 `2ad7b06_frozen_combined` 是当前结果，`fall_*` 与 `rise_*` 按先到的位在高位打包。`expect_oe` 为逐位有效掩码，CS 收尾释放的目标 OE=0。采用同一冻结提交的真 SPI/AON 薄桥及原版 no-OS C 回执已复跑。产品顶层另加入 50 MHz 时钟采样沿后 1 ps 改值的用例。[逐帧 CSV](pin_edges_validation.csv) · [配置引脚回执](pin_edges_validation.txt) · [控制面回执](validation.txt) · [原版 no-OS 回执](noos_validation.txt) · [产品速率回执](../../integration/product/evidence/at-speed.txt)
 
 
 ### 连续 LVDS 配置的引脚回读

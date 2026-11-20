@@ -1,4 +1,4 @@
-AD4080 DSP source revision 36f42a1b370093d3817bec5619dd488db0504e75
+AD4080 DSP source revision 2ad7b069dd76239f2fec7670b28488ca22fce46b
 ADI AD4080 Rev. B, Table 2 (p.7), Tables 20 and 21 (p.49–50)
 Verilator 5.030 | run_product.sh --at-speed | core 400 MHz
 Prior public checkout 7afa115a5b1a6eea2806cb52f83783f17a5bcb4e

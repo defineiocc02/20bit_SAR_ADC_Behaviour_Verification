@@ -25,7 +25,7 @@
     "subsys/ad4080_dsp/model/ad4080_cal_model.py": "d8630fb1b55f7877b47a5d84d9d02df3c4955e10bc256b0c25c84b4036bbf280",
     "subsys/ad4080_peripherals/calibration/system_cal.py": "627000eb9ad5a2430ebbcd1104fbcf79c57ff58d3c1ac0cfbc6113a45f66896e",
     "subsys/ad4080_peripherals/calibration/calibration_verify_tb.sv": "3ac32e4d4de2176e0b4590f3ded2552fbf7420168df6296c58e213654bb91eb6",
-    "subsys/ad4080_peripherals/calibration/verify_rtl.py": "9eb7f16b3803ebf5dc5a2bdb093ab01c08d09aaadb822da10ec1909914c97398"
+    "subsys/ad4080_peripherals/calibration/verify_rtl.py": "b118f3f02eddde8d9f22ac4667be42050a60a9af3676847abc4267273e89e910"
   },
   "coverage": {
     "cycles": 8254,
@@ -239,5 +239,48 @@
     "rtl_matches_frozen_sys_corr": true,
     "probe_cycles": 3,
     "valid_probe_outputs": 1
+  },
+  "manual_gain_nominal_check": {
+    "page": 93,
+    "table": 61,
+    "latency_core_cycles": 2,
+    "nominal_code_observations": [
+      {
+        "input": 200000,
+        "gain": 1,
+        "expected": 196881,
+        "rtl": 196881
+      },
+      {
+        "input": 200000,
+        "gain": 512,
+        "expected": 200000,
+        "rtl": 200000
+      },
+      {
+        "input": 200000,
+        "gain": 1023,
+        "expected": 203119,
+        "rtl": 203119
+      },
+      {
+        "input": -200000,
+        "gain": 1,
+        "expected": -196881,
+        "rtl": -196881
+      },
+      {
+        "input": -200000,
+        "gain": 512,
+        "expected": -200000,
+        "rtl": -200000
+      },
+      {
+        "input": -200000,
+        "gain": 1023,
+        "expected": -203119,
+        "rtl": -203119
+      }
+    ]
   }
 }

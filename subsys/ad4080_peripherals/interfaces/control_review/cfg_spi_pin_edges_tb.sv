@@ -286,13 +286,13 @@ module cfg_spi_pin_edges_tb;
         frame("stream_wrap_w1c", 32, 64'h1101cd, 64'hc100cd, 64'hffffffff);
         // 图 60 的升序形式：首单字节 GENERAL_CONFIG，后续严格双字节 WATERMARK。
         frame("stream_asc_select", 32, 64'h2068, 64'hc00068, 64'hffffffff);
-        // p80 的两个地址有文档复位值。零写可通，未确认的非零循环不改变旧值。
-        // 从 VENDOR_H 读流穿过 0x0E/0x0F，两个后续 CRC 均取自己的地址。
+        // p80 的非零 LOOP_COUNT 不支持，表44 单独定义 0x0F[2] 读写。
+        // 从 VENDOR_H 读流穿过两者，后续 CRC 以各起址为种子，0x0F=4 时结果为 0x31。
         frame("stream_loop_fields_write_zero", 48, 64'h000e005e002d, 64'h00c0005e002d, 64'hffffffffffff);
         frame("stream_loop_fields_defined_read", 64, 64'h800dff99ffa7ffa7, 64'h00c00476002a002d, 64'hffffffffffffffff);
         frame("stream_loop_count_nonzero_reject", 32, 64'h000e0357, 64'h00c00057, 64'hffffffff, 9000, 11000, 113, 0, 8000, 2);
-        frame("stream_keep_count_nonzero_reject", 32, 64'h000f0457, 64'h00c00057, 64'hffffffff, 9000, 11000, 113, 0, 8000, 2);
-        frame("stream_loop_fields_preserved", 64, 64'h800dff99ffa7ffa7, 64'h00c00476002a002d, 64'hffffffffffffffff);
+        frame("stream_keep_count_enable", 32, 64'h000f0457, 64'h00c00057, 64'hffffffff);
+        frame("stream_keep_count_crc_read", 64, 64'h800dff99ffa7ffa7, 64'h00c00476002a0431, 64'hffffffffffffffff);
         frame("stream_asc_mixed_write", 56, 64'h1c60042a0195, 64'hc00004000095, 64'hffffffffffffff);
         frame("stream_asc_mixed_read", 56, 64'h801cffdb3939e7, 64'hc0600f2a0195, 64'hffffffffffffff);
         // 图 62：取消严格后，多字节寄存器的每个普通字节有自己的 CRC 和起址种子。
@@ -347,6 +347,9 @@ module cfg_spi_pin_edges_tb;
 `else
         frame("poll_restore_default_format", 32, 64'h00102336, 64'h00c80036, 64'hffffffff);
 `endif
+        // 软复位恢复表44 的缺省值；真实 SPI 在前后均读取 0x0F。
+        frame("poll_keep_stream_enable", 24, 64'h000f04, 0, 64'hff);
+        frame("poll_keep_stream_before_reset", 24, 64'h800fff, 64'h04, 64'hff);
         enter_initialization("pure_poll", 0);
         frame("pure_poll_0x11_busy", 24, 64'h8011ff, 64'h80, 64'hff);
         frame("pure_poll_0x11_busy_again", 24, 64'h8011ff, 64'h80, 64'hff);
@@ -355,6 +358,7 @@ module cfg_spi_pin_edges_tb;
         pwr_full_allow = 1;
         pwr_poll_allow = 0;
         frame("pure_poll_0x11_done", 24, 64'h8011ff, 0, 64'hff);
+        frame("poll_keep_stream_after_reset", 24, 64'h800fff, 0, 64'hff);
         enter_initialization("illegal_poll", 1);
         frame("poll_forbid_other_read", 24, 64'h800aff, 0, 0, 9000, 11000, 113, 0, 8000, 8);
         frame("poll_ignore_scratch_write", 24, 64'h000a31, 0, 0, 9000, 11000, 113, 0, 8000, 8);
@@ -399,6 +403,15 @@ module cfg_spi_pin_edges_tb;
         repeat (8) @(negedge clk);
         $display("PIN_COLUMNS,name,low_ps,high_ps,core_phase_ps,start_style,end_ps,bits,tx,expect_oe,fall_oe,rise_oe,expect_sdo,fall_sdo,rise_sdo,expect_reject,actual_reject,release_oe_8ns,failed_checks");
         idle_clocks();
+        // 表44 只有位2可写，拒绝带保留位的写不能抹掉已确认的位2。
+        frame("keep_stream_default", 24, 64'h800fff, 0, 64'hff);
+        frame("keep_stream_enable", 24, 64'h000f04, 0, 64'hff);
+        frame("keep_stream_enabled", 24, 64'h800fff, 64'h04, 64'hff);
+        frame("keep_stream_reserved_reject", 24, 64'h000f01, 0, 64'hff,
+              9000, 11000, 113, 0, 8000, 2);
+        frame("keep_stream_reserved_preserves", 24, 64'h800fff, 64'h04, 64'hff);
+        frame("keep_stream_disable", 24, 64'h000f00, 0, 64'hff);
+        frame("keep_stream_disabled", 24, 64'h800fff, 0, 64'hff);
         for (int rate = 0; rate < 3; rate++) begin
             // 总周期分别为 20、24、32 ns。包含最窄 45% 低相和 45% 高相，
             // 相位跨越一个 2.5 ns 执行周期，所有采样均避开模拟的零时序竞争。

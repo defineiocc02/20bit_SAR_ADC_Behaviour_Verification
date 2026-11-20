@@ -362,6 +362,30 @@ def check_manual_order(vector, rows, first_cycle, reference):
     }
 
 
+def check_manual_gain(probes, rows, first_cycle):
+    """比较表 61 的三个名义因子，在正负 ±200000 LSB20 上逐码复验。"""
+    # 印刷的名义因子由手册独立给出，使用分数避免浮点引入额外误差。
+    nominal = {1: Fraction(984406, 1000000), 512: Fraction(1),
+               1023: Fraction(1015594, 1000000)}
+    observations = []
+    for index, (probe, row) in enumerate(zip(probes, rows, strict=True)):
+        stamp, valid, twos, offset_binary, low, high, reject = row.split()
+        if (int(stamp), int(valid)) != (first_cycle + index, int(index >= 2)):
+            raise RuntimeError("Table 61 nominal gain probe lost a clock or output")
+        if int(low) or int(high) or int(reject):
+            raise RuntimeError("Table 61 nominal gain probe clipped or rejected")
+        if index < 2:
+            continue
+        # 连续已知输入的返回与两周期前的请求配对，不从软模型读取期望值。
+        sample = probes[index - 2]
+        expected = round(sample.sample * nominal[sample.gain])
+        actual = int(offset_binary, 16) - CODE_ZERO
+        if actual != expected or int(twos, 16) != actual % (2 * CODE_ZERO):
+            raise RuntimeError(f"Table 61 nominal gain {sample.gain:#x}: {actual} != {expected}")
+        observations.append({"input": sample.sample, "gain": sample.gain, "expected": expected, "rtl": actual})
+    return {"page": 93, "table": 61, "latency_core_cycles": 2, "nominal_code_observations": observations}
+
+
 # 留出数据使用自己的理想码和相同原始样本比较两种寄存器设置，避免重训带来的乐观误差。
 # 此处是码域的标定残差；模拟噪声、实际 VREF 不确定度与源的标定误差需另记。
 def error_metrics(pairs):
@@ -446,10 +470,15 @@ def main():
         figure_96_probe = Cycle(sample=0, offset=1024, gain=0x300)
         # 只送入一个有效码；随后两个空拍让该码穿过原有两级流水。
         probe_cycles = [figure_96_probe, Cycle(valid=False), Cycle(valid=False)]
-        rows, rtl_version = replay_rtl(repo, directory, cycles + probe_cycles, verilator)
+        gain_probes = [Cycle(sample=sample, offset=0, gain=gain)
+                       for sample in (200000, -200000) for gain in (1, 512, 1023)]
+        gain_probes += [Cycle(valid=False), Cycle(valid=False)]
+        gain_start = len(cycles) + len(probe_cycles)
+        rows, rtl_version = replay_rtl(repo, directory, cycles + probe_cycles + gain_probes, verilator)
         samples, coverage = check_trace(cycles, rows[:len(cycles)], reference)
         # 单列结果可让同一份回放分别服务于工程模型回归和器件符合性签收。
-        manual_order = check_manual_order(figure_96_probe, rows[len(cycles):], len(cycles), reference)
+        manual_order = check_manual_order(figure_96_probe, rows[len(cycles):gain_start], len(cycles), reference)
+        manual_gain = check_manual_gain(gain_probes, rows[gain_start:], gain_start)
         reports = results_by_method(cases, samples)
 
     if any(hashlib.sha256(path.read_bytes()).hexdigest() != source_hashes[key]
@@ -469,11 +498,13 @@ def main():
         "methods": reports,
         # 严格模式也要保留观察值，调用方才能区分已知次序偏差和工具失败。
         "manual_order_check": manual_order,
+        "manual_gain_nominal_check": manual_gain,
     }
     output.write_text(json.dumps(report, indent=2, ensure_ascii=False, allow_nan=False) + "\n", encoding="utf-8")
     print(f"Verified {coverage['model_comparisons']} RTL outputs against sys_corr")
     print(f"Figure 96 order: {manual_order['status']} "
           f"(RTL {manual_order['rtl_observed_lsb20']}, manual order {manual_order['manual_order_expected_lsb20']})")
+    print("PASS TABLE61_NOMINAL_GAIN codes=001,200,3ff signs=2 latency_core_cycles=2")
     return 2 if args.require_manual_order and manual_order["status"] == "OPEN_MISMATCH" else 0
 
 

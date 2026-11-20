@@ -41,6 +41,95 @@ task automatic control_pin_read(input logic [14:0] address, input logic [7:0] ex
         $fatal(1, "Power configuration readback address=%h got=%h expected=%h", address, word[7:0], expected);
 endtask
 
+// 表 31 独立抄录所有 37 个已定义地址。严格访问下六个跨字节寄存器
+// 必须从当前方向的第一地址一次读完，两个线序字节仍逐地址核对。
+task automatic control_check_reset_map(input bit ascending);
+    const logic [7:0] reset_value [0:41] = '{
+        8'h10, 8'h00, 8'h00, 8'h07, 8'h50, 8'h00, 8'h02, 8'h00, 8'h00, 8'h00,
+        8'h00, 8'h83, 8'h56, 8'h04, 8'h00, 8'h00, 8'h23, 8'h00, 8'h00, 8'h00,
+        8'h09, 8'h40, 8'h00, 8'h20, 8'h00, 8'h01, 8'h00, 8'h00, 8'h00, 8'h00,
+        8'h40, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00, 8'h00,
+        8'h02, 8'h00
+    };
+    logic [15:0] returned;
+    logic [7:0] actual, expected, mask;
+    int checks;
+    checks = 0;
+    for (int addr = 0; addr <= 'h29; addr++) begin
+        // 第一次扫描在硬 POR 后，第二次在保留 ADC 地址方向的软复位后。
+        // 跳过表 31 未分配的地址，非法访问的粘滞行为由独立 SPI 台架检查。
+        if (addr inside {7, 8, 9, 'h12, 'h13}) continue;
+        // GPIO_DATA 是对实际引脚的读回。输出使能是这次要验的初值。
+        mask = addr == 'h19 ? 8'h0F : 8'hFF;
+        expected = reset_value[addr] | ((ascending && addr == 0) ? 8'h20 : 8'h00);
+        if (addr >= 'h1D && addr <= 'h28) begin
+            // 接收缓存把线上首字节放在高位，升序时首字节反而是低地址。
+            if ((addr - 'h1D) % 2 == 0)
+                spi_access(1, 15'(ascending ? addr : addr+1), 2, 16'd0, returned);
+            actual = ((addr - 'h1D) % 2 == int'(ascending)) ? returned[7:0] : returned[15:8];
+        end else begin
+            spi_access(1, 15'(addr), 1, 16'd0, returned);
+            actual = returned[7:0];
+        end
+        if ((actual & mask) !== expected)
+            $fatal(1, "Table31 reset addr=%02h ascending=%b got=%02h expect=%02h mask=%02h",
+                   addr, ascending, actual, expected, mask);
+        $display("TABLE31,ascending=%b,addr=%02h,read=%02h,expect=%02h,mask=%02h,PASS",
+                 ascending, 8'(addr), actual, expected, mask);
+        checks++;
+    end
+    if (checks != 37) $fatal(1, "Incomplete Rev. B reset map");
+    $display("PASS TABLE31_RESET addresses=%0d ascending=%b", checks, ascending);
+endtask
+
+// p.28 保留 FIFO 的含义需要从真正读口证明。两个独立数据字在下发软
+// 复位前已完成捕获，复位期间不准发新 CNV；结束后完整读同一记录。
+task automatic control_check_reset_fifo();
+    int rejects_before, write_count, read_count;
+    write_count = physical_writes;
+    write_reg(15'h001E, 2, 16'h0002);
+    write_reg(15'h001C, 1, 16'h0001);
+    wait (capture_incomplete_core_o);
+    begin_bypass();
+    cnv_step(1'b1, 20'h53A71);
+    cnv_step(1'b1, 20'h53A72);
+    finish_cnv_batch();
+    if (!record_available_core_o || physical_writes != write_count + 2)
+        $fatal(1, "Expected a two-word record before software reset");
+    write_count = physical_writes;
+    read_count = physical_reads;
+    rejects_before = config_rejects;
+    write_reg(15'h0000, 1, 16'h0081);
+    write_reg(15'h0000, 1, 16'h0000);
+    // SPI 关闭后等 AON 回执。用拒绝计数区分根本没有开始初始化的路径。
+    repeat (8) @(negedge clk_aon_i);
+    if (config_rejects != rejects_before)
+        $fatal(1, "p28 completed unread FIFO prevented software reset");
+    wait (dut.u_dsp.reset_poll_only);
+    // 轮询许可只给 0x11。只有配置解除且数据快照完成之后才启动读取。
+    control_pin_read(15'h0011, 8'h80);
+    wait (conversion_allow_core_o && continuous_config_ready_core_o);
+    control_pin_read(15'h0011, 8'h00);
+    control_pin_read(15'h001C, 8'h00);
+    if (!record_available_core_o || physical_writes != write_count || physical_reads != read_count)
+        $fatal(1, "p28 software reset changed unread FIFO state");
+    @(negedge clk_io_i);
+    format_bound_io_i = 1'b1;
+    expected_record_words = 2;
+    check_golden = 1'b1;
+    request_record();
+    // 使用真实 SRAM 取码计数和头/载荷一起辨别空帧或旧读缓存。
+    wait (record_done_core_o);
+    @(negedge clk_core_i);
+    if (pair_count != 36 || wire_record[71:24] !== 48'hAA_53A71_53A72 ||
+        physical_reads != read_count + 2 || physical_writes != write_count ||
+        record_available_core_o || !fifo_empty_core_o)
+        $fatal(1, "p28 retained record did not read back intact");
+    check_golden = 1'b0;
+    expected_record_words = 3;
+    $display("PASS SOFTWARE_RESET_FIFO words=2 data=53a71,53a72");
+endtask
+
 // [唤醒] 只读内部接受沿作为时间戳，所有命令仍由原 SPI 引脚发送。
 // 台架独立选择附加恢复完成时间，不能用它得出模拟 t_recover。
 task automatic control_pin_wake(input realtime minimum_ns);
@@ -77,6 +166,7 @@ task automatic run_control_pin_check();
     // 先在双外供样本检查不可关电，再硬重启切换至内供资格。
     // 两组采用同一套真实 SPI，差别来自 supervisor 的供电模式输入。
     control_pin_boot(1'b1);
+    control_check_reset_map(1'b0);
     if (vdd11_ldo_en_o || iovdd_ldo_en_o) $fatal(1, "External rails must not request either internal LDO");
     control_pin_read(15'h0002, 8'h00);
     control_pin_read(15'h0018, 8'h00);
@@ -131,6 +221,9 @@ task automatic run_control_pin_check();
     $display("PASS SPI_AON_MODE stopped AON pending, busy reject, actual standby/sleep readback and fresh wake");
 
     // [软复位] AON 真正接到 SPI 第二写才撤许可，之后 bank 同步重置。
+    write_reg(15'h0000, 1, 16'h0020);
+    // 选择可安全扰动的普通寄存器。保留 ASC，暂存和滤波必须回初值。
+    write_reg(15'h0029, 1, 16'h0001);
     write_reg(15'h0000, 1, 16'h0081);
     fork
         write_reg(15'h0000, 1, 16'h0000);
@@ -150,10 +243,12 @@ task automatic run_control_pin_check();
     released_reset_ns = $realtime;
     if ($realtime-accepted_reset_ns < 300_000.0) $fatal(1, "AON software reset guard was shortened");
     control_pin_read(15'h0011, 8'h00);
-    control_pin_read(15'h000A, 8'h00);
-    control_pin_read(15'h0014, 8'h09);
+    control_check_reset_map(1'b1);
     $display("PASS SPI_AON_SOFT_RESET two writes, AON guard elapsed %0.3f ns, scratch reset and POR defaults",
              released_reset_ns-accepted_reset_ns);
+    // 捕获辅助任务按默认的下降地址发实体，此处回到下降顺序。
+    write_reg(15'h0000, 1, 16'h0000);
+    control_check_reset_fifo();
 
     control_pin_boot(1'b0);
     if (!vdd11_ldo_en_o || !iovdd_ldo_en_o) $fatal(1, "Internal rails require startup LDO requests");

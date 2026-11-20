@@ -24,8 +24,8 @@ DSP_RTL = "subsys/ad4080_dsp/rtl"
 # 源码摘要覆盖临时绑定涉及的依赖，缺少一个叶子也不能代表原 DSP。
 SHA256 = {
     "sinc5_comp_coeff_lut.svh": "33022a5a33888f7f363e5e92ef305605085cf54cbace93c6a72c35d7ce9a1801",
-    "ad4080_top.sv": "0ddd925cddd34f89b2cd3c0d47c75baff8e83d3207f5be19bc9772616bf4999a",
-    "ad4080_regs.sv": "a7bf1dcd00fc732dd7d4b023a6c99a994328bb9024cbe54964f34489e3545178",
+    "ad4080_top.sv": "f48b85d956f8e737d208f00ad6052763ed89cf56f9f6965ef1b26b5f63dfd08f",
+    "ad4080_regs.sv": "4c7a9a949fccd97d01f41688df10c99db24eccd4174317b92dbf4a48ba53765d",
     "ad4080_dsp_chain.sv": "bf8fdbdd7461fe8e566e9c1b142075edcbedf37bb1decc6a4aa805fe66633155",
     "cnv_ctrl.sv": "b63015114f34494479974e9f1f1cacd793bdd18f8e3b0d8084ed356a16bc095a",
     "event_detect.sv": "6400b704e19f415af0090b422489ffd27a2e7bb811578e4e9f0980229d82030e",

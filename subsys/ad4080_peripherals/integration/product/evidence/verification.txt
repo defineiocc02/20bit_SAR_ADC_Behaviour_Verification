@@ -1,4 +1,4 @@
-AD4080 DSP source revision 36f42a1b370093d3817bec5619dd488db0504e75
+AD4080 DSP source revision 2ad7b069dd76239f2fec7670b28488ca22fce46b
 Verilator 产品数字联调，SHIFT=14
 
 [常规] simulation.log
@@ -37,27 +37,50 @@ PRODUCT_TIMING_BOUND CORE_CLOCK_HZ=100000000 P_CNV_TIMING_BOUND=1
 PASS four-wire config write drives SDO zero in data phase and releases it after CS
 PASS configured product ID 0x0050 and actual short scratch SPI write/read
 CAL_SPI readback OFFSET=0000 GAIN=0200
-RESULT_SPI_DCS,lanes=1,full_ns=424365.000,first_fall_ns=424365.002,standby=0,old_window=0
+PASS Table49 result SPI lanes=1 CSR_0x16=01 CNV_SELECT=0
+RESULT_SPI_DCS,lanes=1,full_ns=436225.000,first_fall_ns=436225.002,standby=0,old_window=0
 PASS result SPI lanes=1 prefix=56 real_DCLK_20ns first_load=9 last_load=33 DCS_release=complete
+PASS Fig91 active CNV_60ns during result SPI lanes=1 DCLK_20ns=56 writes=2 reads=2
 CAL_SPI readback OFFSET=0000 GAIN=0200
-RESULT_SPI_DCS,lanes=4,full_ns=506635.000,first_fall_ns=506635.002,standby=0,old_window=0
+PASS Table49 result SPI lanes=4 CSR_0x16=01 CNV_SELECT=0
+RESULT_SPI_DCS,lanes=4,full_ns=525215.000,first_fall_ns=525215.002,standby=0,old_window=0
 PASS result SPI lanes=4 prefix=20 real_DCLK_20ns first_load=9 last_load=15 DCS_release=complete
+PASS Fig91 active CNV_60ns during result SPI lanes=4 DCLK_20ns=20 writes=2 reads=2
 CAL_SPI readback OFFSET=0000 GAIN=0200
-RESULT_SPI_DCS,lanes=4,full_ns=588155.000,first_fall_ns=588155.002,standby=0,old_window=0
+PASS Table49 result SPI lanes=4 CSR_0x16=01 CNV_SELECT=0
+RESULT_SPI_DCS,lanes=4,full_ns=614175.000,first_fall_ns=614175.002,standby=0,old_window=0
 PASS interrupted result SPI lanes=4 actual_DCLK=9 close=1 loss=0 no last/done
 CAL_SPI readback OFFSET=0000 GAIN=0200
+PASS Table49 result SPI lanes=4 CSR_0x16=01 CNV_SELECT=0
 PASS DCS asserted before FULL stayed unselected across real last write; no physical reads
-RESULT_SPI_DCS,lanes=4,full_ns=669715.000,first_fall_ns=669840.001,standby=0,old_window=1
+RESULT_SPI_DCS,lanes=4,full_ns=701665.000,first_fall_ns=701790.001,standby=0,old_window=1
 PASS result SPI lanes=4 prefix=20 real_DCLK_20ns first_load=9 last_load=15 DCS_release=complete
 CAL_SPI readback OFFSET=0000 GAIN=0200
-POWER_AON t=757550000 op=0 value=2 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
-RESULT_SPI_DCS,lanes=1,full_ns=751365.000,first_fall_ns=757700.001,standby=1,old_window=0
+PASS Table49 result SPI lanes=1 CSR_0x16=01 CNV_SELECT=0
+POWER_AON t=795350000 op=0 value=2 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+RESULT_SPI_DCS,lanes=1,full_ns=789245.000,first_fall_ns=795580.001,standby=1,old_window=0
 PASS result SPI lanes=1 prefix=56 real_DCLK_20ns first_load=9 last_load=33 DCS_release=complete
 PASS externally powered standby used actual DCS/DCLK to read the two old SRAM words, no new write or LVDS
-POWER_AON t=765050000 op=0 value=0 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+POWER_AON t=802950000 op=0 value=0 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
 CAL_SPI readback OFFSET=0000 GAIN=0200
-RESULT_SPI_DCS,lanes=4,full_ns=958385.000,first_fall_ns=958385.002,standby=0,old_window=0
+PASS Table49 result SPI lanes=4 CSR_0x16=01 CNV_SELECT=0
+RESULT_SPI_DCS,lanes=4,full_ns=1002215.000,first_fall_ns=1002215.002,standby=0,old_window=0
 PASS interrupted result SPI lanes=4 actual_DCLK=9 close=0 loss=1 no last/done
+PASS Table49 saved CNV_SELECT restored on return to LVDS
+POWER_STAGE BOOT_READY external=0 t=1316300000
+POWER_AON t=1340250000 op=0 value=2 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+PASS Table11 GPIO external=0 mode=2 OE=0000
+POWER_AON t=1346850000 op=0 value=0 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+POWER_AON t=1453250000 op=0 value=3 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+PASS Table11 GPIO external=0 mode=3 OE=0000
+POWER_AON t=1459850000 op=0 value=0 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+POWER_STAGE BOOT_READY external=1 t=1942000000
+POWER_AON t=1965950000 op=0 value=2 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+PASS Table11 GPIO external=1 mode=2 OE=1110
+POWER_AON t=1972550000 op=0 value=0 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+POWER_AON t=2078950000 op=0 value=3 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+PASS Table11 GPIO external=1 mode=3 OE=1110
+POWER_AON t=2085550000 op=0 value=0 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
 AD4080_RESULT_SPI_PINS PASS
 AD4080_PRODUCT_RESULT_SPI PASS
 
@@ -66,24 +89,28 @@ PRODUCT_TIMING_BOUND CORE_CLOCK_HZ=100000000 P_CNV_TIMING_BOUND=1
 PASS four-wire config write drives SDO zero in data phase and releases it after CS
 PASS configured product ID 0x0050 and actual short scratch SPI write/read
 POWER_STAGE BOOT_READY external=1 t=645000000
-POWER_AON t=662950000 op=2 value=1 accept=0 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
-POWER_STAGE NONIDLE_RESET_REJECT t=693150000
-POWER_AON t=717150000 op=0 value=2 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
-POWER_AON t=729750000 op=0 value=3 accept=0 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
-POWER_STAGE STANDBY_COMMITTED t=736230000
-POWER_AON t=742350000 op=0 value=0 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
-POWER_AON t=860750000 op=0 value=3 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
-POWER_AON t=873350000 op=0 value=0 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+PASS TABLE31_RESET addresses=37 ascending=0
+POWER_AON t=858350000 op=2 value=1 accept=0 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+POWER_STAGE NONIDLE_RESET_REJECT t=888550000
+POWER_AON t=912550000 op=0 value=2 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+POWER_AON t=925150000 op=0 value=3 accept=0 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+POWER_STAGE STANDBY_COMMITTED t=931630000
+POWER_AON t=937750000 op=0 value=0 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+POWER_AON t=1056150000 op=0 value=3 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+POWER_AON t=1068750000 op=0 value=0 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
 PASS SPI_AON_MODE stopped AON pending, busy reject, actual standby/sleep readback and fresh wake
-POWER_AON t=1077650000 op=1 value=0 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+POWER_AON t=1284950000 op=1 value=0 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+PASS TABLE31_RESET addresses=37 ascending=1
 PASS SPI_AON_SOFT_RESET two writes, AON guard elapsed 300415.000 ns, scratch reset and POR defaults
-POWER_STAGE BOOT_READY external=0 t=1697700000
-POWER_AON t=1703850000 op=2 value=2 accept=0 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
-POWER_AON t=1716450000 op=2 value=1 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
-POWER_AON t=1734550000 op=1 value=0 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+POWER_AON t=1818750000 op=1 value=0 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+PASS SOFTWARE_RESET_FIFO words=2 data=53a71,53a72
+POWER_STAGE BOOT_READY external=0 t=2433800000
+POWER_AON t=2439950000 op=2 value=2 accept=0 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+POWER_AON t=2452550000 op=2 value=1 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+POWER_AON t=2470650000 op=1 value=0 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
 PASS SPI_INIT_POLL p28 pure read busy and auto-clear, p82 illegal write and W1C, no polling without IO/VDD33
-POWER_AON t=2065550000 op=2 value=2 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
-POWER_STAGE BOOT_READY external=1 t=2367600000
+POWER_AON t=2801650000 op=2 value=2 accept=1 cs_n=1 clients_idle=1 read_unlocked=1 capture_idle=1
+POWER_STAGE BOOT_READY external=1 t=3103700000
 PASS SPI_AON_LDO external/unqualified reject, IO isolation first, restricted reset restores, qualified core request
 AD4080_PRODUCT_POWER_CONFIG PASS
 AD4080_PRODUCT_CONTROL_PINS PASS

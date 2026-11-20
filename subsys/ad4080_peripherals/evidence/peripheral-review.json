@@ -1,7 +1,7 @@
 {
   "status": "PASS",
   "scope": "all registered open-source checks",
-  "frozen_dsp": "36f42a1b370093d3817bec5619dd488db0504e75",
+  "frozen_dsp": "2ad7b069dd76239f2fec7670b28488ca22fce46b",
   "checks": {
     "ownership": {
       "status": "PASS",
@@ -20,7 +20,7 @@
     "area": {
       "status": "PASS",
       "observed": [
-        "Ran 34 tests in 0.084s",
+        "Ran 34 tests in 0.130s",
         "OK"
       ]
     },
@@ -83,7 +83,7 @@
       "status": "PASS",
       "observed": [
         "SAT proof finished - no model found: SUCCESS!",
-        "End of script. Logfile hash: c2b24b16bd, time: 0.05s, user: 0.05s, system: 0.00s"
+        "End of script. Logfile hash: c2b24b16bd, time: 0.06s, user: 0.07s, system: 0.00s"
       ]
     },
     "record_frame_0": {
@@ -128,8 +128,10 @@
     "dsp_cnv_phases": {
       "status": "PASS",
       "observed": [
-        "AD4080_CNV_PHASES_COMPLETE checks=66492",
-        "PASS FIG99 CNV RDY=5,7,9 WRITE=6,8,10 FULL=10 data=8,16,24"
+        "AD4080_CNV_PHASES_COMPLETE checks=66497",
+        "PASS FIG99 CNV RDY=5,7,9 WRITE=6,8,10 FULL=10 data=8,16,24",
+        "PASS FIG97 D4 GPIO RDY low=E7,E8,E9 high=E10 next=E11 pause holds actual word",
+        "PASS Direct LVDS FILTER_SYNC held for three CNVs then clean result 12"
       ]
     },
     "por_ana_csr": {
@@ -155,8 +157,9 @@
     "config_spi_pins": {
       "status": "PASS",
       "observed": [
-        "CFG_SPI_PIN_EDGES_COMPLETE cases=156 checks=16509 failures=0",
-        "CFG_SPI_PIN_EDGES_COMPLETE cases=156 checks=16509 failures=0",
+        "CFG_SPI_PIN_EDGES_COMPLETE cases=166 checks=17329 failures=0",
+        "CFG_SPI_PIN_EDGES_COMPLETE cases=166 checks=17329 failures=0",
+        "PASS TABLE44_KEEP_STREAM_LEN reset=00 set=04 masked_reject=04 clear=00",
         "LVDS_CFG_SPI_COMPLETE A=54 B=28 rawC=f0 single_clock8_code5=1 dual_clock5_code2=1 SPI_41_45=1",
         "CFG_SPI_STREAM_CRC_COMPLETE first_and_later=1 write_abort_retried=1 short_wrap=7fff",
         "CFG_SPI_RESET_POLL_COMPLETE legal_80_to_00=1 ignored_write=1 sticky_W1C=1 unqualified_block=1"
@@ -237,14 +240,14 @@
     "adi_crc_analysis": {
       "status": "PASS",
       "observed": [
-        "Ran 12 tests in 0.032s",
+        "Ran 12 tests in 0.034s",
         "OK"
       ]
     },
     "adctoolbox_host": {
       "status": "PASS",
       "observed": [
-        "Ran 14 tests in 4.097s",
+        "Ran 14 tests in 4.168s",
         "OK"
       ]
     },
@@ -252,7 +255,8 @@
       "status": "PASS",
       "observed": [
         "Verified 8234 RTL outputs against sys_corr",
-        "Figure 96 order: MATCHED (RTL 1032, manual order 1032)"
+        "Figure 96 order: MATCHED (RTL 1032, manual order 1032)",
+        "PASS TABLE61_NOMINAL_GAIN codes=001,200,3ff signs=2 latency_core_cycles=2"
       ]
     },
     "filter_response": {
@@ -271,6 +275,29 @@
         "AD4080_PRODUCT_CONTROL_PINS PASS",
         "AD4080_PRODUCT_FULL_RECORD PASS",
         "PRODUCT_STRUCTURE PASS: original DSP/control leaves, four 4096x20 result banks, one 8x22 transport queue",
+        "PASS TABLE31_RESET addresses=37 ascending=0",
+        "PASS TABLE31_RESET addresses=37 ascending=1",
+        "PASS SOFTWARE_RESET_FIFO words=2 data=53a71,53a72",
+        "PASS SPI_INIT_POLL p28 pure read busy and auto-clear, p82 illegal write and W1C, no polling without IO/VDD33",
+        "PASS SPI_AON_MODE stopped AON pending, busy reject, actual standby/sleep readback and fresh wake",
+        "PASS SPI_AON_LDO external/unqualified reject, IO isolation first, restricted reset restores, qualified core request",
+        "PASS Table49 result SPI lanes=1 CSR_0x16=01 CNV_SELECT=0",
+        "PASS Table49 result SPI lanes=4 CSR_0x16=01 CNV_SELECT=0",
+        "PASS Table49 saved CNV_SELECT restored on return to LVDS",
+        "PASS Fig91 active CNV_60ns during result SPI lanes=1 DCLK_20ns=56 writes=2 reads=2",
+        "PASS Fig91 active CNV_60ns during result SPI lanes=4 DCLK_20ns=20 writes=2 reads=2",
+        "PASS Table11 GPIO external=0 mode=2 OE=0000",
+        "PASS Table11 GPIO external=0 mode=3 OE=0000",
+        "PASS Table11 GPIO external=1 mode=2 OE=1110",
+        "PASS Table11 GPIO external=1 mode=3 OE=1110",
+        "PASS configured product ID 0x0050 and actual short scratch SPI write/read",
+        "PASS PF1_D4 actual SPI/filter/RDY/three physical words/46 pairs aa002e8005c9001e0024943",
+        "PASS SINC5_D2 actual SPI/filter/RDY/three physical words/46 pairs aa0004a000a400072718b93",
+        "FULL_RECORD_CHECK case=mode00_disabled writes=0 reads=0 declined=1",
+        "FULL_RECORD_CHECK case=mode01_immediate read=4 pairs=56 first_phys=0000 first_post_one_based=1",
+        "FULL_RECORD_CHECK case=mode10_latest read=4 pairs=56 first_phys=0000 first_post_one_based=1",
+        "FULL_RECORD_CHECK case=mode11_wrapped read=16384 pairs=163856 first_phys=3fff first_post_one_based=16381",
+        "FULL_RECORD_CHECK case=mode11_early_known_previous read=16384 pairs=163856 first_phys=000b first_post_one_based=16377",
         "AD4080_SIGNAL_EDGES PASS Fig83=8CNV Fig99=10CNV Fig89=46+26连续逻辑位对，实际写/读合格"
       ]
     },
@@ -383,8 +410,8 @@
     "calibration/system_cal.py": "627000eb9ad5a2430ebbcd1104fbcf79c57ff58d3c1ac0cfbc6113a45f66896e",
     "calibration/test_characterize_registers.py": "ef09b74ee54c408e6702afc5ce25d750b371abfc6056756961e80455c29c0350",
     "calibration/test_system_cal.py": "859a7ec012c4b7b6d415004d64f65a79324cc98dcd66dfb751b8397a61e2af1d",
-    "calibration/verify_rtl.py": "9eb7f16b3803ebf5dc5a2bdb093ab01c08d09aaadb822da10ec1909914c97398",
-    "evidence/dsp-revision.txt": "7b218efb346ca8ea52288d861e4713b76724c96101e9f6e2a49b3ab1bc07c253",
+    "calibration/verify_rtl.py": "b118f3f02eddde8d9f22ac4667be42050a60a9af3676847abc4267273e89e910",
+    "evidence/dsp-revision.txt": "44479ea957086767b1a12ad656236e51961a3f0747f04ffbb1b6045078dd262c",
     "evidence/isscc_digital_area.py": "200f4db1f6a351f3dc18966de754f034706768375e549bf2592b2a1a62f3061e",
     "evidence/peripheral_open_items.csv": "8223014b3b77186d9db4304c8c41075d0943ef0b7d0efffd99c0cfac43603d50",
     "figures/draw_filter_response.py": "68fa5279dca37c9757eb0f6085398abd45b2b8d27056564c91cae6b6cfa74b6b",
@@ -402,16 +429,16 @@
     "integration/peripheral_readback_link_tb.sv": "1ba9eb33d8f6e080c025dfbf28b48cd45a9bfc5f0bf601a929ba3867140a0aa2",
     "integration/peripheral_services_tb.sv": "88b72be6845dbc5e166d5b459f6334f0c9e1c237b632506e3f0059ae9f35527f",
     "integration/por_ana_csr_tb.sv": "2f6ae1179e53ea92a53ae781b3c7a7ae77fe0a92661061cc78bdaff9171367bb",
-    "integration/product/ad4080_peripheral_product.sv": "a656f90df50222614f7139e37298a42bd0e6611bbad33cf6a9453313fee8faff",
+    "integration/product/ad4080_peripheral_product.sv": "0e8765a10068251f3f02803caaa23adf9a61c476c5ebe3c3859bdab130ff783d",
     "integration/product/ad4080_product_record_session.sv": "01b05e4959b80996ea4045561b13dff20185b0cab3ae8c31ed220b36e2afcfd4",
-    "integration/product/bind_dsp.py": "bc2374ec29a77b7fbbfed4e8de105a048b82fe12f9f1bf64eeab6ed2c78eeb30",
+    "integration/product/bind_dsp.py": "86deb014ced63fcf541219d118eccf480fdc7f069da468815c03d05eb015570f",
     "integration/product/check_product_netlist.py": "6be9a20944e77494b29290acd8e018a56d46205d9f694feee7c489ef9cef6186",
     "integration/product/continuous_pin_tasks.svh": "1e84d2dc426e0bf5b4fb8bc6188999d58d99d4da3e96a2cf1970a3c8646f6f15",
-    "integration/product/control_pin_tasks.svh": "e94ea930714f84bfa8c56f6c1b9b12490370774a1cfc4482ec9793a0347b641c",
+    "integration/product/control_pin_tasks.svh": "3ac3515a4d0977c77e2a40f2cff381a63363184feca4a6ff2f7ab9c22104ad3f",
     "integration/product/full_record_tasks.svh": "f8d9f7dad9112d1b4bfb6535dc92c39a42f417dc0ec06396139b4cdb601fac63",
     "integration/product/prepare_calibration.py": "7477c244af5eecd2b7e83cdc09bbdee6a86e35edc3adf67175efccfc7a7b6ba9",
     "integration/product/product_speed_tasks.svh": "1813c7ca2bb4f91a50ca5046ad4b61ac526d5671c18f6bedd7b8fa48a3fea646",
-    "integration/product/result_spi_tasks.svh": "1f238594ba62ee79d78b9dbbe09507335543543fc5e8699c5baf2347efdc1ff4",
+    "integration/product/result_spi_tasks.svh": "240d646b7d48fe4fd9b8b872d2319dffebea5bbeea370b7658c73e0773f368dd",
     "integration/product/rtl.f": "5cdb4a89bd934ffef81824cd60f077c9837284c7e5fa32515ad64391205b8507",
     "integration/product/run_product.sh": "cf6a7626d23365c165a540ac6823fcc3b08cdf9cecec51c7087b4f8e07c82e9f",
     "integration/product/tb_ad4080_peripheral_product.sv": "479f247fbf6b7acfa765d515f6a52f3e68450bc6f5699fc0b2c25db41f6465d6",
@@ -419,7 +446,7 @@
     "integration/run_linked.sh": "c084bb299fa1baa8cbbaff731672cd58271e6e0065b4f336a0682839ff53c7cb",
     "integration/run_verify.sh": "0062cf8488393445bbcfc0f907a15e657068b2c7e69594adc90e58d1ad1e318a",
     "interfaces/control_review/ad4080_csr_power_bridge.sv": "ac19a1cd6988ec9be99746542f2fbd95145a031e0e5d7c4a4a814f2f64b2f51c",
-    "interfaces/control_review/cfg_spi_pin_edges_tb.sv": "5f1a03b55f5c70b994fd18030c63f8d32975576450dc32341fee9e0a1ec836b5",
+    "interfaces/control_review/cfg_spi_pin_edges_tb.sv": "0a2c7f38e42984a55600279bffd88badf71bdd3af679da3bc56510589ac72b14",
     "interfaces/control_review/control_review_tb.sv": "4072d0a281b9478c59fe1da67df52a237493eb7256fff7f33aeaae3d5e1bd8be",
     "interfaces/control_review/noos_host_recipe.c": "484a1602b6d1b5490e1c23d111fdeeb71651ddd20747fb1aa075c77fa2b68690",
     "interfaces/control_review/noos_spi_rtl.sv": "236db77d40116e17b265ae6037156749c58db2ecf4a8e573245cd41fa32889c8",
@@ -427,7 +454,7 @@
     "interfaces/control_review/power_bridge_tb.sv": "20e75e59d00bdf4f62bdb09628dc1abed8b908f3e90a7c2a073de3efe1812eb6",
     "interfaces/control_review/run.py": "a43cdb39949b4f9b1f655ab32077a9e9bcfe20ac62387eec21de4c3a33a39578",
     "interfaces/control_review/run_noos.py": "11cc2d574c1ba9afc5c881d278a2943ee9bc1e0dcc76c1af8e1c9cc45c27e87a",
-    "interfaces/control_review/run_pin_edges.py": "6fa007cc8df72e2a688aa7147929216a4bc82f796d0b0e9be0b47fa88a4709ef",
+    "interfaces/control_review/run_pin_edges.py": "b169c699a4de79c4394b74443e275e8e676ca42965a3bf538f63e5c9da9c528d",
     "interfaces/dsp_review/ad4080_record_guard.sv": "43196acaf2f395bc27ca1ec9471f1bb048243b2a2760158664eb3fcca86547b1",
     "interfaces/dsp_review/manual_filter_targets.csv": "e39ff051946fdb10b40605b6fbae0be01ba07338f0460b775855da9c081bc927",
     "interfaces/dsp_review/run.sh": "86261ec09290207a1d456f388f70f7a7d77daf18fbd5de868533aabe9d5fe046",
@@ -476,7 +503,7 @@
     "verify/check_ownership.py": "0ac487286165292ebb513c08fc677d4b6d678f8313d364d2e16089d56c5443e2",
     "verify/check_signal_edges.py": "ce2317885f2b7d3e2b76e2194d40306294d1aca9564eb24fe6125e4144807c9c",
     "verify/pinned_fifo_contract_tb.sv": "25b70ab2a5866f14090ec4183660964c6eadec327200c7991b923ff773f613a5",
-    "verify/run_peripheral_audit.py": "aedb810bcb1fa23ec91813e8e7922db48a9ffb0acdf850934740c35141ca71cc",
+    "verify/run_peripheral_audit.py": "536e684c05fac4a7ed2637e7065badd2eebcee27af73ee7ec864409c0a413da9",
     "verify/run_store.py": "c2a1bfe9efd0774ba27bde3fa7e6f6963d1022df56a45943bb1189d0bebc5227",
     "verify/store.ys": "2b295f5b9939b0c9f06bef1794ab6501b42467c81062206334c0e6334413db9f",
     "verify/store_tb.sv": "e2c2bc17799d51f73f1376cc8ba1f8bd7c16e5f1c78bc858a41844cfd9ca706f"

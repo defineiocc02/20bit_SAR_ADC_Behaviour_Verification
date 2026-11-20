@@ -51,7 +51,7 @@ git rev-parse HEAD
 | [tools/](tools/) | 可执行入口。定向 RTL 测试用 `run_open_rtl.py`，正式 VCS 回归用 `verify_v21.sh`，结构与图册分别由 `check_engineering.py` 和 `v21_algorithm_atlas.mjs` 核对。 |
 | [docs/](docs/INDEX.md) | [接口合同](docs/CONTRACT_CURRENT.md)、[项目状态](docs/STATUS.md)、[算法与状态机](docs/algorithms/README.md)、[审计证据](docs/audit/README.md)。行为图和全码线性度图在 `figures/`，旧工程记录在 `_history/`。 |
 | [references/](references/README.md) | 论文、讲稿、来源清单。查论文原图和相应页码从这里进入。 |
-| [subsys/](subsys/) | 独立 DSP、斩波辅助自归零（CAAZ）和研究实验。[Fig.11 电荷模型](subsys/experiments/fig11.py)用于追溯专利实施例和历史行为图。生产 ADC 的编译范围由上述源清单确定。 |
+| [subsys/](subsys/) | [AD4080 数字后处理](subsys/ad4080_dsp/README.md)接收 20 位码，做用户校正、滤波和事件捕获。[OFFSET/GAIN 校准代码与示例](subsys/ad4080_peripherals/calibration/README.md)用 ADCToolbox 在主机估计系数。[产品外围](subsys/ad4080_peripherals/README.md)复用该 DSP，负责上电、结果存储、读出与物理交接。另有 CAAZ 扩展和 [Fig.11 电荷研究](subsys/experiments/fig11.py)。 |
 | [.github/](.github/) | CI 工作流、协作约定及维护模板。 |
 
 ## 跑起来

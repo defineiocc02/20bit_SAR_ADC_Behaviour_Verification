@@ -1,0 +1,612 @@
+{
+  "status": "PASS",
+  "checked_file_sha256": {
+    "plan.json": "b5bd712fc9aa18937a0fa116c11fbd75a7e7dc29773fba3dbf7c963d6f769386",
+    "chip.gds": "0729407a526e6a05d58260d513c2a2307187ccf8ea27426da39bfbfc5e07fe4f",
+    "chip.lyp": "9923804b9e0291aaa053ec12983ac05ed7b8e291062ed1047e0b2a185bf66f18",
+    "chip.def": "2f73849f6faf04d3002430bc8886a25741a30df1c1bba730fb483a83938561a2",
+    "planning.lef": "6156edc9e140dd65114faa9950dd133c52d7e72f802fb0592d09a6a61850da01",
+    "area.csv": "e7561f5114f951951c33b73074dd7e4c1195627fd126cf0828edbe62ba87d41c",
+    "block_binding.csv": "2038bf4a9bc49bf690711518fa528b763a84cf4ac06840f727b508e221d499a6",
+    "area_by_scope.csv": "aa99cd4734cf4ff158ac873baa5396638df188e538b7ad4bd7736b4b96341447"
+  },
+  "geometry": {
+    "die_um": [
+      0.0,
+      0.0,
+      1500.0,
+      1500.0
+    ],
+    "core_um": [
+      120.0,
+      120.0,
+      1380.0,
+      1380.0
+    ],
+    "die_um2": 2250000.0,
+    "pad_ring_width_um": 120.0,
+    "pad_ring_um2": 662400.0,
+    "inside_ring_um2": 1587600.0,
+    "allocated_um2": 1280657.0,
+    "explicit_channels_um2": 61106.0,
+    "remaining_inside_ring_um2": 245837.0,
+    "ip": {
+      "gross_um2": 250000.0,
+      "row_exclusion_um2": 25000.0,
+      "row_exclusion_pct": 10.0,
+      "net_rows_um2": 225000.0,
+      "net_placement_island_areas_um2": [
+        225000.0
+      ],
+      "bypasses": [
+        {
+          "band_um": [
+            200.0,
+            990.0,
+            960.0,
+            1015.0
+          ],
+          "area_um2": 19000.0,
+          "left_um": 55.0,
+          "right_um": 135.0
+        },
+        {
+          "band_um": [
+            248.0,
+            1190.0,
+            448.0,
+            1220.0
+          ],
+          "area_um2": 6000.0,
+          "left_um": 18.0,
+          "right_um": 22.0
+        }
+      ],
+      "narrowest_row_band_bypass_um": 18.0,
+      "pre_cts_cell_max_um2": 120000,
+      "final_cell_max_um2": 135000,
+      "cts_eco_headroom_um2": 15000
+    },
+    "sram": {
+      "banks": 4,
+      "words_per_bank": 4096,
+      "bits_per_word": 20,
+      "words": 16384,
+      "bits": 327680,
+      "container_um": [
+        480.0,
+        1115.0,
+        1085.0,
+        1315.0
+      ],
+      "bank_boxes_um": [
+        [
+          488.0,
+          1123.0,
+          778.5,
+          1211.0
+        ],
+        [
+          786.5,
+          1123.0,
+          1077.0,
+          1211.0
+        ],
+        [
+          488.0,
+          1219.0,
+          778.5,
+          1307.0
+        ],
+        [
+          786.5,
+          1219.0,
+          1077.0,
+          1307.0
+        ]
+      ],
+      "bank_max_width_um": 290.5,
+      "bank_max_height_um": 88.0,
+      "bank_max_area_um2": 25564.0,
+      "bank_max_effective_um2_per_bit": 0.312060546875,
+      "outer_margin_um": 8.0,
+      "bank_channel_um": 8.0
+    },
+    "channels": {
+      "ADC_DIG": {
+        "box_um": [
+          500.0,
+          879.0,
+          1095.0,
+          900.0
+        ],
+        "short_side_um": 21.0,
+        "shared_edge_um": {
+          "IP": 616.0
+        }
+      },
+      "SRAM_BUS": {
+        "box_um": [
+          474.0,
+          1100.0,
+          1095.0,
+          1115.0
+        ],
+        "short_side_um": 15.0,
+        "shared_edge_um": {
+          "IP": 621.0,
+          "FIFO": 605.0
+        }
+      },
+      "REF_FEED": {
+        "box_um": [
+          145.0,
+          218.0,
+          1354.0,
+          234.0
+        ],
+        "short_side_um": 16.0,
+        "shared_edge_um": {
+          "REF": 1209.0
+        }
+      },
+      "RESIDUE": {
+        "box_um": [
+          980.0,
+          490.0,
+          998.0,
+          648.0
+        ],
+        "short_side_um": 18.0,
+        "shared_edge_um": {
+          "RDAC": 158.0,
+          "RA": 158.0
+        }
+      },
+      "RA_ADC2": {
+        "box_um": [
+          998.0,
+          650.0,
+          1304.0,
+          668.0
+        ],
+        "short_side_um": 18.0,
+        "shared_edge_um": {
+          "RA": 306.0,
+          "ADC2": 306.0
+        }
+      },
+      "IO_EAST": {
+        "box_um": [
+          1090.0,
+          1360.0,
+          1380.0,
+          1376.0
+        ],
+        "short_side_um": 16.0,
+        "shared_edge_um": {
+          "DIO": 12.0
+        }
+      },
+      "Q_SPUR_N": {
+        "box_um": [
+          121.0,
+          900.0,
+          145.0,
+          940.0
+        ],
+        "short_side_um": 24.0,
+        "shared_edge_um": {
+          "IP": 40.0,
+          "Q_SPUR_S": 24.0
+        }
+      },
+      "Q_SPUR_S": {
+        "box_um": [
+          121.0,
+          660.0,
+          146.0,
+          900.0
+        ],
+        "short_side_um": 25.0,
+        "shared_edge_um": {
+          "Q": 70.0
+        }
+      }
+    },
+    "interface_guides": {
+      "CLK_RST": {
+        "side": "west",
+        "line_um": [
+          145.0,
+          945.0,
+          145.0,
+          982.0
+        ],
+        "span_um": 37.0,
+        "peer": "CLK",
+        "guide": null
+      },
+      "SADC_RDAC": {
+        "side": "south",
+        "line_um": [
+          520.0,
+          900.0,
+          845.0,
+          900.0
+        ],
+        "span_um": 325.0,
+        "peer": "RDAC",
+        "guide": "ADC_DIG",
+        "signal_count": 522
+      },
+      "ADC2_RSP": {
+        "side": "south",
+        "line_um": [
+          890.0,
+          900.0,
+          1060.0,
+          900.0
+        ],
+        "span_um": 170.0,
+        "peer": "ADC2 / RA",
+        "guide": "ADC_DIG"
+      },
+      "RESULT": {
+        "side": "east",
+        "line_um": [
+          1095.0,
+          925.0,
+          1095.0,
+          978.0
+        ],
+        "span_um": 53.0,
+        "peer": "CTRL / DIO",
+        "guide": null
+      },
+      "CFG_TEST": {
+        "side": "north",
+        "line_um": [
+          520.0,
+          1100.0,
+          675.0,
+          1100.0
+        ],
+        "span_um": 155.0,
+        "peer": "CTRL / OTP",
+        "guide": "SRAM_BUS"
+      },
+      "Q_RETURN": {
+        "side": "west",
+        "line_um": [
+          145.0,
+          904.0,
+          145.0,
+          938.0
+        ],
+        "span_um": 34.0,
+        "peer": "Q",
+        "guide": "Q_SPUR_N",
+        "signal_count": 31
+      }
+    },
+    "narrowest_explicit_channel_um": 15.0
+  },
+  "gds": {
+    "reader": "gdstk 1.0.1",
+    "top": "AD4080_AREA_STUDY",
+    "dbu_um": 0.001,
+    "polygons": 44,
+    "labels": 23,
+    "polygon_count_by_layer": {
+      "1": 1,
+      "2": 4,
+      "10": 3,
+      "11": 1,
+      "20": 2,
+      "21": 4,
+      "22": 1,
+      "30": 1,
+      "31": 1,
+      "40": 5,
+      "41": 2,
+      "42": 3,
+      "50": 2,
+      "51": 8,
+      "52": 6
+    }
+  },
+  "klayout_layer_controls": {
+    "reader": "KLayout 0.30.12 LayoutView",
+    "scopes": {
+      "IP": {
+        "selector": "10/0",
+        "rects_um": [
+          [
+            145.0,
+            900.0,
+            1095.0,
+            1100.0
+          ],
+          [
+            230.0,
+            1100.0,
+            470.0,
+            1300.0
+          ],
+          [
+            300.0,
+            840.0,
+            500.0,
+            900.0
+          ]
+        ],
+        "gross_um2": 250000.0,
+        "layer_name": "Converter function IP (handoff)"
+      },
+      "CTRL": {
+        "selector": "11/0",
+        "rects_um": [
+          [
+            1100.0,
+            800.0,
+            1340.0,
+            910.0
+          ]
+        ],
+        "gross_um2": 26400.0,
+        "layer_name": "Product processing and control"
+      }
+    },
+    "visibility": {
+      "loaded": {
+        "IP": true,
+        "CTRL": true
+      },
+      "hide_IP": {
+        "IP": false,
+        "CTRL": true
+      },
+      "hide_CTRL": {
+        "IP": true,
+        "CTRL": false
+      }
+    }
+  },
+  "lef_def": {
+    "reader": "KLayout 0.30.12 LEF/DEF",
+    "top": "AD4080_AREA_STUDY",
+    "dbu_um": 0.001,
+    "fixed_macros": 18,
+    "fences": 2,
+    "fence_rectangles": 4,
+    "fence_by_name": {
+      "IP": {
+        "rects_um": [
+          [
+            145.0,
+            900.0,
+            1095.0,
+            1100.0
+          ],
+          [
+            230.0,
+            1100.0,
+            470.0,
+            1300.0
+          ],
+          [
+            300.0,
+            840.0,
+            500.0,
+            900.0
+          ]
+        ],
+        "gross_um2": 250000.0
+      },
+      "CTRL": {
+        "rects_um": [
+          [
+            1100.0,
+            800.0,
+            1340.0,
+            910.0
+          ]
+        ],
+        "gross_um2": 26400.0
+      }
+    },
+    "placement_blockages": 21,
+    "sram_placement_blockages": 7,
+    "def_implementation_records_present": [],
+    "lef_implementation_records_present": []
+  },
+  "area_csv": {
+    "data_rows": 18,
+    "covers_die_um2": 2250000.0,
+    "percent_decimals": 3
+  },
+  "area_by_scope": {
+    "exclusive_detail_rows": 9,
+    "exclusive_total_um2": 2250000.0,
+    "converter": {
+      "members": [
+        "IP"
+      ],
+      "gross_um2": 250000.0,
+      "gross_mm2": 0.25
+    },
+    "peripheral_known": {
+      "members": [
+        "FIFO",
+        "DIO",
+        "CTRL"
+      ],
+      "gross_um2": 183226.0,
+      "gross_mm2": 0.183226
+    },
+    "peripheral_unbound": {
+      "members": [
+        "SR2",
+        "OTP"
+      ],
+      "gross_um2": 103140.0,
+      "gross_mm2": 0.10314
+    },
+    "peripheral_total": {
+      "members": [
+        "FIFO",
+        "DIO",
+        "CTRL",
+        "SR2",
+        "OTP"
+      ],
+      "gross_um2": 286366.0,
+      "gross_mm2": 0.286366
+    },
+    "peripheral_windows_um": {
+      "FIFO": [
+        [
+          480.0,
+          1115.0,
+          1085.0,
+          1315.0
+        ]
+      ],
+      "DIO": [
+        [
+          237.0,
+          1330.0,
+          1090.0,
+          1372.0
+        ]
+      ],
+      "CTRL": [
+        [
+          1100.0,
+          800.0,
+          1340.0,
+          910.0
+        ]
+      ],
+      "SR2": [
+        [
+          155.0,
+          845.0,
+          285.0,
+          890.0
+        ]
+      ],
+      "OTP": [
+        [
+          1110.0,
+          935.0,
+          1340.0,
+          1358.0
+        ]
+      ]
+    },
+    "converter_peripheral_overlap_um2": 0.0
+  },
+  "photo_reference": {
+    "image": {
+      "width_px": 1126,
+      "height_px": 1125,
+      "sha256": "689cd44fc8afd8f23ced86f6f1beaad5b8e5687fdea67176ee2866a6bdfcc25c",
+      "local_png_verified": true
+    },
+    "uncertainty_px": 3,
+    "boxes": {
+      "DIO": {
+        "photo_reference_bbox_um": [
+          239.787,
+          1328.0,
+          1080.373,
+          1374.667
+        ],
+        "plan_minus_reference_edges_um": [
+          -2.787,
+          2.0,
+          9.627,
+          -2.667
+        ]
+      },
+      "FIFO": {
+        "photo_reference_bbox_um": [
+          476.909,
+          1102.667,
+          1080.373,
+          1322.667
+        ],
+        "plan_minus_reference_edges_um": [
+          3.091,
+          12.333,
+          4.627,
+          -7.667
+        ]
+      },
+      "OTP": {
+        "photo_reference_bbox_um": [
+          1101.687,
+          920.0,
+          1341.474,
+          1364.0
+        ],
+        "plan_minus_reference_edges_um": [
+          8.313,
+          15.0,
+          -1.474,
+          -6.0
+        ]
+      },
+      "SR2": {
+        "photo_reference_bbox_um": [
+          158.526,
+          873.333,
+          290.409,
+          933.333
+        ],
+        "plan_minus_reference_edges_um": [
+          -3.526,
+          -28.333,
+          -5.409,
+          -43.333
+        ]
+      }
+    }
+  },
+  "negative_checks": {
+    "same_area_bands_cut_ip_into_3_islands": "[placement] 禁放带截断净可摆区，分岛面积 [20400.0, 97500.0, 107100.0] µm²",
+    "row_exclusion_under_10_pct": "[reserve] 禁放带总面积必须占 IP 的 10%",
+    "pre_cts_budget_above_0_120_mm2": "[cell-budget] pre-CTS 目标需为 0.120 mm²，最大利用率需为 60%",
+    "ip_utilization_over_60_pct": "[cell-budget] pre-CTS 目标需为 0.120 mm²，最大利用率需为 60%",
+    "larger_ip_with_same_10_pct_reserve_exceeds_0_135_mm2": "[cell-budget] 计入禁放带与 60% 利用率后的闸门须为 0.135 mm²，实得 136296.0 µm²",
+    "sram_capacity_changed": "[sram-capacity] SRAM 必须容纳四个 4096×20 bank",
+    "sadc_rdac_lost_one_signal": "[signal-count] SADC_RDAC 要求 (对端, 根数) ('RDAC', 522)，实得 ('RDAC', 521)",
+    "q_return_lost_one_signal": "[signal-count] Q_RETURN 要求 (对端, 根数) ('Q', 31)，实得 ('Q', 30)",
+    "q_route_1_dbu_gap_at_segment_join": "[q-route] Q_SPUR_N 与 Q_SPUR_S 必须以 24 µm 的公共边相接",
+    "q_port_shifted_to_unreserved_west_edge": "[port] Q_RETURN 需落到 Q_SPUR_N 的边缘",
+    "rdac_and_adc2_port_spans_overlap": "[port] ADC2_RSP 与 ['SADC_RDAC'] 重复分配同一外露边段",
+    "io_east_2_um_gap_to_dio": "[channel] IO_EAST 未接到相邻分区 {'DIO': 0.0}",
+    "gds_soft_region_shifted_1_um": "[gds] 规划图层 1–52 几何不符，缺失 [(10, (145000, 900000, 1095000, 1100000))]，多出 [(10, (146000, 900000, 1096000, 1100000))]",
+    "gds_ctrl_merged_back_into_ip_layer": "[gds] 规划图层 1–52 几何不符，缺失 [(11, (1100000, 800000, 1340000, 910000))]，多出 [(10, (1100000, 800000, 1340000, 910000))]",
+    "klayout_gds_ctrl_merged_back_into_ip_layer": "[native-gds] IP 的原生图层 10/0 几何不符，缺失 []，多出 [(1100000, 800000, 1340000, 910000)]",
+    "klayout_lyp_ctrl_selector_aliases_ip": "[layer-visibility] LYP 须提供独立的 10/0 与 11/0 开关",
+    "def_ip_and_ctrl_fence_names_swapped": "[def] FENCE CTRL 几何不符，缺失 [(1100000, 800000, 1340000, 910000)]，多出 [(145000, 900000, 1095000, 1100000), (230000, 1100000, 470000, 1300000), (300000, 840000, 500000, 900000)]",
+    "converter_ip_misclassified_as_peripheral": "[area-scope] 分区归属错误 [('IP', '产品外围已知功能窗', '转换功能 IP'), ('CTRL', '转换功能 IP', '产品外围已知功能窗')]",
+    "area_scope_wrong_members_with_original_binding": "[area-scope] 转换功能 IP 的成员或毛面积与回读几何不符",
+    "lef_bank_width_plus_1_dbu": "[sram-size] inst_FIFO_0 LEF/DEF 联合读回 (488000, 1123000, 778501, 1211000)，规划 (488000, 1123000, 778500, 1211000)（DBU）",
+    "def_placement_blockage_edge_minus_1_dbu": "[def-blockages] DEF 缺少 Pad/IP/通道禁放对象 Counter({(0, 0, 1500000, 120000): 1})",
+    "def_row_blockage_has_trailing_soft_qualifier": "[def-metadata] BLOCKAGES 须为无修饰的全局硬 PLACEMENT RECT"
+  },
+  "scope": [
+    "规划交换几何与面积阈值核对",
+    "IP 禁放带留空和接口外露边检查",
+    "转换 IP 与外围 CTRL 的原生分层、FENCE 归属和规划毛面积互斥",
+    "Q/RDAC 分线声明、通道公共边和端口几何，布线轨道及物理引脚待交接",
+    "FENCE 仅含区域几何，标准单元实例绑定与 SITE/ROW 待交接",
+    "PG 专网、布线层、物理引脚与连通性待交接",
+    "真实 SRAM compiler 尺寸、引脚、BIST、存取时序及 PPA 待核对",
+    "CTS/布线和 DRC/LVS、STA、EM/IR 依赖实际工艺抽象及实现输入"
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "adctoolbox_version": "0.9.1",
+  "training_capture_sha256": "848cb38d38b59709484f8215f59041efbb0ea0517c85899d8b4ed3d19edec521",
+  "training_stimulus": {
+    "fs_hz": 40000000,
+    "fin_hz": 410156.25,
+    "bin": 21,
+    "sample_count": 2048,
+    "reference_peak_v": 1.1,
+    "reference_dc_v": 0.2,
+    "phase_rad": 0.37
+  },
+  "holdout_ideal_codes": [
+    -300000,
+    0,
+    250000
+  ],
+  "cli_result": {
+    "capture_assumed_neutral": {
+      "offset_code": 0,
+      "gain_code": 512
+    },
+    "estimate": {
+      "method": "sine",
+      "code_format": "signed20",
+      "vref_v": 3.0,
+      "lsb_v": 5.7220458984375e-06,
+      "sample_count": 2048,
+      "forward_gain": 1.0050000073435401,
+      "forward_offset_codes": 79.994270668416,
+      "correction_gain": 0.9950248683512388,
+      "correction_offset_codes": -79.59628864069398,
+      "residual_rmse_codes": 0.2881883860986953,
+      "residual_max_abs_codes": 0.503061170456931,
+      "details": {
+        "fs_hz": 40000000.0,
+        "fin_hz": 410156.25,
+        "reference_peak_v": 1.1,
+        "reference_dc_v": 0.2,
+        "fitted_amplitude_codes": 193200.12941171436,
+        "fitted_dc_codes": 35207.29052734374,
+        "fitted_phase_rad": -1.2007963204052094,
+        "positive_gain_assumed": true
+      }
+    },
+    "registers": {
+      "mapping": "rtl_k_gain_shift",
+      "offset_code": -80,
+      "gain_code": 349,
+      "applied_gain": 0.995025634765625,
+      "k_gain": 1,
+      "shift": 15,
+      "writes": {
+        "0x25": 176,
+        "0x26": 15,
+        "0x27": 93,
+        "0x28": 1
+      }
+    }
+  }
+}

@@ -1,0 +1,73 @@
+ADCToolbox CLI to actual SPI register writes and product records, SHIFT=15
+ADCToolbox 0.9.1, OFFSET=-80 (0xFB0), GAIN=0x15D, K=1 SHIFT=15
+PRODUCT_ADCTOOLBOX_PLAN PASS
+
+Verilator product held-out regression
+- V e r i l a t i o n   R e p o r t:  rev UNKNOWN.REV
+- Verilator: Built from 2.575 MB sources in 27 modules, into 1.121 MB in 5 C++ files needing 0.000 MB
+- Verilator: Walltime 2.612 s (elab=0.128, cvt=0.584, bld=0.000); cpu 2.382 s on 1 threads
+CAL_SPI readback OFFSET=0000 GAIN=0200
+CAL_RECORD neutral 46 pairs aab6694000503d5c24ab21a signed samples -301420 80 251330
+CAL_SPI readback OFFSET=0fb0 GAIN=015d
+CAL_RECORD corrected 46 pairs aab6c1f000003d090d25bd4 signed samples -300001 0 250000
+AD4080_PRODUCT_CALIBRATION PASS
+- integration/product/tb_ad4080_peripheral_product.sv:562: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.30
+- Verilator: $finish at 393us; walltime 0.063 s; speed 7.376 ms/s
+- Verilator: cpu 0.053 s on 1 threads; alloced 0 MB
+
+Yosys logical structure and elaborated engineering profile
+Yosys 0.69 (git sha1 9f75ca1f9, Release, Clang /workspace/YoWASP/yosys/wasi-sdk-33.0-x86_64-linux/share/cmake/../..//bin/clang++ 22.1.0)
+Checking module ad4080_peripheral_product...
+Found and reported 0 problems.
+PRODUCT_STRUCTURE PASS: original DSP/control leaves, four 4096x20 result banks, one 8x22 transport queue
+DSP engineering mapping K_GAIN=1 SHIFT=15
+ad4080_peripheral_product.u_record.u_readback.u_transport.fifo_memory_q: 8x22
+ad4080_peripheral_product.u_services.u_result_store.banks[0].bank.mem: 4096x20
+ad4080_peripheral_product.u_services.u_result_store.banks[1].bank.mem: 4096x20
+ad4080_peripheral_product.u_services.u_result_store.banks[2].bank.mem: 4096x20
+ad4080_peripheral_product.u_services.u_result_store.banks[3].bank.mem: 4096x20
+b20a49004a0a6ac3093d2d473c32bfc0d32bf085c3d6aa3ed9382532806d11ee  /tmp/ad4080-product.iw4wn3/synthesized.json
+
+Source identity verified after all stages
+power/ad4080_pwr_reset_sync.sv: OK
+power/ad4080_pwr_supervisor.sv: OK
+otp/otp_shadow_loader.sv: OK
+memory/result_store_mbist.sv: OK
+rtl/result_store.sv: OK
+io/ad4080_ddr_edge_words.sv: OK
+integration/ad4080_peripheral_services.sv: OK
+transport/ad4080_result_transport.sv: OK
+io/ad4080_fifo_record_framer.sv: OK
+integration/ad4080_result_readback_link.sv: OK
+integration/ad4080_fifo_lvds_record_link.sv: OK
+bound_dsp/ad4080_top.sv: OK
+bound_dsp/ad4080_regs.sv: OK
+bound_dsp/ad4080_dsp_chain.sv: OK
+bound_dsp/event_detect.sv: OK
+bound_dsp/fifo_capture.sv: OK
+bound_dsp/gpio_ctrl.sv: OK
+bound_dsp/result_fifo.sv: OK
+bound_dsp/sinc1_decim.sv: OK
+bound_dsp/sinc5_comp.sv: OK
+bound_dsp/sinc5_decim.sv: OK
+bound_dsp/spi_slave.sv: OK
+bound_dsp/sys_error_corr.sv: OK
+integration/product/ad4080_product_record_session.sv: OK
+integration/product/ad4080_peripheral_product.sv: OK
+integration/product/tb_ad4080_peripheral_product.sv: OK
+integration/files.f: OK
+integration/readback_files.f: OK
+integration/product/rtl.f: OK
+integration/lint.vlt: OK
+integration/check_tool_run.py: OK
+integration/product/bind_dsp.py: OK
+integration/product/run_product.sh: OK
+integration/product/check_product_netlist.py: OK
+integration/product/prepare_calibration.py: OK
+calibration/system_cal.py: OK
+calibration/verify_rtl.py: OK
+calibration/requirements.txt: OK
+training_sine.csv: OK
+calibration_plan.json: OK
+calibration_words.txt: OK

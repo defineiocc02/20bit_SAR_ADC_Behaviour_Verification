@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1540" height="990" viewBox="0 0 1540 990" role="img" aria-labelledby="title desc">
+  <title id="title">AD4080 裸片的电源域与复位路径</title>
+  <desc id="desc">AD4080 Rev. B 的封装供电功能与工程分配。两路片上稳压共用 VDDLDO，外供时 VDDLDO 悬空。数字、数据接口、模拟三条供电和复位路径分开。</desc>
+  <defs>
+    <style>
+      text { font-family: "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif; fill: #112d45; }
+      .title { font-size: 42px; font-weight: 700; }
+      .subtitle { font-size: 20px; fill: #39566d; }
+      .heading { font-size: 22px; font-weight: 700; }
+      .node { font-size: 23px; font-weight: 700; }
+      .body { font-size: 17px; fill: #25455c; }
+      .small { font-size: 15px; fill: #39566d; }
+      .label { font-size: 15px; font-weight: 650; }
+      .blue-line, .green-line, .rose-line { stroke-width: 3.4; fill: none; stroke-linejoin: round; }
+      .blue-line { stroke: #165aa2; }
+      .green-line { stroke: #1f6f5c; stroke-dasharray: 8 5; }
+      .rose-line { stroke: #883e51; }
+    </style>
+  </defs>
+
+  <rect width="1540" height="990" fill="#f4f7fa"/>
+  <rect x="0" y="0" width="1540" height="108" fill="#e3eef7"/>
+  <text class="title" x="48" y="58">AD4080 裸片电源与复位</text>
+  <text class="subtitle" x="50" y="89">封装供电约束来自 Rev. B。LDO 窗口身份和芯片级供电分区为本工程分配。</text>
+
+  <rect x="39" y="132" width="793" height="612" rx="16" fill="#fff" stroke="#cbd9e4"/>
+  <rect x="851" y="132" width="650" height="612" rx="16" fill="#fff" stroke="#cbd9e4"/>
+  <text class="heading" x="65" y="167">两种 1.1 V 供电与独立模拟源</text>
+  <text class="heading" x="877" y="167">各域掉电的保持与隔离</text>
+
+  <rect x="70" y="185" width="295" height="89" rx="11" fill="#e8f1fb" stroke="#b4cce7"/>
+  <text class="node" x="88" y="216">VDDLDO · B3</text>
+  <text class="body" x="88" y="244">内供两路时采用 1.5–2.7 V</text>
+  <text class="small" x="88" y="265">VDD11、IOVDD 只接规定负载</text>
+
+  <rect x="526" y="185" width="269" height="89" rx="11" fill="#e8f6f0" stroke="#b2d6c9"/>
+  <text class="node" x="544" y="219">外供 VDD11</text>
+  <text class="body" x="544" y="249">1.045–1.155 V · B3 悬空</text>
+
+  <rect x="185" y="306" width="228" height="78" rx="11" fill="#e8f1fb" stroke="#b4cce7"/>
+  <text class="node" x="203" y="336">LDO1 · 左上窗</text>
+  <text class="body" x="203" y="364">VDD11 · 85 × 245 µm</text>
+  <rect x="526" y="306" width="269" height="78" rx="11" fill="#edf4fb" stroke="#b4cce7"/>
+  <text class="node" x="544" y="336">VDD11 · A1/A2/A3</text>
+  <text class="body" x="544" y="364">POR_D 监测 · 0.93 V</text>
+
+  <rect x="185" y="425" width="228" height="78" rx="11" fill="#e8f1fb" stroke="#b4cce7"/>
+  <text class="node" x="203" y="455">LDO2 · 左下窗</text>
+  <text class="body" x="203" y="483">IOVDD · 93 × 68 µm</text>
+  <rect x="526" y="425" width="269" height="78" rx="11" fill="#edf4fb" stroke="#b4cce7"/>
+  <text class="node" x="544" y="455">IOVDD · A6</text>
+  <text class="body" x="544" y="483">内供低功耗关断</text>
+
+  <rect x="526" y="532" width="269" height="68" rx="11" fill="#e8f6f0" stroke="#b2d6c9"/>
+  <text class="node" x="544" y="559">外供 IOVDD</text>
+  <text class="body" x="544" y="584">1.045–1.26 V · B3 悬空</text>
+
+  <path class="blue-line" d="M120 274 V464 H185"/>
+  <path class="blue-line" d="M120 345 H185"/>
+  <circle cx="120" cy="345" r="4.6" fill="#165aa2"/>
+  <path class="blue-line" d="M413 345 H526"/>
+  <path class="blue-line" d="M413 464 H526"/>
+  <path class="green-line" d="M660 274 V306"/>
+  <path class="green-line" d="M660 532 V503"/>
+  <path d="M185 345l-11-5.5v11z M185 464l-11-5.5v11z M526 345l-11-5.5v11z M526 464l-11-5.5v11z" fill="#165aa2"/>
+  <path d="M660 306l-5.5-11h11z M660 503l-5.5 11h11z" fill="#1f6f5c"/>
+  <text class="small" x="70" y="534">内外供为互斥的接线配置。</text>
+  <text class="small" x="70" y="559">IO 沿更外侧电源环或独立 PG 层供回。</text>
+
+  <rect x="70" y="629" width="725" height="84" rx="11" fill="#fcf1f3" stroke="#e2b9c4"/>
+  <text class="node" x="88" y="660">VDD33 · F3/G3　　REFIN · F4/G4</text>
+  <text class="body" x="88" y="690">VDD33 3.135–3.465 V 合规后施加 3.0 V REFIN</text>
+
+  <rect x="877" y="185" width="597" height="79" rx="11" fill="#f2f6f9" stroke="#d4e0e9"/>
+  <text class="heading" x="896" y="214">上电顺序与配置输入保护</text>
+  <text class="small" x="896" y="239">1.1 V 先稳定 → VDD33 → 数字输入 → 模拟输入与参考，关机反序</text>
+  <text class="small" x="896" y="258">VDD33 ≤ IOVDD − 0.3 V 时，配置 CS/SCLK/SDI 保持低电平或高阻</text>
+
+  <rect x="877" y="289" width="597" height="113" rx="11" fill="#edf4fb" stroke="#b4cce7"/>
+  <text class="node" x="896" y="321">VDD11 · 常供电数字与保持存储</text>
+  <text class="body" x="896" y="348">AON、配置写接收、低压 ADC 核心、数字 IP 与结果 SRAM</text>
+  <text class="small" x="896" y="374">硬 POR 清配置与 FIFO。软件复位保留 FIFO 与 ADDR_ASCENSION</text>
+
+  <rect x="877" y="410" width="597" height="113" rx="11" fill="#edf4fb" stroke="#b4cce7"/>
+  <text class="node" x="896" y="443">IOVDD · 数据接口与配置读回</text>
+  <text class="body" x="896" y="470">LVDS / SPI 数据 / GPIO。配置 SDO 复用 GPIO</text>
+  <text class="small" x="896" y="496">关断或欠压时在活电域钳位。接口复位保留结果 SRAM</text>
+
+  <rect x="877" y="553" width="597" height="42" rx="8" fill="#e8f6f0" stroke="#b2d6c9"/>
+  <text class="small" x="896" y="580">低功耗外供 IOVDD 时，可通过 SPI 数据口读出已有 FIFO 样本</text>
+
+  <rect x="877" y="615" width="597" height="113" rx="11" fill="#fcf1f3" stroke="#e2b9c4"/>
+  <text class="node" x="896" y="648">VDD33 / REFIN · 模拟运行与参考</text>
+  <text class="body" x="896" y="676">REFIN 监测由 VDD33 供电；POR_A 名义门限 2.7 V</text>
+  <text class="small" x="896" y="703">参考或模拟电源异常时封住新转换，配置与已存 FIFO 可保持</text>
+
+  <path class="blue-line" d="M795 345 H877"/>
+  <path class="blue-line" d="M795 464 H877"/>
+  <path class="rose-line" d="M795 671 H877"/>
+
+  <path d="M877 345l-11-5.5v11z M877 464l-11-5.5v11z" fill="#165aa2"/>
+  <path d="M877 671l-11-5.5v11z" fill="#883e51"/>
+
+  <rect x="39" y="768" width="1462" height="146" rx="16" fill="#fff" stroke="#cbd9e4"/>
+  <path d="M534 791V890 M1045 791V890" stroke="#cbd9e4"/>
+  <text class="heading" x="65" y="803">正常与复位</text>
+  <text class="body" x="65" y="832">冷启动、硬 POR 或软件复位初始化 ≥ 300 µs</text>
+  <text class="small" x="65" y="862">模拟就绪、时钟复位释放及系统互锁满足后才允许 CNV。</text>
+  <text class="heading" x="560" y="803">待机 / 睡眠</text>
+  <text class="body" x="560" y="832">内供 IOVDD 关断，配置仅保留受限写命令</text>
+  <text class="small" x="560" y="862">外供 IOVDD 保留数据 SPI 与 GPIO。两种接线均关 LVDS。</text>
+  <text class="heading" x="1071" y="803">唤醒</text>
+  <text class="body" x="1071" y="832">待机 100 µs / 睡眠 180 µs，再等附加恢复</text>
+  <text class="small" x="1071" y="862">VDD33 先恢复。附加恢复时间由模拟验收提供。</text>
+
+  <line class="blue-line" x1="48" y1="951" x2="86" y2="951"/>
+  <text class="label" x="96" y="956">内供路径 / 共用域电源</text>
+  <line class="green-line" x1="313" y1="951" x2="350" y2="951"/>
+  <text class="label" x="360" y="956">仅全外供接线</text>
+  <line class="rose-line" x1="531" y1="951" x2="569" y2="951"/>
+  <text class="label" x="579" y="956">独立模拟源与参考</text>
+  <text class="small" x="1479" y="956" text-anchor="end">数据手册 Rev. B p.4–6、10–12、23–28、72</text>
+</svg>

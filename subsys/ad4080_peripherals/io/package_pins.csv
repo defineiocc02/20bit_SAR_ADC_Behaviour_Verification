@@ -1,0 +1,50 @@
+ball,ad4080_pin,role,commercial_electrical_domain,target_planning_group,notes
+A1,VDD11,power,VDD11,LDO_SUPPLY,1.1 V core rail
+A2,VDD11,power,VDD11,LDO_SUPPLY,1.1 V core rail
+A3,VDD11,power,VDD11,LDO_SUPPLY,1.1 V core rail
+A4,CNV+,in,VDD11 CMOS or IOVDD LVDS,CNV,CMOS input or differential P
+A5,CNV-,in,IOGND in CMOS or IOVDD LVDS,CNV,CMOS tie to IOGND or differential N
+A6,IOVDD,power,IOVDD,DIO_PG,1.1 V interface rail
+A7,CLK-/DCS,in,IOVDD,DIO_CLK,differential N or active-low result SPI select
+B1,REFGND,power,REFGND,REFERENCE,reference ground
+B2,REFGND,power,REFGND,REFERENCE,reference ground
+B3,VDDLDO,power,VDDLDO,LDO_SUPPLY,select internal LDO power by supply arrangement
+B4,DCO-,out,IOVDD,DIO_TX,echo clock differential N
+B5,DCO+,out,IOVDD,DIO_TX,echo clock differential P
+B6,IOGND,power,IOGND,DIO_PG,interface supply return and signal reference
+B7,CLK+/DCLK,in,IOVDD,DIO_CLK,differential P or result SPI clock
+C1,REFGND,power,REFGND,REFERENCE,reference ground
+C2,REFGND,power,REFGND,REFERENCE,reference ground
+C3,GND,power,GND,ANALOG_PG,ground return
+C4,GND,power,GND,ANALOG_PG,ground return
+C5,GND,power,GND,ANALOG_PG,ground return
+C6,DB+/SDOC,out,IOVDD,DIO_TX,optional lane B P or quad SPI SDO1
+C7,DA+/SDOA,out,IOVDD,DIO_TX,lane A P or quad SPI SDO3
+D1,IN+,in,analog,ANALOG_IN,ADC differential P
+D2,AUXIN+,in,analog,ANALOG_IN,auxiliary differential P
+D3,GND,power,GND,ANALOG_PG,ground return
+D4,GND,power,GND,ANALOG_PG,ground return
+D5,GND,power,GND,ANALOG_PG,ground return
+D6,DB-/SDOD,out,IOVDD,DIO_TX,optional lane B N or quad SPI SDO0
+D7,DA-/SDOB,out,IOVDD,DIO_TX,lane A N or single SPI SDO0 or quad SPI SDO2
+E1,IN-,in,analog,ANALOG_IN,ADC differential N
+E2,AUXIN-,in,analog,ANALOG_IN,auxiliary differential N
+E3,GND,power,GND,ANALOG_PG,ground return
+E4,GND,power,GND,ANALOG_PG,ground return
+E5,GND,power,GND,ANALOG_PG,ground return
+E6,GPIO1,bidir,IOVDD,GPIO,event or programmable status
+E7,SCLK,in,VDD11,CFG_SPI,configuration SPI clock
+F1,GPIO2,bidir,IOVDD,GPIO,event or programmable status
+F2,GPIO3,bidir,IOVDD,GPIO,event or programmable status
+F3,VDD33,power,VDD33,ANALOG_PG,3.3 V analog rail
+F4,REFIN,in,analog reference,REFERENCE,3.0 V reference input
+F5,REFGND,power,REFGND,REFERENCE,reference ground
+F6,REFGND,power,REFGND,REFERENCE,reference ground
+F7,SDI,in,VDD11,CFG_SPI,configuration SPI data input
+G1,CS,in,VDD11,CFG_SPI,active-low configuration SPI select
+G2,CMO,out,analog,REFERENCE,common-mode voltage output
+G3,VDD33,power,VDD33,ANALOG_PG,3.3 V analog rail
+G4,REFIN,in,analog reference,REFERENCE,3.0 V reference input
+G5,REFGND,power,REFGND,REFERENCE,reference ground
+G6,DNC,nc,none,NO_CONNECT,do not connect in reference package
+G7,GPIO0/SDO,bidir,IOVDD,CFG_SPI,default configuration SPI output

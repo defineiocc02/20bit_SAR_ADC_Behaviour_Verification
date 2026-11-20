@@ -1,0 +1,1951 @@
+[SPI_CRC_TAIL_BOUND=0: generic synthesis]
+
+-- Running command `read_verilog -sv ad4080_fifo_record_framer.sv; synth -noabc -top ad4080_fifo_record_framer; check -assert; select -assert-none t:$*latch* t:$_*LATCH*; stat' --
+
+1. Executing Verilog-2005 frontend: ad4080_fifo_record_framer.sv
+Parsing SystemVerilog input from `ad4080_fifo_record_framer.sv' to AST representation.
+Generating RTLIL representation for module `\ad4080_fifo_record_framer'.
+Successfully finished Verilog frontend.
+
+2. Executing SYNTH pass.
+
+2.1. Executing HIERARCHY pass (managing design hierarchy).
+
+2.1.1. Analyzing design hierarchy..
+Top module:  \ad4080_fifo_record_framer
+
+2.1.2. Analyzing design hierarchy..
+Top module:  \ad4080_fifo_record_framer
+Removed 0 unused modules.
+
+2.2. Executing PROC pass (convert processes to netlists).
+
+2.2.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+2.2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Marked 9 switch rules as full_case in process $proc$ad4080_fifo_record_framer.sv:201$161 in module ad4080_fifo_record_framer.
+Marked 9 switch rules as full_case in process $proc$ad4080_fifo_record_framer.sv:155$122 in module ad4080_fifo_record_framer.
+Removed a total of 0 dead cases.
+
+2.2.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 4 redundant assignments.
+Promoted 6 assignments to connections.
+
+2.2.4. Executing PROC_INIT pass (extract init attributes).
+
+2.2.5. Executing PROC_ARST pass (detect async resets in processes).
+Found async reset \rst_ni in `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$161'.
+
+2.2.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+<suppressed ~25 debug messages>
+
+2.2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+Creating decoders for process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$161'.
+     1/11: $0\crc_cancel_o[0:0]
+     2/11: $0\error_code_o[2:0]
+     3/11: $0\error_o[0:0]
+     4/11: $0\done_o[0:0]
+     5/11: $0\crc_q[23:0]
+     6/11: $0\spi_valid_q[0:0]
+     7/11: $0\spi_sample_q[19:0]
+     8/11: $0\slot_q[4:0]
+     9/11: $0\words_left_q[14:0]
+    10/11: $0\mode_q[1:0]
+    11/11: $0\state_q[2:0]
+Creating decoders for process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:155$122'.
+     1/18: $2\beat_width_o[2:0]
+     2/18: $8\beat_o[3:0]
+     3/18: $7\beat_o[3:0]
+     4/18: $6\beat_o[3:0]
+     5/18: $5\beat_o[3:0]
+     6/18: $4\beat_o[3:0]
+     7/18: $3\beat_o[3:0]
+     8/18: $2\beat_first_o[0:0]
+     9/18: $2\beat_o[3:0]
+    10/18: $2\beat_valid_o[0:0]
+    11/18: $2\beat_kind_o[1:0]
+    12/18: $2\beat_last_o[0:0]
+    13/18: $1\beat_width_o[2:0]
+    14/18: $1\beat_kind_o[1:0]
+    15/18: $1\beat_last_o[0:0]
+    16/18: $1\beat_first_o[0:0]
+    17/18: $1\beat_o[3:0]
+    18/18: $1\beat_valid_o[0:0]
+
+2.2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+No latch inferred for signal `\ad4080_fifo_record_framer.\beat_valid_o' from process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:155$122'.
+No latch inferred for signal `\ad4080_fifo_record_framer.\beat_o' from process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:155$122'.
+No latch inferred for signal `\ad4080_fifo_record_framer.\beat_width_o' from process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:155$122'.
+No latch inferred for signal `\ad4080_fifo_record_framer.\beat_first_o' from process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:155$122'.
+No latch inferred for signal `\ad4080_fifo_record_framer.\beat_last_o' from process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:155$122'.
+No latch inferred for signal `\ad4080_fifo_record_framer.\beat_kind_o' from process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:155$122'.
+
+2.2.9. Executing PROC_DFF pass (convert process syncs to FFs).
+Creating register for signal `\ad4080_fifo_record_framer.\crc_cancel_o' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$161'.
+  created $adff cell `$procdff$463' with positive edge clock and positive level reset.
+Creating register for signal `\ad4080_fifo_record_framer.\done_o' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$161'.
+  created $adff cell `$procdff$468' with positive edge clock and positive level reset.
+Creating register for signal `\ad4080_fifo_record_framer.\error_o' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$161'.
+  created $adff cell `$procdff$473' with positive edge clock and positive level reset.
+Creating register for signal `\ad4080_fifo_record_framer.\error_code_o' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$161'.
+  created $adff cell `$procdff$478' with positive edge clock and positive level reset.
+Creating register for signal `\ad4080_fifo_record_framer.\state_q' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$161'.
+  created $adff cell `$procdff$483' with positive edge clock and positive level reset.
+Creating register for signal `\ad4080_fifo_record_framer.\mode_q' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$161'.
+  created $adff cell `$procdff$488' with positive edge clock and positive level reset.
+Creating register for signal `\ad4080_fifo_record_framer.\words_left_q' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$161'.
+  created $adff cell `$procdff$493' with positive edge clock and positive level reset.
+Creating register for signal `\ad4080_fifo_record_framer.\slot_q' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$161'.
+  created $adff cell `$procdff$498' with positive edge clock and positive level reset.
+Creating register for signal `\ad4080_fifo_record_framer.\spi_sample_q' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$161'.
+  created $adff cell `$procdff$503' with positive edge clock and positive level reset.
+Creating register for signal `\ad4080_fifo_record_framer.\spi_valid_q' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$161'.
+  created $adff cell `$procdff$508' with positive edge clock and positive level reset.
+Creating register for signal `\ad4080_fifo_record_framer.\crc_q' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$161'.
+  created $adff cell `$procdff$513' with positive edge clock and positive level reset.
+
+2.2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+2.2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Found and cleaned up 16 empty switches in `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$161'.
+Removing empty process `ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$161'.
+Found and cleaned up 9 empty switches in `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:155$122'.
+Removing empty process `ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:155$122'.
+Cleaned up 25 empty switches.
+
+2.2.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+<suppressed ~33 debug messages>
+
+2.3. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+<suppressed ~8 debug messages>
+
+2.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+Removed 13 unused cells and 180 unused wires.
+<suppressed ~14 debug messages>
+
+2.5. Executing CHECK pass (checking for obvious problems).
+Checking module ad4080_fifo_record_framer...
+Found and reported 0 problems.
+
+2.6. Executing OPT pass (performing simple optimizations).
+
+2.6.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+2.6.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 294 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 251 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 247 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 245 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+<suppressed ~147 debug messages>
+Removed a total of 49 cells.
+
+2.6.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \ad4080_fifo_record_framer..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+    dead port 2/2 on $mux $procmux$351.
+    dead port 2/2 on $mux $procmux$344.
+    dead port 2/2 on $mux $procmux$342.
+    dead port 2/2 on $mux $procmux$432.
+    dead port 1/2 on $mux $procmux$340.
+    dead port 2/2 on $mux $procmux$332.
+    dead port 2/2 on $mux $procmux$417.
+    dead port 2/2 on $mux $procmux$366.
+    dead port 2/2 on $mux $procmux$364.
+    dead port 2/2 on $mux $procmux$409.
+    dead port 2/2 on $mux $procmux$401.
+    dead port 2/2 on $mux $procmux$399.
+    dead port 2/2 on $mux $procmux$390.
+    dead port 2/2 on $mux $procmux$388.
+    dead port 2/2 on $mux $procmux$439.
+    dead port 1/2 on $mux $procmux$386.
+    dead port 2/2 on $mux $procmux$376.
+    dead port 2/2 on $mux $procmux$353.
+    dead port 1/2 on $mux $procmux$362.
+    dead port 2/2 on $mux $procmux$374.
+Removed 20 multiplexer ports.
+<suppressed ~130 debug messages>
+
+2.6.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \ad4080_fifo_record_framer.
+    New ctrl vector for $pmux cell $procmux$421: { $auto$opt_reduce.cc:137:opt_pmux$515 $procmux$438_CMP }
+  Optimizing cells in module \ad4080_fifo_record_framer.
+Performed a total of 1 changes.
+
+2.6.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 226 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 225 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+<suppressed ~3 debug messages>
+Removed a total of 1 cells.
+
+2.6.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+2.6.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+Removed 0 unused cells and 70 unused wires.
+<suppressed ~1 debug messages>
+
+2.6.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+2.6.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+2.6.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \ad4080_fifo_record_framer..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~112 debug messages>
+
+2.6.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \ad4080_fifo_record_framer.
+Performed a total of 0 changes.
+
+2.6.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 225 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Removed a total of 0 cells.
+
+2.6.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+2.6.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+
+2.6.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+2.6.16. Finished fast OPT passes. (There is nothing left to do.)
+
+2.7. Executing FSM pass (extract and optimize FSM).
+
+2.7.1. Executing FSM_DETECT pass (finding FSMs in design).
+Not marking ad4080_fifo_record_framer.state_q as FSM state register:
+    Users of register don't seem to benefit from recoding.
+Not marking ad4080_fifo_record_framer.error_code_o as FSM state register:
+    Register is connected to module port.
+    Users of register don't seem to benefit from recoding.
+
+2.7.2. Executing FSM_EXTRACT pass (extracting FSM from design).
+
+2.7.3. Executing FSM_OPT pass (simple optimizations of FSMs).
+
+2.7.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+
+2.7.5. Executing FSM_OPT pass (simple optimizations of FSMs).
+
+2.7.6. Executing FSM_RECODE pass (re-assigning FSM state encoding).
+
+2.7.7. Executing FSM_INFO pass (dumping all available information on FSM cells).
+
+2.7.8. Executing FSM_MAP pass (mapping FSMs to basic logic).
+
+2.8. Executing OPT pass (performing simple optimizations).
+
+2.8.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+2.8.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 225 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Removed a total of 0 cells.
+
+2.8.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \ad4080_fifo_record_framer..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~112 debug messages>
+
+2.8.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \ad4080_fifo_record_framer.
+Performed a total of 0 changes.
+
+2.8.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 225 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Removed a total of 0 cells.
+
+2.8.6. Executing OPT_DFF pass (perform DFF optimizations).
+Adding EN signal on $procdff$493 ($adff) from module ad4080_fifo_record_framer (D = $0\words_left_q[14:0], Q = \words_left_q).
+Adding EN signal on $procdff$513 ($adff) from module ad4080_fifo_record_framer (D = \crc_i, Q = \crc_q).
+Adding EN signal on $procdff$488 ($adff) from module ad4080_fifo_record_framer (D = \mode_i, Q = \mode_q).
+Adding EN signal on $procdff$483 ($adff) from module ad4080_fifo_record_framer (D = $0\state_q[2:0], Q = \state_q).
+Adding EN signal on $procdff$498 ($adff) from module ad4080_fifo_record_framer (D = $0\slot_q[4:0], Q = \slot_q).
+Adding EN signal on $procdff$503 ($adff) from module ad4080_fifo_record_framer (D = \sample_i, Q = \spi_sample_q).
+Adding EN signal on $procdff$508 ($adff) from module ad4080_fifo_record_framer (D = $0\spi_valid_q[0:0], Q = \spi_valid_q).
+
+2.8.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+Removed 9 unused cells and 9 unused wires.
+<suppressed ~10 debug messages>
+
+2.8.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+<suppressed ~7 debug messages>
+
+2.8.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+2.8.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \ad4080_fifo_record_framer..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~100 debug messages>
+
+2.8.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \ad4080_fifo_record_framer.
+Performed a total of 0 changes.
+
+2.8.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 243 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 236 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+<suppressed ~21 debug messages>
+Removed a total of 7 cells.
+
+2.8.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+2.8.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+Removed 0 unused cells and 7 unused wires.
+<suppressed ~1 debug messages>
+
+2.8.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+2.8.16. Rerunning OPT passes. (Maybe there is more to do..)
+
+2.8.17. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \ad4080_fifo_record_framer..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~100 debug messages>
+
+2.8.18. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \ad4080_fifo_record_framer.
+Performed a total of 0 changes.
+
+2.8.19. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 236 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Removed a total of 0 cells.
+
+2.8.20. Executing OPT_DFF pass (perform DFF optimizations).
+
+2.8.21. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+
+2.8.22. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+2.8.23. Finished fast OPT passes. (There is nothing left to do.)
+
+2.9. Executing WREDUCE pass (reducing word size of cells).
+Removed top 1 bits (of 3) from port B of cell ad4080_fifo_record_framer.$auto$simple.cc:194:make_patterns_logic$541 ($ne).
+Removed top 1 bits (of 2) from port B of cell ad4080_fifo_record_framer.$eq$ad4080_fifo_record_framer.sv:109$14 ($eq).
+Removed top 14 bits (of 15) from port B of cell ad4080_fifo_record_framer.$ge$ad4080_fifo_record_framer.sv:110$18 ($ge).
+Removed top 2 bits (of 5) from mux cell ad4080_fifo_record_framer.$ternary$ad4080_fifo_record_framer.sv:116$34 ($mux).
+Removed top 2 bits (of 5) from port B of cell ad4080_fifo_record_framer.$eq$ad4080_fifo_record_framer.sv:116$35 ($eq).
+Removed top 1 bits (of 3) from port B of cell ad4080_fifo_record_framer.$ne$ad4080_fifo_record_framer.sv:122$57 ($ne).
+Removed top 14 bits (of 15) from port B of cell ad4080_fifo_record_framer.$gt$ad4080_fifo_record_framer.sv:137$93 ($gt).
+Removed top 13 bits (of 15) from mux cell ad4080_fifo_record_framer.$ternary$ad4080_fifo_record_framer.sv:139$98 ($mux).
+Removed top 13 bits (of 15) from port B of cell ad4080_fifo_record_framer.$eq$ad4080_fifo_record_framer.sv:139$99 ($eq).
+Removed top 1 bits (of 3) from port B of cell ad4080_fifo_record_framer.$eq$ad4080_fifo_record_framer.sv:141$103 ($eq).
+Removed top 29 bits (of 32) from port A of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:166$130 ($sub).
+Removed top 26 bits (of 32) from port B of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:166$130 ($sub).
+Removed top 25 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:166$130 ($sub).
+Converting cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:166$131 ($add) from unsigned to signed.
+Removed top 25 bits (of 32) from port A of cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:166$131 ($add).
+Removed top 30 bits (of 32) from port B of cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:166$131 ($add).
+Removed top 24 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:166$131 ($add).
+Converting cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:166$132 ($sub) from unsigned to signed.
+Removed top 24 bits (of 32) from port A of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:166$132 ($sub).
+Removed top 29 bits (of 32) from port B of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:166$132 ($sub).
+Removed top 23 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:166$132 ($sub).
+Removed top 23 bits (of 32) from port B of cell ad4080_fifo_record_framer.$shiftx$ad4080_fifo_record_framer.sv:166$133 ($shiftx).
+Removed top 29 bits (of 32) from port A of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:168$136 ($sub).
+Removed top 27 bits (of 32) from port B of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:168$136 ($sub).
+Removed top 26 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:168$136 ($sub).
+Removed top 26 bits (of 32) from port B of cell ad4080_fifo_record_framer.$shiftx$ad4080_fifo_record_framer.sv:168$137 ($shiftx).
+Removed top 14 bits (of 15) from port B of cell ad4080_fifo_record_framer.$eq$ad4080_fifo_record_framer.sv:179$144 ($eq).
+Removed top 27 bits (of 32) from port A of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:183$148 ($sub).
+Removed top 26 bits (of 32) from port B of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:183$148 ($sub).
+Removed top 25 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:183$148 ($sub).
+Converting cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:183$149 ($add) from unsigned to signed.
+Removed top 25 bits (of 32) from port A of cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:183$149 ($add).
+Removed top 30 bits (of 32) from port B of cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:183$149 ($add).
+Removed top 24 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:183$149 ($add).
+Converting cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:183$150 ($sub) from unsigned to signed.
+Removed top 24 bits (of 32) from port A of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:183$150 ($sub).
+Removed top 29 bits (of 32) from port B of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:183$150 ($sub).
+Removed top 23 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:183$150 ($sub).
+Removed top 23 bits (of 32) from port B of cell ad4080_fifo_record_framer.$shiftx$ad4080_fifo_record_framer.sv:183$151 ($shiftx).
+Removed top 27 bits (of 32) from port A of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:184$153 ($sub).
+Removed top 25 bits (of 32) from port B of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:184$153 ($sub).
+Removed top 24 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:184$153 ($sub).
+Converting cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:184$154 ($add) from unsigned to signed.
+Removed top 24 bits (of 32) from port A of cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:184$154 ($add).
+Removed top 30 bits (of 32) from port B of cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:184$154 ($add).
+Removed top 23 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:184$154 ($add).
+Converting cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:184$155 ($sub) from unsigned to signed.
+Removed top 23 bits (of 32) from port A of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:184$155 ($sub).
+Removed top 28 bits (of 32) from port B of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:184$155 ($sub).
+Removed top 22 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:184$155 ($sub).
+Removed top 22 bits (of 32) from port B of cell ad4080_fifo_record_framer.$shiftx$ad4080_fifo_record_framer.sv:184$156 ($shiftx).
+Removed top 27 bits (of 32) from port A of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:185$157 ($sub).
+Removed top 27 bits (of 32) from port B of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:185$157 ($sub).
+Removed top 26 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:185$157 ($sub).
+Removed top 26 bits (of 32) from port B of cell ad4080_fifo_record_framer.$shiftx$ad4080_fifo_record_framer.sv:185$158 ($shiftx).
+Removed top 1 bits (of 3) from mux cell ad4080_fifo_record_framer.$ternary$ad4080_fifo_record_framer.sv:239$168 ($mux).
+Removed top 1 bits (of 3) from mux cell ad4080_fifo_record_framer.$procmux$176 ($mux).
+Removed top 1 bits (of 3) from mux cell ad4080_fifo_record_framer.$procmux$178 ($mux).
+Removed top 1 bits (of 3) from mux cell ad4080_fifo_record_framer.$procmux$305 ($mux).
+Removed top 2 bits (of 3) from port B of cell ad4080_fifo_record_framer.$procmux$424_CMP0 ($eq).
+Removed top 1 bits (of 3) from port B of cell ad4080_fifo_record_framer.$procmux$438_CMP0 ($eq).
+Removed top 22 bits (of 32) from port B of cell ad4080_fifo_record_framer.$shiftx$ad4080_fifo_record_framer.sv:153$121 ($shiftx).
+Removed top 26 bits (of 32) from port B of cell ad4080_fifo_record_framer.$shiftx$ad4080_fifo_record_framer.sv:177$141 ($shiftx).
+Removed top 1 bits (of 3) from wire ad4080_fifo_record_framer.$ternary$ad4080_fifo_record_framer.sv:239$168_Y.
+Removed top 1 bits (of 3) from wire ad4080_fifo_record_framer.$procmux$176_Y.
+Removed top 1 bits (of 3) from wire ad4080_fifo_record_framer.$procmux$178_Y.
+Removed top 13 bits (of 15) from wire ad4080_fifo_record_framer.$ternary$ad4080_fifo_record_framer.sv:139$98_Y.
+Removed top 1 bits (of 3) from wire ad4080_fifo_record_framer.$procmux$305_Y.
+Removed top 2 bits (of 5) from wire ad4080_fifo_record_framer.$ternary$ad4080_fifo_record_framer.sv:116$34_Y.
+
+2.10. Executing PEEPOPT pass (run peephole optimizers).
+shiftadd pattern in ad4080_fifo_record_framer: shift=$shiftx$ad4080_fifo_record_framer.sv:184$156, add/sub=$sub$ad4080_fifo_record_framer.sv:184$155, offset: -4
+shiftadd pattern in ad4080_fifo_record_framer: shift=$shiftx$ad4080_fifo_record_framer.sv:183$151, add/sub=$sub$ad4080_fifo_record_framer.sv:183$150, offset: -2
+shiftadd pattern in ad4080_fifo_record_framer: shift=$shiftx$ad4080_fifo_record_framer.sv:166$133, add/sub=$sub$ad4080_fifo_record_framer.sv:166$132, offset: -2
+shiftadd pattern in ad4080_fifo_record_framer: shift=$shiftx$ad4080_fifo_record_framer.sv:153$121, add/sub=$sub$ad4080_fifo_record_framer.sv:184$155, offset: -4
+
+2.11. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+Removed 3 unused cells and 9 unused wires.
+<suppressed ~4 debug messages>
+
+2.12. Executing ALUMACC pass (create $alu and $macc cells).
+Extracting $alu and $macc cells in module ad4080_fifo_record_framer:
+  creating $macc model for $sub$ad4080_fifo_record_framer.sv:257$170 ($sub).
+  creating $macc model for $add$ad4080_fifo_record_framer.sv:250$169 ($add).
+  creating $macc model for $sub$ad4080_fifo_record_framer.sv:185$157 ($sub).
+  creating $macc model for $add$ad4080_fifo_record_framer.sv:184$154 ($add).
+  creating $macc model for $sub$ad4080_fifo_record_framer.sv:184$153 ($sub).
+  creating $macc model for $add$ad4080_fifo_record_framer.sv:183$149 ($add).
+  creating $macc model for $sub$ad4080_fifo_record_framer.sv:183$148 ($sub).
+  creating $macc model for $sub$ad4080_fifo_record_framer.sv:168$136 ($sub).
+  creating $macc model for $add$ad4080_fifo_record_framer.sv:166$131 ($add).
+  creating $macc model for $sub$ad4080_fifo_record_framer.sv:166$130 ($sub).
+  creating $alu model for $macc $sub$ad4080_fifo_record_framer.sv:166$130.
+  creating $alu model for $macc $add$ad4080_fifo_record_framer.sv:166$131.
+  creating $alu model for $macc $sub$ad4080_fifo_record_framer.sv:168$136.
+  creating $alu model for $macc $sub$ad4080_fifo_record_framer.sv:183$148.
+  creating $alu model for $macc $add$ad4080_fifo_record_framer.sv:183$149.
+  creating $alu model for $macc $sub$ad4080_fifo_record_framer.sv:184$153.
+  creating $alu model for $macc $add$ad4080_fifo_record_framer.sv:184$154.
+  creating $alu model for $macc $sub$ad4080_fifo_record_framer.sv:185$157.
+  creating $alu model for $macc $add$ad4080_fifo_record_framer.sv:250$169.
+  creating $alu model for $macc $sub$ad4080_fifo_record_framer.sv:257$170.
+  creating $alu model for $gt$ad4080_fifo_record_framer.sv:137$93 ($gt): merged with $sub$ad4080_fifo_record_framer.sv:257$170.
+  creating $alu model for $le$ad4080_fifo_record_framer.sv:110$20 ($le): new $alu
+  creating $alu model for $ge$ad4080_fifo_record_framer.sv:110$18 ($ge): new $alu
+  creating $alu model for $eq$ad4080_fifo_record_framer.sv:179$144 ($eq): merged with $sub$ad4080_fifo_record_framer.sv:257$170.
+  creating $alu cell for $ge$ad4080_fifo_record_framer.sv:110$18: $auto$alumacc.cc:548:replace_alu$585
+  creating $alu cell for $le$ad4080_fifo_record_framer.sv:110$20: $auto$alumacc.cc:548:replace_alu$598
+  creating $alu cell for $sub$ad4080_fifo_record_framer.sv:257$170, $gt$ad4080_fifo_record_framer.sv:137$93, $eq$ad4080_fifo_record_framer.sv:179$144: $auto$alumacc.cc:548:replace_alu$607
+  creating $alu cell for $add$ad4080_fifo_record_framer.sv:250$169: $auto$alumacc.cc:548:replace_alu$618
+  creating $alu cell for $sub$ad4080_fifo_record_framer.sv:185$157: $auto$alumacc.cc:548:replace_alu$621
+  creating $alu cell for $add$ad4080_fifo_record_framer.sv:184$154: $auto$alumacc.cc:548:replace_alu$624
+  creating $alu cell for $sub$ad4080_fifo_record_framer.sv:184$153: $auto$alumacc.cc:548:replace_alu$627
+  creating $alu cell for $add$ad4080_fifo_record_framer.sv:183$149: $auto$alumacc.cc:548:replace_alu$630
+  creating $alu cell for $sub$ad4080_fifo_record_framer.sv:183$148: $auto$alumacc.cc:548:replace_alu$633
+  creating $alu cell for $sub$ad4080_fifo_record_framer.sv:168$136: $auto$alumacc.cc:548:replace_alu$636
+  creating $alu cell for $add$ad4080_fifo_record_framer.sv:166$131: $auto$alumacc.cc:548:replace_alu$639
+  creating $alu cell for $sub$ad4080_fifo_record_framer.sv:166$130: $auto$alumacc.cc:548:replace_alu$642
+  created 12 $alu and 0 $macc cells.
+
+2.13. Executing SHARE pass (SAT-based resource sharing).
+
+2.14. Executing OPT pass (performing simple optimizations).
+
+2.14.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+2.14.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 243 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Removed a total of 0 cells.
+
+2.14.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \ad4080_fifo_record_framer..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~100 debug messages>
+
+2.14.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \ad4080_fifo_record_framer.
+Performed a total of 0 changes.
+
+2.14.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 243 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Removed a total of 0 cells.
+
+2.14.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+2.14.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+Removed 0 unused cells and 4 unused wires.
+<suppressed ~1 debug messages>
+
+2.14.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+2.14.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+2.14.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \ad4080_fifo_record_framer..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~100 debug messages>
+
+2.14.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \ad4080_fifo_record_framer.
+Performed a total of 0 changes.
+
+2.14.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 243 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Removed a total of 0 cells.
+
+2.14.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+2.14.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+
+2.14.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+2.14.16. Finished fast OPT passes. (There is nothing left to do.)
+
+2.15. Executing MEMORY pass.
+
+2.15.1. Executing OPT_MEM pass (optimize memories).
+Performed a total of 0 transformations.
+
+2.15.2. Executing OPT_MEM_PRIORITY pass (removing unnecessary memory write priority relations).
+Performed a total of 0 transformations.
+
+2.15.3. Executing OPT_MEM_FEEDBACK pass (finding memory read-to-write feedback paths).
+
+2.15.4. Executing MEMORY_BMUX2ROM pass (converting muxes to ROMs).
+
+2.15.5. Executing MEMORY_DFF pass (merging $dff cells to $memrd).
+
+2.15.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+
+2.15.7. Executing MEMORY_SHARE pass (consolidating $memrd/$memwr cells).
+
+2.15.8. Executing OPT_MEM_WIDEN pass (optimize memories where all ports are wide).
+Performed a total of 0 transformations.
+
+2.15.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+
+2.15.10. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+2.16. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+
+2.17. Executing OPT pass (performing simple optimizations).
+
+2.17.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+<suppressed ~46 debug messages>
+
+2.17.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 254 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 244 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+<suppressed ~34 debug messages>
+Removed a total of 10 cells.
+
+2.17.3. Executing OPT_DFF pass (perform DFF optimizations).
+
+2.17.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+Removed 0 unused cells and 46 unused wires.
+<suppressed ~1 debug messages>
+
+2.17.5. Finished fast OPT passes.
+
+2.18. Executing MEMORY_MAP pass (converting memories to logic and flip-flops).
+
+2.19. Executing OPT pass (performing simple optimizations).
+
+2.19.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+2.19.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 244 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Removed a total of 0 cells.
+
+2.19.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \ad4080_fifo_record_framer..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~68 debug messages>
+
+2.19.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \ad4080_fifo_record_framer.
+    Consolidated identical input bits for $mux cell $procmux$305:
+      Old ports: A=2'00, B=2'11, Y=$auto$wreduce.cc:513:run$581 [1:0]
+      New ports: A=1'0, B=1'1, Y=$auto$wreduce.cc:513:run$581 [0]
+      New connections: $auto$wreduce.cc:513:run$581 [1] = $auto$wreduce.cc:513:run$581 [0]
+    Consolidated identical input bits for $pmux cell $procmux$302:
+      Old ports: A=3'010, B={ 1'0 $auto$wreduce.cc:513:run$581 [1:0] 3'000 }, Y=$procmux$302_Y
+      New ports: A=2'10, B={ $auto$wreduce.cc:513:run$581 [1:0] 2'00 }, Y=$procmux$302_Y [1:0]
+      New connections: $procmux$302_Y [2] = 1'0
+    Consolidated identical input bits for $mux cell $procmux$182:
+      Old ports: A=3'100, B=3'011, Y=$procmux$182_Y
+      New ports: A=2'10, B=2'01, Y={ $procmux$182_Y [2] $procmux$182_Y [0] }
+      New connections: $procmux$182_Y [1] = $procmux$182_Y [0]
+    Consolidated identical input bits for $mux cell $ternary$ad4080_fifo_record_framer.sv:191$159:
+      Old ports: A=3'001, B=3'100, Y=$ternary$ad4080_fifo_record_framer.sv:191$159_Y
+      New ports: A=2'01, B=2'10, Y={ $ternary$ad4080_fifo_record_framer.sv:191$159_Y [2] $ternary$ad4080_fifo_record_framer.sv:191$159_Y [0] }
+      New connections: $ternary$ad4080_fifo_record_framer.sv:191$159_Y [1] = 1'0
+    Consolidated identical input bits for $mux cell $procmux$383:
+      Old ports: A={ 3'000 $shiftx$ad4080_fifo_record_framer.sv:167$135_Y }, B={ $shiftx$ad4080_fifo_record_framer.sv:167$135_Y $shiftx$ad4080_fifo_record_framer.sv:167$135_Y $shiftx$ad4080_fifo_record_framer.sv:167$135_Y $shiftx$ad4080_fifo_record_framer.sv:167$135_Y }, Y=$4\beat_o[3:0]
+      New ports: A=1'0, B=$shiftx$ad4080_fifo_record_framer.sv:167$135_Y, Y=$4\beat_o[3:0] [1]
+      New connections: { $4\beat_o[3:0] [3:2] $4\beat_o[3:0] [0] } = { $4\beat_o[3:0] [1] $4\beat_o[3:0] [1] $shiftx$ad4080_fifo_record_framer.sv:167$135_Y }
+    Consolidated identical input bits for $mux cell $ternary$ad4080_fifo_record_framer.sv:118$39:
+      Old ports: A=5'10111, B=5'00101, Y=$ternary$ad4080_fifo_record_framer.sv:117$36_Y
+      New ports: A=1'1, B=1'0, Y=$ternary$ad4080_fifo_record_framer.sv:117$36_Y [1]
+      New connections: { $ternary$ad4080_fifo_record_framer.sv:117$36_Y [4:2] $ternary$ad4080_fifo_record_framer.sv:117$36_Y [0] } = { $ternary$ad4080_fifo_record_framer.sv:117$36_Y [1] 3'011 }
+    Consolidated identical input bits for $mux cell $ternary$ad4080_fifo_record_framer.sv:116$34:
+      Old ports: A=3'111, B=3'011, Y=$auto$wreduce.cc:513:run$582 [2:0]
+      New ports: A=1'1, B=1'0, Y=$auto$wreduce.cc:513:run$582 [2]
+      New connections: $auto$wreduce.cc:513:run$582 [1:0] = 2'11
+  Optimizing cells in module \ad4080_fifo_record_framer.
+    Consolidated identical input bits for $mux cell $procmux$397:
+      Old ports: A=$4\beat_o[3:0], B={ 2'00 $shiftx$ad4080_fifo_record_framer.sv:166$133_Y }, Y=$3\beat_o[3:0]
+      New ports: A={ $4\beat_o[3:0] [1] $4\beat_o[3:0] [1] $shiftx$ad4080_fifo_record_framer.sv:167$135_Y }, B={ 1'0 $shiftx$ad4080_fifo_record_framer.sv:166$133_Y }, Y=$3\beat_o[3:0] [2:0]
+      New connections: $3\beat_o[3:0] [3] = $3\beat_o[3:0] [2]
+    Consolidated identical input bits for $mux cell $ternary$ad4080_fifo_record_framer.sv:118$40:
+      Old ports: A=$ternary$ad4080_fifo_record_framer.sv:117$36_Y, B=5'01011, Y=$ternary$ad4080_fifo_record_framer.sv:118$40_Y
+      New ports: A={ $ternary$ad4080_fifo_record_framer.sv:117$36_Y [1] 2'01 $ternary$ad4080_fifo_record_framer.sv:117$36_Y [1] }, B=4'0101, Y=$ternary$ad4080_fifo_record_framer.sv:118$40_Y [4:1]
+      New connections: $ternary$ad4080_fifo_record_framer.sv:118$40_Y [0] = 1'1
+    Consolidated identical input bits for $mux cell $ternary$ad4080_fifo_record_framer.sv:117$37:
+      Old ports: A=$ternary$ad4080_fifo_record_framer.sv:117$36_Y, B=5'01001, Y=$ternary$ad4080_fifo_record_framer.sv:117$37_Y
+      New ports: A={ 2'01 $ternary$ad4080_fifo_record_framer.sv:117$36_Y [1] }, B=3'100, Y=$ternary$ad4080_fifo_record_framer.sv:117$37_Y [3:1]
+      New connections: { $ternary$ad4080_fifo_record_framer.sv:117$37_Y [4] $ternary$ad4080_fifo_record_framer.sv:117$37_Y [0] } = { $ternary$ad4080_fifo_record_framer.sv:117$37_Y [1] 1'1 }
+  Optimizing cells in module \ad4080_fifo_record_framer.
+Performed a total of 10 changes.
+
+2.19.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 244 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Removed a total of 0 cells.
+
+2.19.6. Executing OPT_SHARE pass.
+
+2.19.7. Executing OPT_DFF pass (perform DFF optimizations).
+
+2.19.8. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+Removed 0 unused cells and 1 unused wires.
+<suppressed ~1 debug messages>
+
+2.19.9. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+<suppressed ~4 debug messages>
+
+2.19.10. Rerunning OPT passes. (Maybe there is more to do..)
+
+2.19.11. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \ad4080_fifo_record_framer..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~60 debug messages>
+
+2.19.12. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \ad4080_fifo_record_framer.
+Performed a total of 0 changes.
+
+2.19.13. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 243 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 242 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+<suppressed ~3 debug messages>
+Removed a total of 1 cells.
+
+2.19.14. Executing OPT_SHARE pass.
+
+2.19.15. Executing OPT_DFF pass (perform DFF optimizations).
+
+2.19.16. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+Removed 0 unused cells and 2 unused wires.
+<suppressed ~1 debug messages>
+
+2.19.17. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+2.19.18. Rerunning OPT passes. (Maybe there is more to do..)
+
+2.19.19. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \ad4080_fifo_record_framer..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~60 debug messages>
+
+2.19.20. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \ad4080_fifo_record_framer.
+Performed a total of 0 changes.
+
+2.19.21. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 242 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Removed a total of 0 cells.
+
+2.19.22. Executing OPT_SHARE pass.
+
+2.19.23. Executing OPT_DFF pass (perform DFF optimizations).
+
+2.19.24. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+
+2.19.25. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+2.19.26. Finished fast OPT passes. (There is nothing left to do.)
+
+2.20. Executing TECHMAP pass (map to technology primitives).
+
+2.20.1. Executing Verilog-2005 frontend: /share/techmap.v
+Parsing Verilog input from `/share/techmap.v' to AST representation.
+Generating RTLIL representation for module `\_90_simplemap_bool_ops'.
+Generating RTLIL representation for module `\_90_simplemap_reduce_ops'.
+Generating RTLIL representation for module `\_90_simplemap_logic_ops'.
+Generating RTLIL representation for module `\_90_simplemap_compare_ops'.
+Generating RTLIL representation for module `\_90_simplemap_various'.
+Generating RTLIL representation for module `\_90_simplemap_registers'.
+Generating RTLIL representation for module `\_90_shift_ops_shr_shl_sshl_sshr'.
+Generating RTLIL representation for module `\_90_shift_shiftx'.
+Generating RTLIL representation for module `\_90_fa'.
+Generating RTLIL representation for module `\_90_lcu_brent_kung'.
+Generating RTLIL representation for module `\_90_alu'.
+Generating RTLIL representation for module `\_90_macc'.
+Generating RTLIL representation for module `\_90_alumacc'.
+Generating RTLIL representation for module `$__div_mod_u'.
+Generating RTLIL representation for module `$__div_mod_trunc'.
+Generating RTLIL representation for module `\_90_div'.
+Generating RTLIL representation for module `\_90_mod'.
+Generating RTLIL representation for module `$__div_mod_floor'.
+Generating RTLIL representation for module `\_90_divfloor'.
+Generating RTLIL representation for module `\_90_modfloor'.
+Generating RTLIL representation for module `\_90_pow'.
+Generating RTLIL representation for module `\_90_demux'.
+Generating RTLIL representation for module `\_90_lut'.
+Generating RTLIL representation for module `$connect'.
+Generating RTLIL representation for module `$input_port'.
+Successfully finished Verilog frontend.
+
+2.20.2. Continuing TECHMAP pass.
+Using template $paramod$0ae6dcbc606d0267ec97d3ccf20343286af3366c\_90_alu for cells of type $alu.
+Using template $paramod$a175dfcf43370c480ccf353610350b0f2e691058\_90_alu for cells of type $alu.
+Using template $paramod$aebc44f5eedf4f1603d7564e4920ac508059c773\_90_alu for cells of type $alu.
+Using template $paramod$fc972a7a46956c1788f3cb5257b53c8f1df2d0cc\_90_alu for cells of type $alu.
+Using template $paramod$025d767fc934a3e7d59a671de523743ebaa07759\_90_alu for cells of type $alu.
+Using extmapper simplemap for cells of type $not.
+Using template $paramod$ef8fb1849064cca7dc908988762d3374786d9fdb\_90_alu for cells of type $alu.
+Using template $paramod$649fc39eef2451024566705288528c8671211199\_90_alu for cells of type $alu.
+Using template $paramod$672a140277c71df8314410f22acc08d55222c3c7\_90_alu for cells of type $alu.
+Using extmapper simplemap for cells of type $or.
+Using extmapper simplemap for cells of type $reduce_and.
+Using template $paramod$675ee3ed071b156aa661bdfa838b7e469d095ac0\_90_alu for cells of type $alu.
+Using extmapper simplemap for cells of type $reduce_or.
+Using extmapper simplemap for cells of type $reduce_bool.
+Using extmapper simplemap for cells of type $adffe.
+Using extmapper simplemap for cells of type $ne.
+Using extmapper simplemap for cells of type $logic_and.
+Using extmapper simplemap for cells of type $logic_not.
+Using extmapper simplemap for cells of type $eq.
+Using extmapper simplemap for cells of type $logic_or.
+Using extmapper simplemap for cells of type $mux.
+Using template $paramod$constmap:34605b04b17840044a1d97da2e5ea47aa48c58fc$paramod$f9de9755aabde4ada38da826791f2d256538fe76\_90_shift_shiftx for cells of type $shiftx.
+Using template $paramod$constmap:8c6b2bf2a5160a028cf2c4198f5911386b59e9e6$paramod$422fd248c97d281806b632f37d60a65ad91f42d8\_90_shift_shiftx for cells of type $shiftx.
+Using template $paramod$constmap:978300e990c82889ef29817ffcb4d01fcc050fd4$paramod$56e7f8c0017b5b8531b86335a382d0a7012c4b2b\_90_shift_shiftx for cells of type $shiftx.
+Using template $paramod$constmap:0f37cd92cf537bfd0023b4ac4e8ef37898dcf280$paramod$9189ddbee8183323d3e0b7dd2c983ae843396345\_90_shift_shiftx for cells of type $shiftx.
+Using template $paramod$constmap:fcfb2480c302c8e2aef09efc2dc01220d281865a$paramod$a5f03060c0f4c6a565877de3518b2aeaeb1035dd\_90_shift_shiftx for cells of type $shiftx.
+Analyzing pattern of constant bits for this cell:
+  Constant input on bit 1 of port B: 1'0
+  Constant input on bit 0 of port A: 1'x
+  Constant input on bit 1 of port A: 1'x
+  Constant input on bit 2 of port A: 1'x
+  Constant input on bit 3 of port A: 1'x
+Creating constmapped module `$paramod$constmap:e72d024a191f0d29be05d0c6eb66390a3f76a31d$paramod$f9de9755aabde4ada38da826791f2d256538fe76\_90_shift_shiftx'.
+
+2.20.46. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module $paramod$constmap:e72d024a191f0d29be05d0c6eb66390a3f76a31d$paramod$f9de9755aabde4ada38da826791f2d256538fe76\_90_shift_shiftx..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+    dead port 2/2 on $mux $procmux$1358.
+    dead port 2/2 on $mux $procmux$1364.
+    dead port 2/2 on $mux $procmux$1370.
+    dead port 2/2 on $mux $procmux$1376.
+    dead port 1/2 on $mux $procmux$1382.
+    dead port 2/2 on $mux $procmux$1382.
+    dead port 1/2 on $mux $procmux$1385.
+    dead port 2/2 on $mux $procmux$1388.
+Removed 8 multiplexer ports.
+<suppressed ~1527 debug messages>
+
+2.20.47. Executing OPT_EXPR pass (perform const folding).
+Optimizing module $paramod$constmap:e72d024a191f0d29be05d0c6eb66390a3f76a31d$paramod$f9de9755aabde4ada38da826791f2d256538fe76\_90_shift_shiftx.
+<suppressed ~5 debug messages>
+Removed 3 unused cells and 16 unused wires.
+Using template $paramod$constmap:e72d024a191f0d29be05d0c6eb66390a3f76a31d$paramod$f9de9755aabde4ada38da826791f2d256538fe76\_90_shift_shiftx for cells of type $shiftx.
+Analyzing pattern of constant bits for this cell:
+Creating constmapped module `$paramod$constmap:b3c1d6f8e38e25c9d29c080d43b0c2e76ae85b46$paramod$9189ddbee8183323d3e0b7dd2c983ae843396345\_90_shift_shiftx'.
+
+2.20.48. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module $paramod$constmap:b3c1d6f8e38e25c9d29c080d43b0c2e76ae85b46$paramod$9189ddbee8183323d3e0b7dd2c983ae843396345\_90_shift_shiftx..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+    dead port 2/2 on $mux $procmux$1511.
+    dead port 2/2 on $mux $procmux$1517.
+    dead port 2/2 on $mux $procmux$1523.
+    dead port 2/2 on $mux $procmux$1529.
+    dead port 2/2 on $mux $procmux$1535.
+Removed 5 multiplexer ports.
+<suppressed ~65 debug messages>
+
+2.20.49. Executing OPT_EXPR pass (perform const folding).
+Optimizing module $paramod$constmap:b3c1d6f8e38e25c9d29c080d43b0c2e76ae85b46$paramod$9189ddbee8183323d3e0b7dd2c983ae843396345\_90_shift_shiftx.
+<suppressed ~2 debug messages>
+Removed 0 unused cells and 10 unused wires.
+Using template $paramod$constmap:b3c1d6f8e38e25c9d29c080d43b0c2e76ae85b46$paramod$9189ddbee8183323d3e0b7dd2c983ae843396345\_90_shift_shiftx for cells of type $shiftx.
+Using extmapper simplemap for cells of type $and.
+Using extmapper simplemap for cells of type $pmux.
+Using extmapper simplemap for cells of type $adff.
+Using extmapper simplemap for cells of type $pos.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000000100 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000000100 for cells of type $lcu.
+Using extmapper simplemap for cells of type $xor.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000000001 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000000001 for cells of type $lcu.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000000111 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000000111 for cells of type $lcu.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000000101 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000000101 for cells of type $lcu.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000000011 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000000011 for cells of type $lcu.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000001111 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000001111 for cells of type $lcu.
+No more expansions possible.
+<suppressed ~1100 debug messages>
+
+2.21. Executing OPT pass (performing simple optimizations).
+
+2.21.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+<suppressed ~2125 debug messages>
+
+2.21.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 2801 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 2669 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 2621 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 2602 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 2596 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 2593 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+<suppressed ~624 debug messages>
+Removed a total of 208 cells.
+
+2.21.3. Executing OPT_DFF pass (perform DFF optimizations).
+
+2.21.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+Removed 1629 unused cells and 818 unused wires.
+<suppressed ~1630 debug messages>
+
+2.21.5. Finished fast OPT passes.
+
+2.22. Executing HIERARCHY pass (managing design hierarchy).
+Attribute `top' found on module `ad4080_fifo_record_framer'. Setting top module to ad4080_fifo_record_framer.
+
+2.22.1. Analyzing design hierarchy..
+Top module:  \ad4080_fifo_record_framer
+
+2.22.2. Analyzing design hierarchy..
+Top module:  \ad4080_fifo_record_framer
+Removed 0 unused modules.
+
+2.23. Printing statistics.
+
+=== ad4080_fifo_record_framer ===
+
+        +----------Local Count, excluding submodules.
+        | 
+      469 wires
+     3432 wire bits
+       67 public wires
+      253 public wire bits
+       36 ports
+      102 port bits
+      964 cells
+      194   $_AND_
+       70   $_DFFE_PN0P_
+        6   $_DFF_PN0_
+      408   $_MUX_
+       78   $_NOT_
+      160   $_OR_
+       48   $_XOR_
+
+2.24. Executing CHECK pass (checking for obvious problems).
+Checking module ad4080_fifo_record_framer...
+Found and reported 0 problems.
+
+3. Executing CHECK pass (checking for obvious problems).
+Checking module ad4080_fifo_record_framer...
+Found and reported 0 problems.
+
+4. Printing statistics.
+
+=== ad4080_fifo_record_framer ===
+
+        +----------Local Count, excluding submodules.
+        | 
+      469 wires
+     3432 wire bits
+       67 public wires
+      253 public wire bits
+       36 ports
+      102 port bits
+      964 cells
+      194   $_AND_
+       70   $_DFFE_PN0P_
+        6   $_DFF_PN0_
+      408   $_MUX_
+       78   $_NOT_
+      160   $_OR_
+       48   $_XOR_
+
+End of script. Logfile hash: b25874efdf, time: 0.46s, user: 0.47s, system: 0.00s
+Yosys 0.69 (git sha1 9f75ca1f9, Release, Clang /workspace/YoWASP/yosys/wasi-sdk-33.0-x86_64-linux/share/cmake/../..//bin/clang++ 22.1.0)
+Time spent: 28% 42x opt_expr (0 sec), 16% 1x techmap (0 sec), ...
+
+[SPI_CRC_TAIL_BOUND=1: generic synthesis]
+
+-- Running command `read_verilog -sv ad4080_fifo_record_framer.sv; chparam -set SPI_CRC_TAIL_BOUND 1 ad4080_fifo_record_framer; synth -noabc -top ad4080_fifo_record_framer; check -assert; select -assert-none t:$*latch* t:$_*LATCH*; stat' --
+
+1. Executing Verilog-2005 frontend: ad4080_fifo_record_framer.sv
+Parsing SystemVerilog input from `ad4080_fifo_record_framer.sv' to AST representation.
+Generating RTLIL representation for module `\ad4080_fifo_record_framer'.
+Successfully finished Verilog frontend.
+Parameter \SPI_CRC_TAIL_BOUND = 1
+
+2. Executing AST frontend in derive mode using pre-parsed AST for module `\ad4080_fifo_record_framer'.
+Parameter \SPI_CRC_TAIL_BOUND = 1
+Generating RTLIL representation for module `$paramod\ad4080_fifo_record_framer\SPI_CRC_TAIL_BOUND=s32'00000000000000000000000000000001'.
+
+3. Executing SYNTH pass.
+
+3.1. Executing HIERARCHY pass (managing design hierarchy).
+
+3.1.1. Analyzing design hierarchy..
+Top module:  \ad4080_fifo_record_framer
+
+3.1.2. Analyzing design hierarchy..
+Top module:  \ad4080_fifo_record_framer
+Removed 0 unused modules.
+
+3.2. Executing PROC pass (convert processes to netlists).
+
+3.2.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+3.2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Marked 9 switch rules as full_case in process $proc$ad4080_fifo_record_framer.sv:155$292 in module ad4080_fifo_record_framer.
+Marked 9 switch rules as full_case in process $proc$ad4080_fifo_record_framer.sv:201$331 in module ad4080_fifo_record_framer.
+Removed a total of 0 dead cases.
+
+3.2.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 4 redundant assignments.
+Promoted 6 assignments to connections.
+
+3.2.4. Executing PROC_INIT pass (extract init attributes).
+
+3.2.5. Executing PROC_ARST pass (detect async resets in processes).
+Found async reset \rst_ni in `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$331'.
+
+3.2.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+<suppressed ~25 debug messages>
+
+3.2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+Creating decoders for process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:155$292'.
+     1/18: $2\beat_width_o[2:0]
+     2/18: $8\beat_o[3:0]
+     3/18: $7\beat_o[3:0]
+     4/18: $6\beat_o[3:0]
+     5/18: $5\beat_o[3:0]
+     6/18: $4\beat_o[3:0]
+     7/18: $3\beat_o[3:0]
+     8/18: $2\beat_first_o[0:0]
+     9/18: $2\beat_o[3:0]
+    10/18: $2\beat_valid_o[0:0]
+    11/18: $2\beat_kind_o[1:0]
+    12/18: $2\beat_last_o[0:0]
+    13/18: $1\beat_width_o[2:0]
+    14/18: $1\beat_kind_o[1:0]
+    15/18: $1\beat_last_o[0:0]
+    16/18: $1\beat_first_o[0:0]
+    17/18: $1\beat_o[3:0]
+    18/18: $1\beat_valid_o[0:0]
+Creating decoders for process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$331'.
+     1/11: $0\crc_cancel_o[0:0]
+     2/11: $0\error_code_o[2:0]
+     3/11: $0\error_o[0:0]
+     4/11: $0\done_o[0:0]
+     5/11: $0\crc_q[23:0]
+     6/11: $0\spi_valid_q[0:0]
+     7/11: $0\spi_sample_q[19:0]
+     8/11: $0\slot_q[4:0]
+     9/11: $0\words_left_q[14:0]
+    10/11: $0\mode_q[1:0]
+    11/11: $0\state_q[2:0]
+
+3.2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+No latch inferred for signal `\ad4080_fifo_record_framer.\beat_valid_o' from process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:155$292'.
+No latch inferred for signal `\ad4080_fifo_record_framer.\beat_o' from process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:155$292'.
+No latch inferred for signal `\ad4080_fifo_record_framer.\beat_width_o' from process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:155$292'.
+No latch inferred for signal `\ad4080_fifo_record_framer.\beat_first_o' from process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:155$292'.
+No latch inferred for signal `\ad4080_fifo_record_framer.\beat_last_o' from process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:155$292'.
+No latch inferred for signal `\ad4080_fifo_record_framer.\beat_kind_o' from process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:155$292'.
+
+3.2.9. Executing PROC_DFF pass (convert process syncs to FFs).
+Creating register for signal `\ad4080_fifo_record_framer.\crc_cancel_o' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$331'.
+  created $adff cell `$procdff$633' with positive edge clock and positive level reset.
+Creating register for signal `\ad4080_fifo_record_framer.\done_o' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$331'.
+  created $adff cell `$procdff$638' with positive edge clock and positive level reset.
+Creating register for signal `\ad4080_fifo_record_framer.\error_o' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$331'.
+  created $adff cell `$procdff$643' with positive edge clock and positive level reset.
+Creating register for signal `\ad4080_fifo_record_framer.\error_code_o' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$331'.
+  created $adff cell `$procdff$648' with positive edge clock and positive level reset.
+Creating register for signal `\ad4080_fifo_record_framer.\state_q' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$331'.
+  created $adff cell `$procdff$653' with positive edge clock and positive level reset.
+Creating register for signal `\ad4080_fifo_record_framer.\mode_q' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$331'.
+  created $adff cell `$procdff$658' with positive edge clock and positive level reset.
+Creating register for signal `\ad4080_fifo_record_framer.\words_left_q' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$331'.
+  created $adff cell `$procdff$663' with positive edge clock and positive level reset.
+Creating register for signal `\ad4080_fifo_record_framer.\slot_q' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$331'.
+  created $adff cell `$procdff$668' with positive edge clock and positive level reset.
+Creating register for signal `\ad4080_fifo_record_framer.\spi_sample_q' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$331'.
+  created $adff cell `$procdff$673' with positive edge clock and positive level reset.
+Creating register for signal `\ad4080_fifo_record_framer.\spi_valid_q' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$331'.
+  created $adff cell `$procdff$678' with positive edge clock and positive level reset.
+Creating register for signal `\ad4080_fifo_record_framer.\crc_q' using process `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$331'.
+  created $adff cell `$procdff$683' with positive edge clock and positive level reset.
+
+3.2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+3.2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Found and cleaned up 9 empty switches in `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:155$292'.
+Removing empty process `ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:155$292'.
+Found and cleaned up 16 empty switches in `\ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$331'.
+Removing empty process `ad4080_fifo_record_framer.$proc$ad4080_fifo_record_framer.sv:201$331'.
+Cleaned up 25 empty switches.
+
+3.2.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+<suppressed ~43 debug messages>
+
+3.3. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+<suppressed ~8 debug messages>
+
+3.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+Removed 15 unused cells and 192 unused wires.
+<suppressed ~16 debug messages>
+
+3.5. Executing CHECK pass (checking for obvious problems).
+Checking module ad4080_fifo_record_framer...
+Found and reported 0 problems.
+
+3.6. Executing OPT pass (performing simple optimizations).
+
+3.6.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+3.6.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 282 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 243 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 239 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 237 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+<suppressed ~135 debug messages>
+Removed a total of 45 cells.
+
+3.6.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \ad4080_fifo_record_framer..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+    dead port 2/2 on $mux $procmux$452.
+    dead port 2/2 on $mux $procmux$445.
+    dead port 2/2 on $mux $procmux$430.
+    dead port 2/2 on $mux $procmux$422.
+    dead port 2/2 on $mux $procmux$414.
+    dead port 2/2 on $mux $procmux$412.
+    dead port 2/2 on $mux $procmux$403.
+    dead port 2/2 on $mux $procmux$401.
+    dead port 1/2 on $mux $procmux$399.
+    dead port 2/2 on $mux $procmux$389.
+    dead port 2/2 on $mux $procmux$387.
+    dead port 2/2 on $mux $procmux$379.
+    dead port 2/2 on $mux $procmux$377.
+    dead port 1/2 on $mux $procmux$375.
+    dead port 2/2 on $mux $procmux$366.
+    dead port 2/2 on $mux $procmux$364.
+    dead port 2/2 on $mux $procmux$357.
+    dead port 2/2 on $mux $procmux$355.
+    dead port 1/2 on $mux $procmux$353.
+    dead port 2/2 on $mux $procmux$345.
+Removed 20 multiplexer ports.
+<suppressed ~125 debug messages>
+
+3.6.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \ad4080_fifo_record_framer.
+    New ctrl vector for $pmux cell $procmux$449: $procmux$604_CMP
+    New ctrl vector for $pmux cell $procmux$434: { $auto$opt_reduce.cc:137:opt_pmux$685 $procmux$580_CMP }
+    New ctrl vector for $pmux cell $procmux$504: $procmux$604_CMP
+  Optimizing cells in module \ad4080_fifo_record_framer.
+Performed a total of 3 changes.
+
+3.6.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 218 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 217 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+<suppressed ~3 debug messages>
+Removed a total of 1 cells.
+
+3.6.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.6.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+Removed 0 unused cells and 66 unused wires.
+<suppressed ~1 debug messages>
+
+3.6.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+3.6.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+3.6.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \ad4080_fifo_record_framer..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~107 debug messages>
+
+3.6.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \ad4080_fifo_record_framer.
+Performed a total of 0 changes.
+
+3.6.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 217 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Removed a total of 0 cells.
+
+3.6.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.6.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+
+3.6.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+3.6.16. Finished fast OPT passes. (There is nothing left to do.)
+
+3.7. Executing FSM pass (extract and optimize FSM).
+
+3.7.1. Executing FSM_DETECT pass (finding FSMs in design).
+Not marking ad4080_fifo_record_framer.error_code_o as FSM state register:
+    Register is connected to module port.
+    Users of register don't seem to benefit from recoding.
+Not marking ad4080_fifo_record_framer.state_q as FSM state register:
+    Users of register don't seem to benefit from recoding.
+
+3.7.2. Executing FSM_EXTRACT pass (extracting FSM from design).
+
+3.7.3. Executing FSM_OPT pass (simple optimizations of FSMs).
+
+3.7.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+
+3.7.5. Executing FSM_OPT pass (simple optimizations of FSMs).
+
+3.7.6. Executing FSM_RECODE pass (re-assigning FSM state encoding).
+
+3.7.7. Executing FSM_INFO pass (dumping all available information on FSM cells).
+
+3.7.8. Executing FSM_MAP pass (mapping FSMs to basic logic).
+
+3.8. Executing OPT pass (performing simple optimizations).
+
+3.8.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+3.8.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 217 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Removed a total of 0 cells.
+
+3.8.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \ad4080_fifo_record_framer..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~107 debug messages>
+
+3.8.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \ad4080_fifo_record_framer.
+Performed a total of 0 changes.
+
+3.8.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 217 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Removed a total of 0 cells.
+
+3.8.6. Executing OPT_DFF pass (perform DFF optimizations).
+Adding EN signal on $procdff$673 ($adff) from module ad4080_fifo_record_framer (D = \sample_i, Q = \spi_sample_q).
+Adding EN signal on $procdff$653 ($adff) from module ad4080_fifo_record_framer (D = $0\state_q[2:0], Q = \state_q).
+Adding EN signal on $procdff$668 ($adff) from module ad4080_fifo_record_framer (D = $0\slot_q[4:0], Q = \slot_q).
+Adding EN signal on $procdff$658 ($adff) from module ad4080_fifo_record_framer (D = \mode_i, Q = \mode_q).
+Adding EN signal on $procdff$678 ($adff) from module ad4080_fifo_record_framer (D = $0\spi_valid_q[0:0], Q = \spi_valid_q).
+Adding EN signal on $procdff$683 ($adff) from module ad4080_fifo_record_framer (D = \crc_i, Q = \crc_q).
+Adding EN signal on $procdff$663 ($adff) from module ad4080_fifo_record_framer (D = $0\words_left_q[14:0], Q = \words_left_q).
+
+3.8.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+Removed 9 unused cells and 9 unused wires.
+<suppressed ~10 debug messages>
+
+3.8.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+<suppressed ~7 debug messages>
+
+3.8.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+3.8.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \ad4080_fifo_record_framer..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~95 debug messages>
+
+3.8.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \ad4080_fifo_record_framer.
+Performed a total of 0 changes.
+
+3.8.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 235 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 228 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+<suppressed ~21 debug messages>
+Removed a total of 7 cells.
+
+3.8.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.8.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+Removed 0 unused cells and 7 unused wires.
+<suppressed ~1 debug messages>
+
+3.8.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+3.8.16. Rerunning OPT passes. (Maybe there is more to do..)
+
+3.8.17. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \ad4080_fifo_record_framer..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~95 debug messages>
+
+3.8.18. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \ad4080_fifo_record_framer.
+Performed a total of 0 changes.
+
+3.8.19. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 228 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Removed a total of 0 cells.
+
+3.8.20. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.8.21. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+
+3.8.22. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+3.8.23. Finished fast OPT passes. (There is nothing left to do.)
+
+3.9. Executing WREDUCE pass (reducing word size of cells).
+Removed top 1 bits (of 3) from port B of cell ad4080_fifo_record_framer.$auto$simple.cc:194:make_patterns_logic$724 ($ne).
+Removed top 1 bits (of 2) from port B of cell ad4080_fifo_record_framer.$eq$ad4080_fifo_record_framer.sv:109$184 ($eq).
+Removed top 14 bits (of 15) from port B of cell ad4080_fifo_record_framer.$ge$ad4080_fifo_record_framer.sv:110$188 ($ge).
+Removed top 2 bits (of 5) from mux cell ad4080_fifo_record_framer.$ternary$ad4080_fifo_record_framer.sv:116$204 ($mux).
+Removed top 2 bits (of 5) from port B of cell ad4080_fifo_record_framer.$eq$ad4080_fifo_record_framer.sv:116$205 ($eq).
+Removed top 1 bits (of 3) from port B of cell ad4080_fifo_record_framer.$ne$ad4080_fifo_record_framer.sv:122$227 ($ne).
+Removed top 14 bits (of 15) from port B of cell ad4080_fifo_record_framer.$eq$ad4080_fifo_record_framer.sv:126$239 ($eq).
+Removed top 14 bits (of 15) from port B of cell ad4080_fifo_record_framer.$gt$ad4080_fifo_record_framer.sv:137$263 ($gt).
+Removed top 13 bits (of 15) from mux cell ad4080_fifo_record_framer.$ternary$ad4080_fifo_record_framer.sv:139$268 ($mux).
+Removed top 13 bits (of 15) from port B of cell ad4080_fifo_record_framer.$eq$ad4080_fifo_record_framer.sv:139$269 ($eq).
+Removed top 1 bits (of 3) from port B of cell ad4080_fifo_record_framer.$eq$ad4080_fifo_record_framer.sv:141$273 ($eq).
+Removed top 27 bits (of 32) from port A of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:153$288 ($sub).
+Removed top 25 bits (of 32) from port B of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:153$288 ($sub).
+Removed top 24 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:153$288 ($sub).
+Converting cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:153$289 ($add) from unsigned to signed.
+Removed top 24 bits (of 32) from port A of cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:153$289 ($add).
+Removed top 30 bits (of 32) from port B of cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:153$289 ($add).
+Removed top 23 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:153$289 ($add).
+Converting cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:153$290 ($sub) from unsigned to signed.
+Removed top 23 bits (of 32) from port A of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:153$290 ($sub).
+Removed top 28 bits (of 32) from port B of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:153$290 ($sub).
+Removed top 22 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:153$290 ($sub).
+Removed top 22 bits (of 32) from port B of cell ad4080_fifo_record_framer.$shiftx$ad4080_fifo_record_framer.sv:153$291 ($shiftx).
+Removed top 29 bits (of 32) from port A of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:166$300 ($sub).
+Removed top 26 bits (of 32) from port B of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:166$300 ($sub).
+Removed top 25 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:166$300 ($sub).
+Converting cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:166$301 ($add) from unsigned to signed.
+Removed top 25 bits (of 32) from port A of cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:166$301 ($add).
+Removed top 30 bits (of 32) from port B of cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:166$301 ($add).
+Removed top 24 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:166$301 ($add).
+Converting cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:166$302 ($sub) from unsigned to signed.
+Removed top 24 bits (of 32) from port A of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:166$302 ($sub).
+Removed top 29 bits (of 32) from port B of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:166$302 ($sub).
+Removed top 23 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:166$302 ($sub).
+Removed top 23 bits (of 32) from port B of cell ad4080_fifo_record_framer.$shiftx$ad4080_fifo_record_framer.sv:166$303 ($shiftx).
+Removed top 29 bits (of 32) from port A of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:167$304 ($sub).
+Removed top 27 bits (of 32) from port B of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:167$304 ($sub).
+Removed top 26 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:167$304 ($sub).
+Removed top 26 bits (of 32) from port B of cell ad4080_fifo_record_framer.$shiftx$ad4080_fifo_record_framer.sv:167$305 ($shiftx).
+Removed top 27 bits (of 32) from port A of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:177$310 ($sub).
+Removed top 27 bits (of 32) from port B of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:177$310 ($sub).
+Removed top 26 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:177$310 ($sub).
+Removed top 26 bits (of 32) from port B of cell ad4080_fifo_record_framer.$shiftx$ad4080_fifo_record_framer.sv:177$311 ($shiftx).
+Removed top 27 bits (of 32) from port A of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:183$318 ($sub).
+Removed top 26 bits (of 32) from port B of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:183$318 ($sub).
+Removed top 25 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:183$318 ($sub).
+Converting cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:183$319 ($add) from unsigned to signed.
+Removed top 25 bits (of 32) from port A of cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:183$319 ($add).
+Removed top 30 bits (of 32) from port B of cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:183$319 ($add).
+Removed top 24 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$add$ad4080_fifo_record_framer.sv:183$319 ($add).
+Converting cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:183$320 ($sub) from unsigned to signed.
+Removed top 24 bits (of 32) from port A of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:183$320 ($sub).
+Removed top 29 bits (of 32) from port B of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:183$320 ($sub).
+Removed top 23 bits (of 32) from port Y of cell ad4080_fifo_record_framer.$sub$ad4080_fifo_record_framer.sv:183$320 ($sub).
+Removed top 23 bits (of 32) from port B of cell ad4080_fifo_record_framer.$shiftx$ad4080_fifo_record_framer.sv:183$321 ($shiftx).
+Removed top 22 bits (of 32) from port B of cell ad4080_fifo_record_framer.$shiftx$ad4080_fifo_record_framer.sv:184$326 ($shiftx).
+Removed top 26 bits (of 32) from port B of cell ad4080_fifo_record_framer.$shiftx$ad4080_fifo_record_framer.sv:185$328 ($shiftx).
+Removed top 1 bits (of 3) from mux cell ad4080_fifo_record_framer.$ternary$ad4080_fifo_record_framer.sv:239$338 ($mux).
+Removed top 1 bits (of 3) from mux cell ad4080_fifo_record_framer.$procmux$477 ($mux).
+Removed top 1 bits (of 3) from mux cell ad4080_fifo_record_framer.$procmux$479 ($mux).
+Removed top 2 bits (of 3) from port B of cell ad4080_fifo_record_framer.$procmux$562_CMP0 ($eq).
+Removed top 1 bits (of 3) from port B of cell ad4080_fifo_record_framer.$procmux$580_CMP0 ($eq).
+Removed top 2 bits (of 5) from wire ad4080_fifo_record_framer.$ternary$ad4080_fifo_record_framer.sv:116$204_Y.
+Removed top 1 bits (of 3) from wire ad4080_fifo_record_framer.$procmux$479_Y.
+Removed top 13 bits (of 15) from wire ad4080_fifo_record_framer.$ternary$ad4080_fifo_record_framer.sv:139$268_Y.
+Removed top 1 bits (of 3) from wire ad4080_fifo_record_framer.$procmux$477_Y.
+Removed top 1 bits (of 3) from wire ad4080_fifo_record_framer.$ternary$ad4080_fifo_record_framer.sv:239$338_Y.
+
+3.10. Executing PEEPOPT pass (run peephole optimizers).
+shiftadd pattern in ad4080_fifo_record_framer: shift=$shiftx$ad4080_fifo_record_framer.sv:153$291, add/sub=$sub$ad4080_fifo_record_framer.sv:153$290, offset: -4
+shiftadd pattern in ad4080_fifo_record_framer: shift=$shiftx$ad4080_fifo_record_framer.sv:166$303, add/sub=$sub$ad4080_fifo_record_framer.sv:166$302, offset: -2
+shiftadd pattern in ad4080_fifo_record_framer: shift=$shiftx$ad4080_fifo_record_framer.sv:183$321, add/sub=$sub$ad4080_fifo_record_framer.sv:183$320, offset: -2
+shiftadd pattern in ad4080_fifo_record_framer: shift=$shiftx$ad4080_fifo_record_framer.sv:184$326, add/sub=$sub$ad4080_fifo_record_framer.sv:153$290, offset: -4
+
+3.11. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+Removed 3 unused cells and 8 unused wires.
+<suppressed ~4 debug messages>
+
+3.12. Executing ALUMACC pass (create $alu and $macc cells).
+Extracting $alu and $macc cells in module ad4080_fifo_record_framer:
+  creating $macc model for $sub$ad4080_fifo_record_framer.sv:153$288 ($sub).
+  creating $macc model for $add$ad4080_fifo_record_framer.sv:153$289 ($add).
+  creating $macc model for $sub$ad4080_fifo_record_framer.sv:166$300 ($sub).
+  creating $macc model for $add$ad4080_fifo_record_framer.sv:166$301 ($add).
+  creating $macc model for $sub$ad4080_fifo_record_framer.sv:167$304 ($sub).
+  creating $macc model for $sub$ad4080_fifo_record_framer.sv:177$310 ($sub).
+  creating $macc model for $sub$ad4080_fifo_record_framer.sv:183$318 ($sub).
+  creating $macc model for $add$ad4080_fifo_record_framer.sv:183$319 ($add).
+  creating $macc model for $add$ad4080_fifo_record_framer.sv:250$339 ($add).
+  creating $macc model for $sub$ad4080_fifo_record_framer.sv:257$340 ($sub).
+  creating $alu model for $macc $sub$ad4080_fifo_record_framer.sv:257$340.
+  creating $alu model for $macc $add$ad4080_fifo_record_framer.sv:250$339.
+  creating $alu model for $macc $add$ad4080_fifo_record_framer.sv:183$319.
+  creating $alu model for $macc $sub$ad4080_fifo_record_framer.sv:183$318.
+  creating $alu model for $macc $sub$ad4080_fifo_record_framer.sv:177$310.
+  creating $alu model for $macc $sub$ad4080_fifo_record_framer.sv:167$304.
+  creating $alu model for $macc $add$ad4080_fifo_record_framer.sv:166$301.
+  creating $alu model for $macc $sub$ad4080_fifo_record_framer.sv:166$300.
+  creating $alu model for $macc $add$ad4080_fifo_record_framer.sv:153$289.
+  creating $alu model for $macc $sub$ad4080_fifo_record_framer.sv:153$288.
+  creating $alu model for $ge$ad4080_fifo_record_framer.sv:110$188 ($ge): new $alu
+  creating $alu model for $le$ad4080_fifo_record_framer.sv:110$190 ($le): new $alu
+  creating $alu model for $gt$ad4080_fifo_record_framer.sv:137$263 ($gt): merged with $sub$ad4080_fifo_record_framer.sv:257$340.
+  creating $alu model for $eq$ad4080_fifo_record_framer.sv:126$239 ($eq): merged with $sub$ad4080_fifo_record_framer.sv:257$340.
+  creating $alu cell for $le$ad4080_fifo_record_framer.sv:110$190: $auto$alumacc.cc:548:replace_alu$754
+  creating $alu cell for $ge$ad4080_fifo_record_framer.sv:110$188: $auto$alumacc.cc:548:replace_alu$763
+  creating $alu cell for $sub$ad4080_fifo_record_framer.sv:153$288: $auto$alumacc.cc:548:replace_alu$776
+  creating $alu cell for $add$ad4080_fifo_record_framer.sv:153$289: $auto$alumacc.cc:548:replace_alu$779
+  creating $alu cell for $sub$ad4080_fifo_record_framer.sv:166$300: $auto$alumacc.cc:548:replace_alu$782
+  creating $alu cell for $add$ad4080_fifo_record_framer.sv:166$301: $auto$alumacc.cc:548:replace_alu$785
+  creating $alu cell for $sub$ad4080_fifo_record_framer.sv:167$304: $auto$alumacc.cc:548:replace_alu$788
+  creating $alu cell for $sub$ad4080_fifo_record_framer.sv:177$310: $auto$alumacc.cc:548:replace_alu$791
+  creating $alu cell for $sub$ad4080_fifo_record_framer.sv:183$318: $auto$alumacc.cc:548:replace_alu$794
+  creating $alu cell for $add$ad4080_fifo_record_framer.sv:183$319: $auto$alumacc.cc:548:replace_alu$797
+  creating $alu cell for $add$ad4080_fifo_record_framer.sv:250$339: $auto$alumacc.cc:548:replace_alu$800
+  creating $alu cell for $sub$ad4080_fifo_record_framer.sv:257$340, $gt$ad4080_fifo_record_framer.sv:137$263, $eq$ad4080_fifo_record_framer.sv:126$239: $auto$alumacc.cc:548:replace_alu$803
+  created 12 $alu and 0 $macc cells.
+
+3.13. Executing SHARE pass (SAT-based resource sharing).
+
+3.14. Executing OPT pass (performing simple optimizations).
+
+3.14.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+3.14.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 235 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Removed a total of 0 cells.
+
+3.14.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \ad4080_fifo_record_framer..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~95 debug messages>
+
+3.14.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \ad4080_fifo_record_framer.
+Performed a total of 0 changes.
+
+3.14.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 235 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Removed a total of 0 cells.
+
+3.14.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.14.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+Removed 0 unused cells and 4 unused wires.
+<suppressed ~1 debug messages>
+
+3.14.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+3.14.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+3.14.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \ad4080_fifo_record_framer..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~95 debug messages>
+
+3.14.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \ad4080_fifo_record_framer.
+Performed a total of 0 changes.
+
+3.14.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 235 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Removed a total of 0 cells.
+
+3.14.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.14.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+
+3.14.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+3.14.16. Finished fast OPT passes. (There is nothing left to do.)
+
+3.15. Executing MEMORY pass.
+
+3.15.1. Executing OPT_MEM pass (optimize memories).
+Performed a total of 0 transformations.
+
+3.15.2. Executing OPT_MEM_PRIORITY pass (removing unnecessary memory write priority relations).
+Performed a total of 0 transformations.
+
+3.15.3. Executing OPT_MEM_FEEDBACK pass (finding memory read-to-write feedback paths).
+
+3.15.4. Executing MEMORY_BMUX2ROM pass (converting muxes to ROMs).
+
+3.15.5. Executing MEMORY_DFF pass (merging $dff cells to $memrd).
+
+3.15.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+
+3.15.7. Executing MEMORY_SHARE pass (consolidating $memrd/$memwr cells).
+
+3.15.8. Executing OPT_MEM_WIDEN pass (optimize memories where all ports are wide).
+Performed a total of 0 transformations.
+
+3.15.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+
+3.15.10. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+3.16. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+
+3.17. Executing OPT pass (performing simple optimizations).
+
+3.17.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+<suppressed ~45 debug messages>
+
+3.17.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 245 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 234 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+<suppressed ~37 debug messages>
+Removed a total of 11 cells.
+
+3.17.3. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.17.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+Removed 0 unused cells and 48 unused wires.
+<suppressed ~1 debug messages>
+
+3.17.5. Finished fast OPT passes.
+
+3.18. Executing MEMORY_MAP pass (converting memories to logic and flip-flops).
+
+3.19. Executing OPT pass (performing simple optimizations).
+
+3.19.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+3.19.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 234 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Removed a total of 0 cells.
+
+3.19.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \ad4080_fifo_record_framer..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~62 debug messages>
+
+3.19.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \ad4080_fifo_record_framer.
+    Consolidated identical input bits for $mux cell $procmux$396:
+      Old ports: A={ 3'000 $shiftx$ad4080_fifo_record_framer.sv:167$305_Y }, B={ $shiftx$ad4080_fifo_record_framer.sv:167$305_Y $shiftx$ad4080_fifo_record_framer.sv:167$305_Y $shiftx$ad4080_fifo_record_framer.sv:167$305_Y $shiftx$ad4080_fifo_record_framer.sv:167$305_Y }, Y=$4\beat_o[3:0]
+      New ports: A=1'0, B=$shiftx$ad4080_fifo_record_framer.sv:167$305_Y, Y=$4\beat_o[3:0] [1]
+      New connections: { $4\beat_o[3:0] [3:2] $4\beat_o[3:0] [0] } = { $4\beat_o[3:0] [1] $4\beat_o[3:0] [1] $shiftx$ad4080_fifo_record_framer.sv:167$305_Y }
+    Consolidated identical input bits for $mux cell $procmux$483:
+      Old ports: A=3'100, B=3'011, Y=$procmux$483_Y
+      New ports: A=2'10, B=2'01, Y={ $procmux$483_Y [2] $procmux$483_Y [0] }
+      New connections: $procmux$483_Y [1] = $procmux$483_Y [0]
+    Consolidated identical input bits for $mux cell $ternary$ad4080_fifo_record_framer.sv:116$204:
+      Old ports: A=3'111, B=3'011, Y=$auto$wreduce.cc:513:run$747 [2:0]
+      New ports: A=1'1, B=1'0, Y=$auto$wreduce.cc:513:run$747 [2]
+      New connections: $auto$wreduce.cc:513:run$747 [1:0] = 2'11
+    Consolidated identical input bits for $mux cell $ternary$ad4080_fifo_record_framer.sv:117$206:
+      Old ports: A=5'10111, B=5'00101, Y=$ternary$ad4080_fifo_record_framer.sv:117$206_Y
+      New ports: A=1'1, B=1'0, Y=$ternary$ad4080_fifo_record_framer.sv:117$206_Y [1]
+      New connections: { $ternary$ad4080_fifo_record_framer.sv:117$206_Y [4:2] $ternary$ad4080_fifo_record_framer.sv:117$206_Y [0] } = { $ternary$ad4080_fifo_record_framer.sv:117$206_Y [1] 3'011 }
+    Consolidated identical input bits for $pmux cell $procmux$603:
+      Old ports: A=3'010, B=6'011000, Y=$procmux$603_Y
+      New ports: A=2'10, B=4'1100, Y=$procmux$603_Y [1:0]
+      New connections: $procmux$603_Y [2] = 1'0
+    Consolidated identical input bits for $mux cell $ternary$ad4080_fifo_record_framer.sv:191$329:
+      Old ports: A=3'001, B=3'100, Y=$ternary$ad4080_fifo_record_framer.sv:191$329_Y
+      New ports: A=2'01, B=2'10, Y={ $ternary$ad4080_fifo_record_framer.sv:191$329_Y [2] $ternary$ad4080_fifo_record_framer.sv:191$329_Y [0] }
+      New connections: $ternary$ad4080_fifo_record_framer.sv:191$329_Y [1] = 1'0
+  Optimizing cells in module \ad4080_fifo_record_framer.
+    Consolidated identical input bits for $mux cell $procmux$410:
+      Old ports: A=$4\beat_o[3:0], B={ 2'00 $shiftx$ad4080_fifo_record_framer.sv:166$303_Y }, Y=$3\beat_o[3:0]
+      New ports: A={ $4\beat_o[3:0] [1] $4\beat_o[3:0] [1] $shiftx$ad4080_fifo_record_framer.sv:167$305_Y }, B={ 1'0 $shiftx$ad4080_fifo_record_framer.sv:166$303_Y }, Y=$3\beat_o[3:0] [2:0]
+      New connections: $3\beat_o[3:0] [3] = $3\beat_o[3:0] [2]
+    Consolidated identical input bits for $mux cell $ternary$ad4080_fifo_record_framer.sv:117$207:
+      Old ports: A=$ternary$ad4080_fifo_record_framer.sv:117$206_Y, B=5'01001, Y=$ternary$ad4080_fifo_record_framer.sv:117$207_Y
+      New ports: A={ 2'01 $ternary$ad4080_fifo_record_framer.sv:117$206_Y [1] }, B=3'100, Y=$ternary$ad4080_fifo_record_framer.sv:117$207_Y [3:1]
+      New connections: { $ternary$ad4080_fifo_record_framer.sv:117$207_Y [4] $ternary$ad4080_fifo_record_framer.sv:117$207_Y [0] } = { $ternary$ad4080_fifo_record_framer.sv:117$207_Y [1] 1'1 }
+    Consolidated identical input bits for $mux cell $ternary$ad4080_fifo_record_framer.sv:118$210:
+      Old ports: A=$ternary$ad4080_fifo_record_framer.sv:117$206_Y, B=5'01011, Y=$ternary$ad4080_fifo_record_framer.sv:118$210_Y
+      New ports: A={ $ternary$ad4080_fifo_record_framer.sv:117$206_Y [1] 2'01 $ternary$ad4080_fifo_record_framer.sv:117$206_Y [1] }, B=4'0101, Y=$ternary$ad4080_fifo_record_framer.sv:118$210_Y [4:1]
+      New connections: $ternary$ad4080_fifo_record_framer.sv:118$210_Y [0] = 1'1
+  Optimizing cells in module \ad4080_fifo_record_framer.
+Performed a total of 9 changes.
+
+3.19.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 234 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Removed a total of 0 cells.
+
+3.19.6. Executing OPT_SHARE pass.
+
+3.19.7. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.19.8. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+Removed 0 unused cells and 1 unused wires.
+<suppressed ~1 debug messages>
+
+3.19.9. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+<suppressed ~3 debug messages>
+
+3.19.10. Rerunning OPT passes. (Maybe there is more to do..)
+
+3.19.11. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \ad4080_fifo_record_framer..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~55 debug messages>
+
+3.19.12. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \ad4080_fifo_record_framer.
+Performed a total of 0 changes.
+
+3.19.13. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 234 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Removed a total of 0 cells.
+
+3.19.14. Executing OPT_SHARE pass.
+
+3.19.15. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.19.16. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+
+3.19.17. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+
+3.19.18. Finished fast OPT passes. (There is nothing left to do.)
+
+3.20. Executing TECHMAP pass (map to technology primitives).
+
+3.20.1. Executing Verilog-2005 frontend: /share/techmap.v
+Parsing Verilog input from `/share/techmap.v' to AST representation.
+Generating RTLIL representation for module `\_90_simplemap_bool_ops'.
+Generating RTLIL representation for module `\_90_simplemap_reduce_ops'.
+Generating RTLIL representation for module `\_90_simplemap_logic_ops'.
+Generating RTLIL representation for module `\_90_simplemap_compare_ops'.
+Generating RTLIL representation for module `\_90_simplemap_various'.
+Generating RTLIL representation for module `\_90_simplemap_registers'.
+Generating RTLIL representation for module `\_90_shift_ops_shr_shl_sshl_sshr'.
+Generating RTLIL representation for module `\_90_shift_shiftx'.
+Generating RTLIL representation for module `\_90_fa'.
+Generating RTLIL representation for module `\_90_lcu_brent_kung'.
+Generating RTLIL representation for module `\_90_alu'.
+Generating RTLIL representation for module `\_90_macc'.
+Generating RTLIL representation for module `\_90_alumacc'.
+Generating RTLIL representation for module `$__div_mod_u'.
+Generating RTLIL representation for module `$__div_mod_trunc'.
+Generating RTLIL representation for module `\_90_div'.
+Generating RTLIL representation for module `\_90_mod'.
+Generating RTLIL representation for module `$__div_mod_floor'.
+Generating RTLIL representation for module `\_90_divfloor'.
+Generating RTLIL representation for module `\_90_modfloor'.
+Generating RTLIL representation for module `\_90_pow'.
+Generating RTLIL representation for module `\_90_demux'.
+Generating RTLIL representation for module `\_90_lut'.
+Generating RTLIL representation for module `$connect'.
+Generating RTLIL representation for module `$input_port'.
+Successfully finished Verilog frontend.
+
+3.20.2. Continuing TECHMAP pass.
+Using template $paramod$0ae6dcbc606d0267ec97d3ccf20343286af3366c\_90_alu for cells of type $alu.
+Using template $paramod$a175dfcf43370c480ccf353610350b0f2e691058\_90_alu for cells of type $alu.
+Using template $paramod$025d767fc934a3e7d59a671de523743ebaa07759\_90_alu for cells of type $alu.
+Using template $paramod$fc972a7a46956c1788f3cb5257b53c8f1df2d0cc\_90_alu for cells of type $alu.
+Using template $paramod$aebc44f5eedf4f1603d7564e4920ac508059c773\_90_alu for cells of type $alu.
+Using extmapper simplemap for cells of type $not.
+Using extmapper simplemap for cells of type $or.
+Using extmapper simplemap for cells of type $reduce_and.
+Using template $paramod$675ee3ed071b156aa661bdfa838b7e469d095ac0\_90_alu for cells of type $alu.
+Using template $paramod$672a140277c71df8314410f22acc08d55222c3c7\_90_alu for cells of type $alu.
+Using template $paramod$649fc39eef2451024566705288528c8671211199\_90_alu for cells of type $alu.
+Using template $paramod$ef8fb1849064cca7dc908988762d3374786d9fdb\_90_alu for cells of type $alu.
+Using extmapper simplemap for cells of type $reduce_or.
+Using extmapper simplemap for cells of type $reduce_bool.
+Using extmapper simplemap for cells of type $adffe.
+Using extmapper simplemap for cells of type $ne.
+Using extmapper simplemap for cells of type $logic_and.
+Using extmapper simplemap for cells of type $logic_not.
+Using extmapper simplemap for cells of type $eq.
+Using extmapper simplemap for cells of type $logic_or.
+Using extmapper simplemap for cells of type $mux.
+Using template $paramod$constmap:34605b04b17840044a1d97da2e5ea47aa48c58fc$paramod$f9de9755aabde4ada38da826791f2d256538fe76\_90_shift_shiftx for cells of type $shiftx.
+Using template $paramod$constmap:8c6b2bf2a5160a028cf2c4198f5911386b59e9e6$paramod$422fd248c97d281806b632f37d60a65ad91f42d8\_90_shift_shiftx for cells of type $shiftx.
+Using template $paramod$constmap:978300e990c82889ef29817ffcb4d01fcc050fd4$paramod$56e7f8c0017b5b8531b86335a382d0a7012c4b2b\_90_shift_shiftx for cells of type $shiftx.
+Using template $paramod$constmap:0f37cd92cf537bfd0023b4ac4e8ef37898dcf280$paramod$9189ddbee8183323d3e0b7dd2c983ae843396345\_90_shift_shiftx for cells of type $shiftx.
+Using template $paramod$constmap:fcfb2480c302c8e2aef09efc2dc01220d281865a$paramod$a5f03060c0f4c6a565877de3518b2aeaeb1035dd\_90_shift_shiftx for cells of type $shiftx.
+Analyzing pattern of constant bits for this cell:
+  Constant input on bit 1 of port B: 1'0
+  Constant input on bit 0 of port A: 1'x
+  Constant input on bit 1 of port A: 1'x
+  Constant input on bit 2 of port A: 1'x
+  Constant input on bit 3 of port A: 1'x
+Creating constmapped module `$paramod$constmap:e72d024a191f0d29be05d0c6eb66390a3f76a31d$paramod$f9de9755aabde4ada38da826791f2d256538fe76\_90_shift_shiftx'.
+
+3.20.46. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module $paramod$constmap:e72d024a191f0d29be05d0c6eb66390a3f76a31d$paramod$f9de9755aabde4ada38da826791f2d256538fe76\_90_shift_shiftx..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+    dead port 2/2 on $mux $procmux$1539.
+    dead port 2/2 on $mux $procmux$1545.
+    dead port 2/2 on $mux $procmux$1551.
+    dead port 2/2 on $mux $procmux$1557.
+    dead port 1/2 on $mux $procmux$1563.
+    dead port 2/2 on $mux $procmux$1563.
+    dead port 1/2 on $mux $procmux$1566.
+    dead port 2/2 on $mux $procmux$1569.
+Removed 8 multiplexer ports.
+<suppressed ~1524 debug messages>
+
+3.20.47. Executing OPT_EXPR pass (perform const folding).
+Optimizing module $paramod$constmap:e72d024a191f0d29be05d0c6eb66390a3f76a31d$paramod$f9de9755aabde4ada38da826791f2d256538fe76\_90_shift_shiftx.
+<suppressed ~5 debug messages>
+Removed 3 unused cells and 16 unused wires.
+Using template $paramod$constmap:e72d024a191f0d29be05d0c6eb66390a3f76a31d$paramod$f9de9755aabde4ada38da826791f2d256538fe76\_90_shift_shiftx for cells of type $shiftx.
+Analyzing pattern of constant bits for this cell:
+Creating constmapped module `$paramod$constmap:b3c1d6f8e38e25c9d29c080d43b0c2e76ae85b46$paramod$9189ddbee8183323d3e0b7dd2c983ae843396345\_90_shift_shiftx'.
+
+3.20.48. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module $paramod$constmap:b3c1d6f8e38e25c9d29c080d43b0c2e76ae85b46$paramod$9189ddbee8183323d3e0b7dd2c983ae843396345\_90_shift_shiftx..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+    dead port 2/2 on $mux $procmux$1681.
+    dead port 2/2 on $mux $procmux$1687.
+    dead port 2/2 on $mux $procmux$1693.
+    dead port 2/2 on $mux $procmux$1699.
+    dead port 2/2 on $mux $procmux$1705.
+Removed 5 multiplexer ports.
+<suppressed ~65 debug messages>
+
+3.20.49. Executing OPT_EXPR pass (perform const folding).
+Optimizing module $paramod$constmap:b3c1d6f8e38e25c9d29c080d43b0c2e76ae85b46$paramod$9189ddbee8183323d3e0b7dd2c983ae843396345\_90_shift_shiftx.
+<suppressed ~2 debug messages>
+Removed 0 unused cells and 10 unused wires.
+Using template $paramod$constmap:b3c1d6f8e38e25c9d29c080d43b0c2e76ae85b46$paramod$9189ddbee8183323d3e0b7dd2c983ae843396345\_90_shift_shiftx for cells of type $shiftx.
+Using extmapper simplemap for cells of type $and.
+Using extmapper simplemap for cells of type $pmux.
+Using extmapper simplemap for cells of type $adff.
+Using extmapper simplemap for cells of type $pos.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000000001 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000000001 for cells of type $lcu.
+Using extmapper simplemap for cells of type $xor.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000001111 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000001111 for cells of type $lcu.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000000011 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000000011 for cells of type $lcu.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000000101 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000000101 for cells of type $lcu.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000000111 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000000111 for cells of type $lcu.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000000100 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000000100 for cells of type $lcu.
+No more expansions possible.
+<suppressed ~1095 debug messages>
+
+3.21. Executing OPT pass (performing simple optimizations).
+
+3.21.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module ad4080_fifo_record_framer.
+<suppressed ~2127 debug messages>
+
+3.21.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\ad4080_fifo_record_framer'.
+Computing hashes of 2783 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 2656 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 2607 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 2588 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 2582 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+Computing hashes of 2579 cells of `\ad4080_fifo_record_framer'.
+Finding duplicate cells in `\ad4080_fifo_record_framer'.
+<suppressed ~612 debug messages>
+Removed a total of 204 cells.
+
+3.21.3. Executing OPT_DFF pass (perform DFF optimizations).
+
+3.21.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \ad4080_fifo_record_framer..
+Removed 1629 unused cells and 815 unused wires.
+<suppressed ~1630 debug messages>
+
+3.21.5. Finished fast OPT passes.
+
+3.22. Executing HIERARCHY pass (managing design hierarchy).
+Attribute `top' found on module `ad4080_fifo_record_framer'. Setting top module to ad4080_fifo_record_framer.
+
+3.22.1. Analyzing design hierarchy..
+Top module:  \ad4080_fifo_record_framer
+
+3.22.2. Analyzing design hierarchy..
+Top module:  \ad4080_fifo_record_framer
+Removed 0 unused modules.
+
+3.23. Printing statistics.
+
+=== ad4080_fifo_record_framer ===
+
+        +----------Local Count, excluding submodules.
+        | 
+      456 wires
+     3417 wire bits
+       67 public wires
+      253 public wire bits
+       36 ports
+      102 port bits
+      950 cells
+      186   $_AND_
+       70   $_DFFE_PN0P_
+        6   $_DFF_PN0_
+      405   $_MUX_
+       78   $_NOT_
+      157   $_OR_
+       48   $_XOR_
+
+3.24. Executing CHECK pass (checking for obvious problems).
+Checking module ad4080_fifo_record_framer...
+Found and reported 0 problems.
+
+4. Executing CHECK pass (checking for obvious problems).
+Checking module ad4080_fifo_record_framer...
+Found and reported 0 problems.
+
+5. Printing statistics.
+
+=== ad4080_fifo_record_framer ===
+
+        +----------Local Count, excluding submodules.
+        | 
+      456 wires
+     3417 wire bits
+       67 public wires
+      253 public wire bits
+       36 ports
+      102 port bits
+      950 cells
+      186   $_AND_
+       70   $_DFFE_PN0P_
+        6   $_DFF_PN0_
+      405   $_MUX_
+       78   $_NOT_
+      157   $_OR_
+       48   $_XOR_
+
+End of script. Logfile hash: 5fcd9e7d6d, time: 0.33s, user: 0.34s, system: 0.00s
+Yosys 0.69 (git sha1 9f75ca1f9, Release, Clang /workspace/YoWASP/yosys/wasi-sdk-33.0-x86_64-linux/share/cmake/../..//bin/clang++ 22.1.0)
+Time spent: 26% 41x opt_expr (0 sec), 16% 1x techmap (0 sec), ...

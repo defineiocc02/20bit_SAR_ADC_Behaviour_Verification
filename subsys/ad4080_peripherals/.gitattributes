@@ -1,0 +1,13 @@
+# 规划程序生成的 CSV 与已核对的责任表按原始字节计算 SHA-256。
+# 保留这六个输入的 CSV 换行，使干净检出、GitHub 源码包与本地回执一致。
+evidence/peripheral_open_items.csv -text whitespace=cr-at-eol
+floorplan/area.csv -text whitespace=cr-at-eol
+floorplan/area_by_scope.csv -text whitespace=cr-at-eol
+floorplan/block_binding.csv -text whitespace=cr-at-eol
+interfaces/function_ownership.csv -text whitespace=cr-at-eol
+interfaces/v21_ports.csv -text whitespace=cr-at-eol
+
+# 下列三份是工具原始文本；保留输出图形的行尾空格供回执逐字复核。
+io/evidence/fifo-record-yosys.txt whitespace=-blank-at-eol,-blank-at-eof
+io/evidence/verilator.txt whitespace=-blank-at-eol,-blank-at-eof
+io/evidence/yosys.txt whitespace=-blank-at-eol,-blank-at-eof

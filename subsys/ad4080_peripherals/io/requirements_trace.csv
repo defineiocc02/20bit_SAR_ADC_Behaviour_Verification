@@ -1,0 +1,9 @@
+requirement,block,simulation,formal_or_structural,evidence
+REQ-IO-01,ad4080_ddr_edge_words,single walking bits and independent reconstruction,direct edge order and zero DB,evidence/verilator.txt evidence/yosys.txt
+REQ-IO-02,ad4080_ddr_edge_words,dual walking bits and independent reconstruction,direct lane A/B edge order and zero padding,evidence/verilator.txt evidence/yosys.txt
+REQ-IO-03,ad4080_ddr_edge_words,test override and immediate normal word recovery,all binary mode and pattern combinations,evidence/verilator.txt evidence/yosys.txt
+REQ-IO-04,ad4080_ddr_edge_words,combinational input sweep,no state and SAT assertion,evidence/yosys.txt
+REQ-FIFO-01,ad4080_fifo_record_framer,LVDS fixed head plus N words and external CRC24,independent on-wire expected ordering,evidence/fifo-record-verilator.txt
+REQ-FIFO-02,ad4080_fifo_record_framer,single and quad SPI sign extension and header clocks and opt-in CRC,hard-coded physical lane words,evidence/fifo-record-verilator.txt
+REQ-FIFO-03,ad4080_fifo_record_framer,word-count and PHY-ready guard and abort and power-loss and recovery,independent tail and DCS end assertions,evidence/fifo-record-verilator.txt
+REQ-FIFO-04,ad4080_fifo_record_framer,unbound and missing and stale and rejected CRC service,Yosys generic synthesis and latch check,evidence/fifo-record-verilator.txt evidence/fifo-record-yosys.txt

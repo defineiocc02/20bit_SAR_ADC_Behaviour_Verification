@@ -1,0 +1,44 @@
+{
+  "units":"um", "die":[0,0,1500,1500], "core":[120,120,1380,1380],
+  "pad_ring_width":120, "dbu_per_micron":1000,
+  "ip_utilization_max":0.60, "ip_pre_cts_target_um2":120000,
+  "sram":{"banks":4,"words_per_bank":4096,"bits_per_word":20,"outer_margin":8,"bank_channel":8},
+  "partitions":[
+    {"id":"IP","name":"数字功能 IP","kind":"soft","group":"logic","rects":[[145,900,1095,1100],[230,1100,470,1300],[300,840,500,900]]},
+    {"id":"FIFO","name":"结果 SRAM","kind":"macro-window","group":"memory","rects":[[480,1115,1085,1315]]},
+    {"id":"SR2","name":"小 SRAM 预留","kind":"unbound","group":"memory","rects":[[155,845,285,890]]},
+    {"id":"OTP","name":"OTP 预留","kind":"unbound","group":"nv","rects":[[1110,935,1340,1358]]},
+    {"id":"DIO","name":"数据接口","kind":"interface-window","group":"io","rects":[[237,1330,1090,1372]]},
+    {"id":"CTRL","name":"数字外围","kind":"soft","group":"logic","rects":[[1100,800,1340,910]]},
+    {"id":"CLK","name":"时钟","kind":"macro-window","group":"clock","rects":[[260,742,475,828]]},
+    {"id":"RDAC","name":"RDAC 阵列","kind":"macro-window","group":"analog","rects":[[500,240,980,878]]},
+    {"id":"Q","name":"粗量化与采样","kind":"macro-window","group":"analog","rects":[[146,535,480,730],[146,310,368,525]]},
+    {"id":"RA","name":"余差放大","kind":"macro-window","group":"analog","rects":[[998,485,1304,650]]},
+    {"id":"ADC2","name":"第二级量化","kind":"macro-window","group":"analog","rects":[[998,668,1304,783]]},
+    {"id":"REF","name":"参考与缓冲","kind":"macro-window","group":"reference","rects":[[145,130,1354,218],[1000,235,1346,461]]},
+    {"id":"LDO1","name":"LDO","kind":"macro-window","group":"power","rects":[[130,1115,215,1360]]},
+    {"id":"LDO2","name":"LDO","kind":"macro-window","group":"power","rects":[[383,457,476,525]]},
+    {"id":"CAP","name":"电容预留","kind":"macro-window","group":"power","rects":[[1321,529,1365,740]]}
+  ],
+  "ip_row_blockages":[[200,990,960,1015],[248,1190,448,1220]],
+  "channels":[
+    {"id":"ADC_DIG","name":"开关控制及模拟隔离","rect":[500,879,1095,900]},
+    {"id":"SRAM_BUS","name":"结果 SRAM 总线","rect":[474,1100,1095,1115]},
+    {"id":"REF_FEED","name":"参考与阵列通道","rect":[145,218,1354,234]},
+    {"id":"RESIDUE","name":"RDAC 至 RA 的余差通道","rect":[980,490,998,648]},
+    {"id":"RA_ADC2","name":"RA 至 ADC2 的余差通道","rect":[998,650,1304,668]},
+    {"id":"IO_EAST","name":"数据接口至东侧焊盘","rect":[1090,1360,1380,1376]},
+    {"id":"Q_SPUR_N","name":"SADC 西侧接出","rect":[121,900,145,940]},
+    {"id":"Q_SPUR_S","name":"SADC 至量化器","rect":[121,660,146,900]}
+  ],
+  "ports":[
+    {"side":"west","group":"CLK_RST","name":"时钟与复位","line":[145,945,145,982],"peer":"CLK","rule":"时钟树入口、复位分发；控制释放需核对各时钟域"},
+    {"side":"south","group":"SADC_RDAC","name":"RDAC 开关与片选","signal_count":522,"line":[520,900,845,900],"peer":"RDAC","rule":"按物理槽分组，控制及回传隔离；宏方提供驱动和最迟到达"},
+    {"side":"south","group":"ADC2_RSP","name":"二级结果与捕获","line":[890,900,1060,900],"peer":"ADC2 / RA","rule":"保持同笔身份，余差模拟线独走 RESIDUE/RA_ADC2"},
+    {"side":"east","group":"RESULT","name":"结果与状态","line":[1095,925,1095,978],"peer":"CTRL / DIO","rule":"由系统登记时钟、位序、有效与跨域缓冲"},
+    {"side":"north","group":"CFG_TEST","name":"配置与测试","line":[520,1100,675,1100],"peer":"CTRL / OTP","rule":"低速加载与测试入口，提交与运行的互斥归 IP 合同"},
+    {"side":"west","group":"Q_RETURN","name":"双 SADC 预置与判决","signal_count":31,"line":[145,904,145,938],"peer":"Q","rule":"分出16根预置及写使能和15根判决返回，沿Q_SPUR_N/S向西接入粗量化区"}
+  ],
+  "photo":{"width":1126,"height":1125,"sha256":"689cd44fc8afd8f23ced86f6f1beaad5b8e5687fdea67176ee2866a6bdfcc25c","uncertainty_px":3,"boxes":{"DIO":[180,94,811,129],"FIFO":[358,133,811,298],"OTP":[827,102,1007,435],"SR2":[119,425,218,470]}},
+  "sources":{"datasheet":"AD4080 Rev. B, 95 pp.","ds_sha256":"f08f2586dc82d5f583b42071b3570c06f1fe736d3053e15a559a47ed2841cbc1","project_commit":"7408edf8db9a41eebdd756378b69d2775f107dec"}
+}

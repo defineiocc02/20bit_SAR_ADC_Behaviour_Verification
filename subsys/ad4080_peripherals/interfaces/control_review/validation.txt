@@ -1,0 +1,44 @@
+冻结 DSP 控制面、GPIO 守卫与主机水位协议 RTL 仿真
+REPORT_ID=CTRL-7408EDF-GPIO-WM
+baseline=7408edf8db9a41eebdd756378b69d2775f107dec
+tool=Verilator 5.30 (binary reports rev UNKNOWN.REV), Clang C++20, Mode 3 long SPI, AON 100 MHz
+verilator_binary_sha256=2b8877d8392b4557cd793d9c7730b0833f6a42593582350622fce00fbea85c61
+runner_sha256=7e5e55d6a7538eeb35f99a360bc0176d2d05a9615a9eb5a435696917a17b5ea9
+checks=assertion invocations, COUNTEREXAMPLE=observed baseline limitation
+optional_fixed_data_default_ack=disabled in this regression
+comment_audit power_bridge_tb.sv 40/263->55/263, control_review_tb.sv 69/359->73/359
+non_comment_lines=byte-identical to pre-comment source, repeated simulation observations identical
+scratch_run=spi-control-g1fh9x9e
+
+tested_sha256 57ceb15cb9abc8841c456d8dd4d52d8bc5b9bd402eeef7243dda66a7048e3798 control_review_tb.sv
+tested_sha256 87a4d1fb0bcf9aa78b31007f5bac35f5c046c905d127cf5573b04dda864a1919 power_bridge_tb.sv
+tested_sha256 ac19a1cd6988ec9be99746542f2fbd95145a031e0e5d7c4a4a814f2f64b2f51c ad4080_csr_power_bridge.sv
+tested_sha256 fc5c33a865ffd6329f3d4b05ba57a1b6d578500a0ed342b386c730ed4450f904 ad4080_pwr_supervisor.sv
+tested_sha256 460dc21f9652683a2b30b608f2196249eb9ab6e9e22df2b416e7af1e418aa82e ad4080_pwr_reset_sync.sv
+
+baseline_compile_warning_count=0
+OBS default_boot reject=1 SCRATCH=0x00 bound=0x5a
+COUNTEREXAMPLE device_config request=0x02 read=0x00 reject=2
+OBS baseline_POR after_W1C=0x00 no_separate_analog_event_input
+OBS offset descending=0x0fed ascending=0x037a lo_alias=0x0345 partial_reject=5
+OBS gain request=0x0201 readback=0x0200 reject=1 IF_STATUS_A=0
+COUNTEREXAMPLE no_os_watermark requested=0x01aa bytewise=0x0100 strict=0x01aa
+OBS watermark_host low_mismatch=blocked high_mismatch=blocked mode11_granularity=blocked ASC=0x01aa DESC=0x01aa FIFO_MODE=01
+OBS protocol_sticky=0x85 long_header=0x0025 W1C=0x81->0x00
+COUNTEREXAMPLE fig83 hi_dtct_after_return=0 alert_n=1 HI_STATUS=1 before_W1C
+OBS event_w1c HI+LO=0x30 clear_HI=0x10 persistent=0x10 recross=0x30
+OBS GPIO FILTER_RDY reject=2 unchanged_select=0x40 FILTER_SYNC=low_level
+COUNTEREXAMPLE gpio_sel_reserved code=0xa accepted readback=0xa6 OE=0
+OBS software_reset illegal_steps_rejected=2 valid_two_writes POR=0x09 ADDR_ASC=1
+OBS original_bank_reset_pulses=1 unused_by_service
+CONTROL_REVIEW_COMPLETE checks=187 default_rejections=67 bound_rejections=10
+
+bridge_compile_warning_count=0
+OBS bridge_ref_event original=0xa0 SPI=0xa8 long=0x2880
+OBS bridge_ref_w1c_collision count=1 event_wins=1
+OBS bridge_gpio addresses=0x1a,0x1b blocked=24 reject=2 atomic=1 filter_rdy_bank=2
+OBS bridge_modes 00->10->00->11->00 reserved_and_busy_blocked=1
+OBS bridge_software_reset rejected=1 accepted=1 SCRATCH=0 POR=0x09 ADDR_ASC=1
+POWER_BRIDGE_COMPLETE checks=561 por_events=2 collisions=1 resets=1
+
+missing_source_guard=exit 1 (source checkout absent)

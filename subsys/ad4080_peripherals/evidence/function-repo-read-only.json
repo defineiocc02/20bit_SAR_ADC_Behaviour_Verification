@@ -1,0 +1,34 @@
+{
+  "source_repository": "20bit_SAR_ADC_Behaviour_Verification",
+  "scope": "read-only Git source inspection; all builds performed against separate delivery",
+  "branch": "main",
+  "initial_commit": "7408edf8db9a41eebdd756378b69d2775f107dec",
+  "final_commit": "7408edf8db9a41eebdd756378b69d2775f107dec",
+  "porcelain_before": "",
+  "porcelain_after": "",
+  "git_diff_sha256_before": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "git_diff_sha256_after": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "scope_review": {
+    "work": "ISSCC source measurement, static ownership analysis and planning GDS layer separation",
+    "commit": "7408edf8db9a41eebdd756378b69d2775f107dec",
+    "porcelain_after": "",
+    "protected_rtl_edits": false,
+    "commercial_eda_runs": false
+  },
+  "peripheral_audit": {
+    "source_revision": "7408edf8db9a41eebdd756378b69d2775f107dec",
+    "source_reads": "immutable git show / archive; DSP regression compiled from temporary copies",
+    "initial_porcelain": "",
+    "final_porcelain": "",
+    "original_function_ip_edits": false,
+    "vendor_eda_runs": false,
+    "published_delivery": {
+      "branch": "feat/ad4080-peripherals",
+      "directory": "subsys/ad4080_peripherals",
+      "pull_request": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/pull/11",
+      "scope": "separate clone; product DSP is imported from the frozen object in a build directory"
+    },
+    "combined_local_checks": 29,
+    "device_obligations": 10
+  }
+}

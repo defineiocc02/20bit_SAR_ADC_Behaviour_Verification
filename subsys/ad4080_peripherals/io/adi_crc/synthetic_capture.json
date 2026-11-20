@@ -1,0 +1,152 @@
+{
+  "format": "ad4080-fifo-capture-v1",
+  "source": {
+    "kind": "synthetic",
+    "device": "AD4080",
+    "reference": "test_probe.py 的独立 GF(2) 长除法，只有测试用途",
+    "session": "synthetic-example"
+  },
+  "records": [
+    {
+      "id": "train-0",
+      "mode": "lvds",
+      "watermark": 1,
+      "split": "train",
+      "capture": {
+        "encoding": "decoded",
+        "header": "0xAA",
+        "samples": [
+          "0x135A9"
+        ],
+        "crc_wire": "0xE570DD"
+      }
+    },
+    {
+      "id": "train-1",
+      "mode": "lvds",
+      "watermark": 1,
+      "split": "train",
+      "capture": {
+        "encoding": "decoded",
+        "header": "0xAA",
+        "samples": [
+          "0xE62B4"
+        ],
+        "crc_wire": "0xFFE990"
+      }
+    },
+    {
+      "id": "train-2",
+      "mode": "lvds",
+      "watermark": 1,
+      "split": "train",
+      "capture": {
+        "encoding": "decoded",
+        "header": "0xAA",
+        "samples": [
+          "0x24B61"
+        ],
+        "crc_wire": "0xDC8858"
+      }
+    },
+    {
+      "id": "train-3",
+      "mode": "lvds",
+      "watermark": 2,
+      "split": "train",
+      "capture": {
+        "encoding": "decoded",
+        "header": "0xAA",
+        "samples": [
+          "0x764EF",
+          "0xDB192"
+        ],
+        "crc_wire": "0x941491"
+      }
+    },
+    {
+      "id": "train-4",
+      "mode": "lvds",
+      "watermark": 2,
+      "split": "train",
+      "capture": {
+        "encoding": "decoded",
+        "header": "0xAA",
+        "samples": [
+          "0x093AB",
+          "0x8C601"
+        ],
+        "crc_wire": "0x0F0374"
+      }
+    },
+    {
+      "id": "holdout-0",
+      "mode": "lvds",
+      "watermark": 1,
+      "split": "holdout",
+      "capture": {
+        "encoding": "decoded",
+        "header": "0xAA",
+        "samples": [
+          "0xB19E3"
+        ],
+        "crc_wire": "0xD82369"
+      }
+    },
+    {
+      "id": "holdout-1",
+      "mode": "lvds",
+      "watermark": 2,
+      "split": "holdout",
+      "capture": {
+        "encoding": "decoded",
+        "header": "0xAA",
+        "samples": [
+          "0x5B92F",
+          "0x812AC"
+        ],
+        "crc_wire": "0xE432A6"
+      }
+    },
+    {
+      "id": "holdout-2",
+      "mode": "lvds",
+      "watermark": 3,
+      "split": "holdout",
+      "capture": {
+        "encoding": "decoded",
+        "header": "0xAA",
+        "samples": [
+          "0x7BE21",
+          "0x982AB",
+          "0x00042"
+        ],
+        "crc_wire": "0xA16E2F"
+      }
+    },
+    {
+      "id": "spi1-format",
+      "mode": "spi1",
+      "watermark": 2,
+      "split": "format",
+      "capture": {
+        "encoding": "decoded",
+        "header": "0xAA",
+        "samples": [
+          "0x0135A9",
+          "0xFE62B4"
+        ]
+      }
+    },
+    {
+      "id": "spi4-format",
+      "mode": "spi4",
+      "watermark": 2,
+      "split": "format",
+      "capture": {
+        "encoding": "abcd_beats",
+        "beats": "F0F0F0F0 08CA59 F764D2 9"
+      }
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "format": "ad4080-crc24-hypotheses-v1",
+  "profiles": [
+    {
+      "name": "synthetic-payload",
+      "poly": "derive",
+      "coverage": "payload",
+      "packing": "raw20",
+      "refin": false,
+      "refout": false,
+      "wire_order": "msb",
+      "augment_bits": 0,
+      "init": null,
+      "xorout": null
+    },
+    {
+      "name": "same-wire-constant-header",
+      "poly": "derive",
+      "coverage": "header_payload",
+      "packing": "raw20",
+      "refin": false,
+      "refout": false,
+      "wire_order": "msb",
+      "augment_bits": 0,
+      "init": null,
+      "xorout": null
+    },
+    {
+      "name": "same-wire-reflection",
+      "poly": "derive",
+      "coverage": "payload",
+      "packing": "raw20",
+      "refin": false,
+      "refout": true,
+      "wire_order": "lsb",
+      "augment_bits": 0,
+      "init": null,
+      "xorout": null
+    },
+    {
+      "name": "counterexample-generic-poly",
+      "poly": [
+        "0x864CFB"
+      ],
+      "coverage": "payload",
+      "packing": "raw20",
+      "refin": false,
+      "refout": false,
+      "wire_order": "msb",
+      "augment_bits": 0,
+      "init": null,
+      "xorout": null
+    }
+  ]
+}

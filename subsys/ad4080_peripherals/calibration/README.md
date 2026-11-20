@@ -1,6 +1,6 @@
 # 用 ADCToolbox 估计系统 OFFSET 和 GAIN
 
-**主机估计系数，已有 DSP 在片上逐样本修正。** 要校准的是传感器、驱动和 ADC 组成的整个测量通道。输入为转换 IP 已经重构好的 20 位结果。ADCToolbox 的 `fit_sine_4param` 从实测序列拟合基波峰值和直流分量；将它们与独立标定的输入幅度、直流中心比较，即可求出绝对增益和零偏。也可按 AD4080 手册用两个已知直流电平求解。[ADCToolbox 源码](https://github.com/Arcadia-1/ADCToolbox/blob/8d62fb1863e38ffe5c6cc3ac48fa9c24d9df1ae9/python/src/adctoolbox/fundamentals/fit_sine_4param.py#L49) · [手册第 71 页](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=71) · [现有 DSP 修正 RTL](../../ad4080_dsp/rtl/sys_error_corr.sv)
+**主机估计系数，已有 DSP 在片上逐样本修正。** 要校准的是传感器、驱动和 ADC 组成的整个测量通道。输入为转换 IP 已经重构好的 20 位结果。ADCToolbox 的 `fit_sine_4param` 从实测序列拟合基波峰值和直流分量；将它们与独立标定的输入幅度、直流中心比较，即可求出绝对增益和零偏。也可按 AD4080 手册用两个已知直流电平求解。[ADCToolbox 源码](https://github.com/Arcadia-1/ADCToolbox/blob/8d62fb1863e38ffe5c6cc3ac48fa9c24d9df1ae9/python/src/adctoolbox/fundamentals/fit_sine_4param.py#L49) · [手册第 71 页](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=71) · [现有 DSP 修正 RTL](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/7408edf8db9a41eebdd756378b69d2775f107dec/subsys/ad4080_dsp/rtl/sys_error_corr.sv)
 
 ## 快速运行
 
@@ -32,7 +32,7 @@ python "$cal/system_cal.py" sine --csv sine.csv --vref-v 3 --fs-hz 40000000 \
 
 ## 怎样得到可写的寄存器码
 
-**本项目 RTL。** 已有 `sys_error_corr` 使用显式绑定的 `m(k)=1+(k−512)·K_GAIN/2^SHIFT`。脚本选最接近 `1/a` 的已授权增益码，再按量化后增益计算 `OFFSET=round(−m(k)·b)`，以抵消物理零输入时的误差。OFFSET 用 12 位补码，GAIN 用 10 位直码。饱和、输入触及端点、越出可表示范围等条件均应检查。主机选寄存器时的舍入与 RTL 逐样本乘积的半步处理分别测试。`K_GAIN=1, SHIFT=15` 是可复现的工程绑定。[位真软件参考](../../ad4080_dsp/model/ad4080_cal_model.py) · [校准程序](system_cal.py)
+**本项目 RTL。** 已有 `sys_error_corr` 使用显式绑定的 `m(k)=1+(k−512)·K_GAIN/2^SHIFT`。脚本选最接近 `1/a` 的已授权增益码，再按量化后增益计算 `OFFSET=round(−m(k)·b)`，以抵消物理零输入时的误差。OFFSET 用 12 位补码，GAIN 用 10 位直码。饱和、输入触及端点、越出可表示范围等条件均应检查。主机选寄存器时的舍入与 RTL 逐样本乘积的半步处理分别测试。`K_GAIN=1, SHIFT=15` 是可复现的工程绑定。[位真软件参考](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/7408edf8db9a41eebdd756378b69d2775f107dec/subsys/ad4080_dsp/model/ad4080_cal_model.py) · [校准程序](system_cal.py)
 
 **实际器件。** 手册给出了单位码和端点，准确的内部增益码步、加乘顺序和逐样本舍入尚未从公开资料唯一确定。可以在选取的 GAIN 档用实物求表，再在拟使用的 GAIN 下单独测 OFFSET 灵敏度。下面是可执行的数据格式及命令。
 
@@ -63,3 +63,5 @@ python "$cal/characterize_registers.py" offset-trim --csv trim.csv --vref-v 3
 python -B -m unittest discover -s "$cal" -p 'test_*.py'
 python -B "$cal/verify_rtl.py" --repo . --verilator verilator --out /tmp/ad4080-system-cal.json
 ```
+
+集成测试还将这套正弦估计的四个字节真正写进配置 SPI 并读回。同一份 16K×20 结果 SRAM 分别记录校正前后的三个独立样本。参考码为 `−300000、0、250000`，中性设置读出 `−301420、80、251330`，校准后读出 `−300001、0、250000`。两次均从完整的 46 对逻辑双沿记录解码。[SPI 和 SRAM 回读证据](../integration/product/evidence/calibration.txt) · [复跑命令](../integration/product/README.md#产品级-offsetgain-验证)

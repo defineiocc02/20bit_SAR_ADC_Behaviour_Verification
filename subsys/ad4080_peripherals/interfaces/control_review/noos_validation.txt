@@ -1,0 +1,165 @@
+REPORT_ID=CTRL-7408EDF-NOOS
+profile=config_SPI_only_mode3_long_no_crc, AON=100MHz, external_IOVDD
+archive_sha256=37d8e6ee8acee3815134463e617d32157cc5f64beb81d423e7d5ad60597609b3
+runner_sha256=82fd8170b1ee76cd53b1a531c964989a9dacec8266a89dc89f6bca23b09f829e
+verilator=5.30, final_exit=0, no vendor source included in delivery
+missing_adi_archive_guard=exit 1
+standalone_recipe=Clang success without AD4080_NOOS_SIM, dependencies only ad4080 API
+tested_sha256 0ee16b414b40727bf2131c99c53055f9ae274e440c189b439c1b18085b8d02e9 noos_spi_rtl.sv
+tested_sha256 68ae5b3647dfb60b645aaecce8b73c1c83b411bab7535591efede228bd33d708 noos_spi_sim.cpp
+tested_sha256 1a3fec2ebb0c7c0ff0742f9979732ce64564e194a006106d54c8069589f93263 noos_host_recipe.c
+tested_sha256 ac19a1cd6988ec9be99746542f2fbd95145a031e0e5d7c4a4a814f2f64b2f51c ad4080_csr_power_bridge.sv
+tested_sha256 fc5c33a865ffd6329f3d4b05ba57a1b6d578500a0ed342b386c730ed4450f904 ad4080_pwr_supervisor.sv
+tested_sha256 460dc21f9652683a2b30b608f2196249eb9ab6e9e22df2b416e7af1e418aa82e ad4080_pwr_reset_sync.sv
+adi_ad4080.compile.log_warning_count=0
+adi_no_os_util.compile.log_warning_count=0
+noos_host_recipe.compile.log_warning_count=0
+rtl.compile.log_warning_count=0
+
+baseline=7408edf8db9a41eebdd756378b69d2775f107dec
+adi_commit=0e6ed1dea135ef541ad6323fc9fcad116ffce90b
+scratch_run=adi-noos-vktugcmg
+tool=rev UNKNOWN.REV
+adi_sha256 0b30e7424acf70ddb81fab8f203eb10dfefc4adf1b6348904a4be60498954c4d drivers/adc/ad4080/ad4080.c
+adi_sha256 e513771273f961a08c8da4388e66df1ad62f28cb8027cc1114d9284bedee2a27 drivers/adc/ad4080/ad4080.h
+adi_sha256 1d4b345545badbbc3d34deaaba9f77c3674e2ec26dce6547f11e448bb1a5f588 util/no_os_util.c
+adi_sha256 52d029d32f9ab536297849b723586da9146e40900b62276560eb9e7c656f2427 include/no_os_util.h
+adi_sha256 ce2d6ca8f3dd8afe3e0d806e26f7ad4d05d8d52ec0dae957009f705e43e9bea8 include/no_os_spi.h
+adi_sha256 6618cec6018cde4ef0cbf7ceac815d8131f23e43b5f770902aadbd6452f2bd19 include/no_os_gpio.h
+adi_sha256 75d1455b6fd271ea0674059cfc244374a33c798e8705327e2b08812866d2c626 include/no_os_delay.h
+SPI R addr=0003 tx=800300 rx=00c007 reject=0 rc=0
+SPI R addr=0004 tx=800400 rx=00c050 reject=0 rc=0
+SPI R addr=0005 tx=800500 rx=00c000 reject=0 rc=0
+SPI R addr=0000 tx=800000 rx=00c010 reject=0 rc=0
+SPI W addr=0000 tx=000091 rx=00c000 reject=0 rc=0
+SPI R addr=0000 tx=800000 rx=00c010 reject=0 rc=0
+SPI W addr=0000 tx=000010 rx=00c000 reject=0 rc=0
+SPI R addr=0000 tx=800000 rx=00c010 reject=0 rc=0
+SPI W addr=0000 tx=000020 rx=00c000 reject=0 rc=0
+SPI R addr=0002 tx=800200 rx=00c000 reject=0 rc=0
+SPI W addr=0002 tx=000200 rx=00c000 reject=0 rc=0
+SPI R addr=0001 tx=800100 rx=00c000 reject=0 rc=0
+SPI W addr=0001 tx=000100 rx=00c000 reject=0 rc=0
+SPI R addr=0001 tx=800100 rx=00c000 reject=0 rc=0
+SPI W addr=0001 tx=000100 rx=00c000 reject=0 rc=0
+SPI R addr=0010 tx=801000 rx=00c023 reject=0 rc=0
+SPI W addr=0010 tx=001003 rx=00c000 reject=0 rc=0
+SPI R addr=0015 tx=801500 rx=00c040 reject=0 rc=0
+SPI W addr=0015 tx=001540 rx=00c000 reject=0 rc=0
+SPI R addr=0015 tx=801500 rx=00c040 reject=0 rc=0
+SPI W addr=0015 tx=001540 rx=00c000 reject=0 rc=0
+SPI R addr=0016 tx=801600 rx=00c000 reject=0 rc=0
+SPI W addr=0016 tx=001600 rx=00c000 reject=0 rc=0
+SPI R addr=0016 tx=801600 rx=00c000 reject=0 rc=0
+SPI W addr=0016 tx=001600 rx=00c000 reject=0 rc=0
+SPI R addr=0017 tx=801700 rx=00c020 reject=0 rc=0
+SPI W addr=0017 tx=001720 rx=00c000 reject=0 rc=0
+SPI R addr=0016 tx=801600 rx=00c000 reject=0 rc=0
+SPI W addr=0016 tx=001600 rx=00c000 reject=0 rc=0
+SPI R addr=001c tx=801c00 rx=00c000 reject=0 rc=0
+SPI W addr=001c tx=001c00 rx=00c000 reject=0 rc=0
+SPI R addr=0003 tx=800300 rx=00c007 reject=0 rc=0
+SPI R addr=0004 tx=800400 rx=00c050 reject=0 rc=0
+SPI R addr=0005 tx=800500 rx=00c000 reject=0 rc=0
+SPI R addr=0000 tx=800000 rx=00c030 reject=0 rc=0
+SPI R addr=0010 tx=801000 rx=00c003 reject=0 rc=0
+OBS noos_init chip=07 product=0050 addr_asc=1 strict=0
+SPI R addr=0015 tx=801500 rx=00c040 reject=0 rc=0
+SPI W addr=0015 tx=001541 rx=00c000 reject=2 rc=-5
+SPI R addr=0015 tx=801500 rx=00c040 reject=0 rc=0
+OBS noos_data_profile readonly_change=blocked data_transfer=not_bound
+SPI R addr=0002 tx=800200 rx=00c000 reject=0 rc=0
+SPI W addr=0002 tx=000202 rx=00c000 reject=0 rc=0
+SPI R addr=0002 tx=800200 rx=00c002 reject=0 rc=0
+SPI R addr=0002 tx=800200 rx=00c002 reject=0 rc=0
+SPI W addr=0002 tx=000200 rx=00c000 reject=0 rc=0
+SPI R addr=0002 tx=800200 rx=00c000 reject=0 rc=0
+OBS noos_mode standby=2 normal=0 recovery_wait=1
+SPI R addr=0029 tx=802900 rx=00c000 reject=0 rc=0
+SPI W addr=0029 tx=002901 rx=00c000 reject=0 rc=0
+SPI R addr=0029 tx=802900 rx=00c001 reject=0 rc=0
+SPI W addr=0029 tx=002919 rx=00c000 reject=0 rc=0
+SPI R addr=0029 tx=802900 rx=00c019 reject=0 rc=0
+SPI R addr=0029 tx=802900 rx=00c019 reject=0 rc=0
+SPI W addr=0029 tx=00291b rx=00c000 reject=1 rc=-5
+SPI R addr=0029 tx=802900 rx=00c019 reject=0 rc=0
+OBS noos_filter sinc1_D16=0x19 unbound_comp_preserved=1
+SPI R addr=001a tx=801a00 rx=00c000 reject=0 rc=0
+SPI W addr=001a tx=001aa0 rx=00c000 reject=2 rc=-5
+SPI R addr=001a tx=801a00 rx=00c000 reject=0 rc=0
+OBS noos_gpio enum_0xa_rejected=2
+SPI R addr=001d tx=801d00 rx=00c000 reject=0 rc=0
+SPI R addr=001e tx=801e00 rx=00c040 reject=0 rc=0
+SPI W addr=001d tx=001daa rx=00c000 reject=0 rc=0
+SPI W addr=001e tx=001e01 rx=00c000 reject=0 rc=0
+SPI R addr=001d tx=801d00 rx=00c000 reject=0 rc=0
+SPI R addr=001e tx=801e00 rx=00c001 reject=0 rc=0
+COUNTEREXAMPLE noos_unmodified_default_4000 requested=01aa observed=0100
+SPI R addr=0010 tx=801000 rx=00c003 reject=0 rc=0
+SPI R addr=001c tx=801c00 rx=00c000 reject=0 rc=0
+SPI W addr=001e tx=001e01 rx=00c000 reject=0 rc=0
+SPI W addr=001d tx=001d00 rx=00c000 reject=0 rc=0
+SPI W addr=001e tx=001e40 rx=00c000 reject=0 rc=0
+SPI R addr=001d tx=801d00 rx=00c000 reject=0 rc=0
+SPI R addr=001e tx=801e00 rx=00c040 reject=0 rc=0
+SPI R addr=001c tx=801c00 rx=00c000 reject=0 rc=0
+SPI W addr=001c tx=001c01 rx=00c000 reject=0 rc=0
+SPI R addr=001c tx=801c00 rx=00c001 reject=0 rc=0
+SPI R addr=001c tx=801c00 rx=00c001 reject=0 rc=0
+SPI W addr=001c tx=001c00 rx=00c000 reject=0 rc=0
+SPI R addr=001d tx=801d00 rx=00c000 reject=0 rc=0
+SPI R addr=001e tx=801e00 rx=00c040 reject=0 rc=0
+SPI R addr=0010 tx=801000 rx=00c003 reject=0 rc=0
+SPI R addr=001c tx=801c00 rx=00c000 reject=0 rc=0
+SPI W addr=001e tx=001e01 rx=00c000 reject=0 rc=0
+SPI W addr=001d tx=001daa rx=00c000 reject=0 rc=0
+SPI W addr=001e tx=001e01 rx=00c000 reject=0 rc=0
+SPI R addr=001d tx=801d00 rx=00c0aa reject=0 rc=0
+SPI R addr=001e tx=801e00 rx=00c001 reject=0 rc=0
+SPI R addr=001c tx=801c00 rx=00c000 reject=0 rc=0
+SPI W addr=001c tx=001c01 rx=00c000 reject=0 rc=0
+SPI R addr=001c tx=801c00 rx=00c001 reject=0 rc=0
+SPI R addr=001c tx=801c00 rx=00c001 reject=0 rc=0
+SPI R addr=0010 tx=801000 rx=00c003 reject=0 rc=0
+SPI R addr=001c tx=801c00 rx=00c001 reject=0 rc=0
+SPI R addr=001c tx=801c00 rx=00c001 reject=0 rc=0
+SPI W addr=001c tx=001c00 rx=00c000 reject=0 rc=0
+SPI R addr=0000 tx=800000 rx=00c030 reject=0 rc=0
+SPI W addr=0000 tx=000010 rx=00c000 reject=0 rc=0
+SPI R addr=0000 tx=800000 rx=00c010 reject=0 rc=0
+SPI R addr=0010 tx=801000 rx=00c003 reject=0 rc=0
+SPI R addr=001c tx=801c00 rx=00c000 reject=0 rc=0
+SPI W addr=001e tx=001e01 rx=00c000 reject=0 rc=0
+SPI W addr=001d tx=001d00 rx=00c000 reject=0 rc=0
+SPI W addr=001e tx=001e01 rx=00c000 reject=0 rc=0
+SPI R addr=001d tx=801d00 rx=00c000 reject=0 rc=0
+SPI R addr=001e tx=801e00 rx=00c001 reject=0 rc=0
+SPI R addr=001c tx=801c00 rx=00c000 reject=0 rc=0
+SPI W addr=001c tx=001c01 rx=00c000 reject=0 rc=0
+SPI R addr=001c tx=801c00 rx=00c001 reject=0 rc=0
+SPI R addr=001c tx=801c00 rx=00c001 reject=0 rc=0
+SPI W addr=001c tx=001c00 rx=00c000 reject=0 rc=0
+SPI R addr=0010 tx=801000 rx=00c003 reject=0 rc=0
+SPI R addr=001c tx=801c00 rx=00c000 reject=0 rc=0
+SPI W addr=001e tx=001e01 rx=00c000 reject=0 rc=0
+SPI W addr=001d tx=001d01 rx=00c000 reject=0 rc=0
+SPI W addr=001e tx=001e00 rx=00c000 reject=0 rc=0
+SPI R addr=001d tx=801d00 rx=00c001 reject=0 rc=0
+SPI R addr=001e tx=801e00 rx=00c000 reject=0 rc=0
+SPI R addr=001c tx=801c00 rx=00c000 reject=0 rc=0
+SPI W addr=001c tx=001c01 rx=00c000 reject=0 rc=0
+SPI R addr=001c tx=801c00 rx=00c001 reject=0 rc=0
+SPI R addr=001c tx=801c00 rx=00c001 reject=0 rc=0
+SPI W addr=001c tx=001c00 rx=00c000 reject=0 rc=0
+SPI R addr=001c tx=801c00 rx=00c000 reject=0 rc=0
+OBS noos_fifo_recipe default_4000_to_01aa=ok ASC=1 DESC=1 sample_edges=0001,0100,4000 arm=1
+SPI R addr=0010 tx=801000 rx=00c003 reject=0 rc=0
+SPI W addr=0010 tx=001023 rx=00c000 reject=0 rc=0
+SPI R addr=0010 tx=801000 rx=00c023 reject=0 rc=0
+SPI R addr=0010 tx=801000 rx=00c023 reject=0 rc=0
+SPI W addr=001d tx=001daa rx=00c000 reject=5 rc=-5
+SPI W addr=001e tx=001e01aa rx=00c20000 reject=0 rc=0
+SPI R addr=001e tx=801e0000 rx=00c201aa reject=0 rc=0
+OBS noos_strict byte_helper_reject=5 atomic_desc_read=01aa
+NOOS_HOST_COMPLETE checks=47
+NOOS_SPI_RTL_COMPLETE frames=126 reject_frames=4 ready_waits=2 data_guard=1

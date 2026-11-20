@@ -1,0 +1,11 @@
+PASS source hashes for AD4080 Rev. B and IPBrain image match floorplan plan.json
+PASS all 49 package balls and G6 DNC compared with Rev. B Figure 2 and Table 6
+PASS configuration SPI balls E7 F7 G1 G7 separate from the data-clock/result group
+PASS DIO, CLK, IO_EAST, Pad ring and CLK_RST/RESULT/CFG_TEST bounds match plan.json
+PASS staged RTL, test harness and Yosys script match the delivered byte hashes
+Code-comment density, measured on new files with no previous versions:
+ad4080_ddr_edge_words.sv: code=31 comments=44 rate=141.9%
+ad4080_ddr_edge_words_tb.sv: code=91 comments=36 rate=39.6%
+ad4080_ddr_edge_words_properties.sv: code=42 comments=34 rate=81.0%
+prove_edge_words.ys: code=11 comments=18 rate=163.6%
+verification_plan.yaml: code=9 comments=19 rate=211.1%

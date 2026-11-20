@@ -1,0 +1,67 @@
+Protected DSP commit 7408edf8db9a41eebdd756378b69d2775f107dec
+Twelve archived RTL files; only external-storage adapters differ
+
+Verilator product regression, SHIFT=14
+- V e r i l a t i o n   R e p o r t:  rev UNKNOWN.REV
+- Verilator: Built from 2.575 MB sources in 27 modules, into 1.121 MB in 5 C++ files needing 0.000 MB
+- Verilator: Walltime 2.015 s (elab=0.072, cvt=0.376, bld=0.000); cpu 1.846 s on 1 threads
+PASS empty/incomplete rejection through DSP CSR and AON
+PASS SPI OFFSET/GAIN -> SINC1 -> HI event -> three SRAM words -> 46 pairs aa0075e009e8ff30e71f3ec
+PASS physical full: 16384 accepted writes and address 3fff, extra sample held outside record
+PASS IOVDD retained unread record, then revoked and cleared the partially consumed record
+PASS MBIST same-bank handoff, reason 3 abort, metadata clear, fresh record address zero
+PASS mode11 full-history: event 3ffb, frozen SRAM addresses 3fff->0000, wire prefix 03fff04000
+AD4080_PRODUCT_BINDING PASS
+- integration/product/tb_ad4080_peripheral_product.sv:562: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.30
+- Verilator: $finish at 1ms; walltime 0.228 s; speed 5.182 ms/s
+- Verilator: cpu 0.220 s on 1 threads; alloced 0 MB
+
+Yosys logical structure and elaborated engineering profile
+Yosys 0.69 (git sha1 9f75ca1f9, Release, Clang /workspace/YoWASP/yosys/wasi-sdk-33.0-x86_64-linux/share/cmake/../..//bin/clang++ 22.1.0)
+Checking module ad4080_peripheral_product...
+Found and reported 0 problems.
+PRODUCT_STRUCTURE PASS: original DSP/control leaves, four 4096x20 result banks, one 8x22 transport queue
+DSP engineering mapping K_GAIN=1 SHIFT=14
+ad4080_peripheral_product.u_record.u_readback.u_transport.fifo_memory_q: 8x22
+ad4080_peripheral_product.u_services.u_result_store.banks[0].bank.mem: 4096x20
+ad4080_peripheral_product.u_services.u_result_store.banks[1].bank.mem: 4096x20
+ad4080_peripheral_product.u_services.u_result_store.banks[2].bank.mem: 4096x20
+ad4080_peripheral_product.u_services.u_result_store.banks[3].bank.mem: 4096x20
+2ee1049fa326150df5587181ad45bca80c34bc3d9a782b7f471e2a8c085ede28  /tmp/ad4080-product.hLvezl/synthesized.json
+
+Source identity verified after all stages
+power/ad4080_pwr_reset_sync.sv: OK
+power/ad4080_pwr_supervisor.sv: OK
+otp/otp_shadow_loader.sv: OK
+memory/result_store_mbist.sv: OK
+rtl/result_store.sv: OK
+io/ad4080_ddr_edge_words.sv: OK
+integration/ad4080_peripheral_services.sv: OK
+transport/ad4080_result_transport.sv: OK
+io/ad4080_fifo_record_framer.sv: OK
+integration/ad4080_result_readback_link.sv: OK
+integration/ad4080_fifo_lvds_record_link.sv: OK
+bound_dsp/ad4080_top.sv: OK
+bound_dsp/ad4080_regs.sv: OK
+bound_dsp/ad4080_dsp_chain.sv: OK
+bound_dsp/event_detect.sv: OK
+bound_dsp/fifo_capture.sv: OK
+bound_dsp/gpio_ctrl.sv: OK
+bound_dsp/result_fifo.sv: OK
+bound_dsp/sinc1_decim.sv: OK
+bound_dsp/sinc5_comp.sv: OK
+bound_dsp/sinc5_decim.sv: OK
+bound_dsp/spi_slave.sv: OK
+bound_dsp/sys_error_corr.sv: OK
+integration/product/ad4080_product_record_session.sv: OK
+integration/product/ad4080_peripheral_product.sv: OK
+integration/product/tb_ad4080_peripheral_product.sv: OK
+integration/files.f: OK
+integration/readback_files.f: OK
+integration/product/rtl.f: OK
+integration/lint.vlt: OK
+integration/check_tool_run.py: OK
+integration/product/bind_dsp.py: OK
+integration/product/run_product.sh: OK
+integration/product/check_product_netlist.py: OK

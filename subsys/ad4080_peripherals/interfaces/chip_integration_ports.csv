@@ -1,0 +1,33 @@
+interface,signal_or_bundle,direction,logical_width_or_quantity,supply_or_clock_domain,layout_region,status,connection_zh
+模拟,IN_P/N 与 AUXIN_P/N,Pad → Q/RDAC,2+2模拟,模拟VDD33/采样,安静模拟侧 向Q/RDAC内引,Rev.B封装功能参考,独立差分主输入及辅助输入。电气连接由模拟宏及封装确定。
+模拟,REFIN 与 REFGND,Pad → REF,电源/模拟连接按Pad库,参考/静地,REF_FEED 与参考侧Pad,Rev.B封装功能参考,参考输入及其低阻返回。粗/细参考本地分发，不穿数字区。
+模拟,CMO,模拟缓冲 → Pad,1模拟,模拟共模,参考侧Pad,Rev.B封装功能参考,共模电压输出。负载和开关噪声预算由模拟方给出。
+模拟,RDAC_TO_RA_P/N,RDAC → RA,2模拟,余差/模拟域,RESIDUE,工程建议,差分余差，模拟宏LT/LEF给pin和残余建立预算。保留同层对称与返回路径。
+模拟,RA_TO_ADC2_P/N,RA → ADC2,2模拟,余差/模拟域,RA_ADC2,工程建议,差分放大余差。ADC2电气共模、摆幅、采样负载由宏方交付。
+采样,TP_CLK 与 TP_EN_RDAC[17:0] 与 TP_EN_SADC[1:0],CLK/采样协调器 → RDAC/Q,1+18+2建议,敏感模拟采样边沿,CLK/RDAC/Q本地,工程建议,受片权和已稳定预置约束，在公共沿前建立使能。禁止直接把组合片选用作采样时钟。
+前级,FLASH_START 与 FLASH_DONE/QID/CODE,CLK/前级适配器 ↔ 共享Flash,按宏定义,前级事件,Q本地 / 经Q_SPUR_N与Q_SPUR_S到P6 Q_RETURN,工程建议,真实粗码及qid经P6成束提交到ev_flash组。时序适配器管理事件队列。
+前级,QDAC_TRIAL 与 COMP_REQ/DONE/BIT,前级适配器 ↔ 双SADC,试探映射待定 加每bank请求/完成/决定位,前级事件,Q本地 / 经Q_SPUR_N与Q_SPUR_S到P6 Q_RETURN,工程建议,唯一SAR试探控制者在Q侧。与v21之间由P6下发16位SADC预置并返回Flash/SAR共15位，试探码或比较请求在Q侧处理。
+参考与RA,REF_FINE_SEL 与 RA_AZ/WB/NB 与 RA_SETTLED,CLK/模拟相序控制 ↔ REF/RA,至少相序控制和就绪资格 具体编码待定,模拟相序,RA/REF_FEED本地,工程建议,最后post写后发起粗细参考切换和RA相序，反映真正稳定后的捕获资格。
+ADC2,ADC2_SAMPLE 与 ADC2_HOLD_DONE,采样协调器 ↔ ADC2,宏接口待定,公共采样事件,ADC2/CLK本地,工程建议,协调器结合沿前arm及宏稳定资格发实际捕获，回送同笔捕获和保持确认。
+事件,RST/POR 与 DOM_READY 与 ISO_EN,电源与时序协调器 → 各时钟/电源域,每域复位与隔离 依电源意图,各域,CLK_RST/电源边界,工程建议,复位同步释放，各域达到时钟电源条件后开隔离。在途握手需统一清空，功能IP没有新增端口。
+供电,VDD33,Pad → 3.3V模拟域,电源,模拟3.3V,REF/Q/RA/Pads,Rev.B封装功能参考,模拟电源。电源pad数量和金属由目标PDK电流与压降核对。
+供电,VDDLDO,Pad → LDO1/LDO2,电源,1.5–2.7V工作输入,LDO1/LDO2,Rev.B封装功能参考,供片内两路LDO的可选外源。具体上电顺序由供电模式确定。
+供电,VDD11,LDO或外供 → 核心,电源,核心1.1V,IP/存储/数字外围/其他按宏UPF,Rev.B封装功能参考,内置LDO模式下对外作去耦节点且不得并联外驱。外供模式按规格供电。
+供电,IOVDD,LDO或外供 → I/O,电源,接口1.1V,DIO/Pad,Rev.B封装功能参考,数字接口轨。内置LDO模式下对外作去耦节点且不得并联外驱。
+供电,GND 与 IOGND 与 REFGND,系统返回 ↔ 对应域,电源返回,地与参考回流,Pad及各域本地,Rev.B封装功能参考,片上分支规划回流和电位差。Rev.B板级用低阻公共地平面，目标芯片拓扑由ESD和封装评审。
+OTP,otp_req_* 与 otp_rsp_*,加载器 ↔ OTP读宏,地址与字宽跟宏协议,OTP装载器clk_i,OTP/CTRL/CFG_TEST,独立适配器接口,以otp_shadow_loader.sv交付端口为准。外加授权OTP读宏、供电隔离与读故障信息。
+OTP,verify_req_* 与 verify_rsp_* 与 shadow_* 与 power_good_i,加载器 ↔ 验收器/CFG装载,镜像大小/就绪/有效,OTP装载器clk_i,OTP/CTRL/CFG_TEST,独立适配器接口,通过镜像校验后才发布shadow，复位用adapters_cancel_o及adapters_quiescent_i清理旧响应。转换为w_cfg写序列的可信桥另行接入。
+OTP,OTP_PROGRAM/TEST/VPP与BIST,授权编程测试设施 ↔ OTP,由OTP宏及测试工艺决定,独立读写电源权限域,OTP局部,工程建议,低速受控测试，默认不开放编程与高压通路。宏签核时确定pad和电压。
+SRAM,req_i/write_i/addr_i[13:0]/data_i[19:0],FIFO控制器 → result_store,1+1+14+20,单口存储域,FIFO/SRAM_BUS,独立RTL接口,位13:12选4银行，位11:0选单银行4096字。读写由上层仲裁，宏没有独立并发读写。
+SRAM,data_o[19:0]/read_valid_o, result_store → FIFO控制器,20+1,单口存储域,FIFO/SRAM_BUS,独立RTL接口,读响应与读请求对齐。后端替换须匹配延迟及实际CE/WE/OE和端口方向。
+SRAM,clk/rst_n,CLK/POR → result_store,1+1,单口存储域,FIFO/SRAM_BUS,独立RTL接口,复位清控制，存储数据以已写地址为有效。物理工艺宏电源与时钟端以LEF/Liberty为准。
+SRAM,SR2 预留宏端口,未绑定,待定,待定,SR2,工程建议,地址/数据/时钟/测试等按用途和工艺宏确认，容量与用途待定。
+PHY,RetireBundle 与 FIFO/PHY bridge,IP → CTRL/FIFO/PHY,1 valid+20 code+1 sat+1 err+32 tag,IP clk → SRAM/串行域,RESULT/SRAM_BUS/DIO,工程建议,IP 无输出ready。先在IP域可靠承接后根据水位控制新采样，异域采用整字跨域桥接。
+PHY,sample_i[19:0]/dual_lane_i/intf_check_i → da_fall_o/da_rise_o/db_fall_o/db_rise_o/slot_count_o,字映射输入 → 边沿槽序列,20+1+1 → 4×10+4,组合映射,DIO / IO_EAST 从x=1090接DIO,独立RTL接口,ad4080_ddr_edge_words.sv提供字到逻辑边沿槽。串并、DDR I/O、编码转换、CDC与Pad需集成。
+封装,CNV±,Host → 芯片,1对,采样时钟,安静时钟入口 → CLK,Rev.B封装功能参考,CMOS 默认模式用正端、负端接IOGND。LVDS模式使用差分输入及近端100Ω终端。
+封装,CLK± / DCLK与DCS,Host → 芯片,1对 或2单端,IOVDD的串行时钟/片选,北侧或东北DIO附近,Rev.B封装功能参考,LVDS差分时钟输入作近端100Ω终端。SPI数据模式复用为时钟及数据片选。
+封装,DCO±,芯片 → Host,1对,LVDS输出/DIO,北或东北DIO附近,Rev.B封装功能参考,LVDS回送源同步时钟，自时钟模式可关。在接收端按链路终端、匹配数据线。
+封装,DA± 与 DB± / SDOA..SDOD,芯片 → Host,1或2对 或最多4单端,串行数据/DIO,北或东北DIO附近,Rev.B封装功能参考,DA主通道、DB可选。SPI数据模式复用为输出且单通道走SDOB，OE按模式实现。
+封装,配置SCLK/CS/SDI/GPIO0_SDO,Host控制输入加芯片回读,3入+1复用出,低速配置IO,CTRL对接的数字Pad区,Rev.B封装功能参考,配置SPI独立于数据SPI，GPIO0默认回读。片选、电气与引脚复用在Pad层落地。
+封装,GPIO[3:0],Host ↔ 芯片,4复用且GPIO0共用,IOVDD,CTRL对接的数字Pad区,Rev.B封装功能参考,状态与GPIO读写的OE必须在Pad侧控制。复用GPIO0时由系统定义配置回读。
+封装,DNC,无连接,封装位置保留,无,N/A,Rev.B封装功能参考,按参考封装表保留；裸片Pad或工程封装引脚由封装组定义。

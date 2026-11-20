@@ -1,0 +1,14 @@
+bound_dsp/ad4080_top.sv
+bound_dsp/ad4080_regs.sv
+bound_dsp/ad4080_dsp_chain.sv
+bound_dsp/event_detect.sv
+bound_dsp/fifo_capture.sv
+bound_dsp/gpio_ctrl.sv
+bound_dsp/result_fifo.sv
+bound_dsp/sinc1_decim.sv
+bound_dsp/sinc5_comp.sv
+bound_dsp/sinc5_decim.sv
+bound_dsp/spi_slave.sv
+bound_dsp/sys_error_corr.sv
+integration/product/ad4080_product_record_session.sv
+integration/product/ad4080_peripheral_product.sv

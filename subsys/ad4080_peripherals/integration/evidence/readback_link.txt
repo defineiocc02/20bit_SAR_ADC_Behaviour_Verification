@@ -1,0 +1,57 @@
+Strict record RTL lint
+- V e r i l a t i o n   R e p o r t:  rev UNKNOWN.REV
+- Verilator: Built from 0.558 MB sources in 13 modules, into 0.232 MB in 5 C++ files needing 0.000 MB
+- Verilator: Walltime 0.990 s (elab=0.023, cvt=0.114, bld=0.000); cpu 0.902 s on 1 threads
+Readback RTL lint PASS
+
+Verilator SRAM to CDC to DDR payload and full-record regression
+PASS FIFO dual-lane and INTF_CHECK commands rejected without SRAM acceptance
+PAIR reconstructed frame 0 word 95e2b slots 10
+PAIR reconstructed frame 1 word 80001 slots 10
+PAIR reconstructed frame 2 word 3f317 slots 10
+PAIR reconstructed frame 3 word fedc9 slots 10
+PAIR reconstructed frame 4 word 1ab07 slots 10
+PASS full-queue reservation blocked fifth read and retired five consecutive frames
+PAIR reconstructed frame 5 word 3bc71 slots 10
+PASS IOVDD flush invalidated partial and queued frames, fresh first word 3bc71
+PASS unbound record format or CRC service rejected before header and payload
+PASS record abort flushed active old payload before the next epoch
+RECORD_LVDS_GOLDEN PASS
+PASS real SRAM full record aa95e2b8000181a4d4, 36 pairs, 2 data words
+PASS transport quiescence held while BIST flushed the I/O session
+PASS missing response latched protocol error and blocked further reads
+PASS untracked response latched error before same-edge request could issue
+PERIPHERAL_READBACK_LINK PASS
+- integration/peripheral_readback_link_tb.sv:522: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.30
+- Verilator: $finish at 308us; walltime 0.065 s; speed 4.916 ms/s
+- Verilator: cpu 0.063 s on 1 threads; alloced 0 MB
+
+Yosys structural JSON gate
+Yosys 0.69 (git sha1 9f75ca1f9, Release, Clang /workspace/YoWASP/yosys/wasi-sdk-33.0-x86_64-linux/share/cmake/../..//bin/clang++ 22.1.0)
+Checking module ad4080_fifo_lvds_record_link...
+Found and reported 0 problems.
+Verified Yosys JSON top ad4080_fifo_lvds_record_link, one 8 x 22 transport queue
+93f8fc7fafbe1082c0653e69fd2fecde46a6d79147b39a8185b536900c89a56a  /tmp/ad4080-readback-link.Vp3lSp/synthesized.json
+
+Source identity verified after all stages
+power/ad4080_pwr_reset_sync.sv: OK
+power/ad4080_pwr_supervisor.sv: OK
+otp/otp_shadow_loader.sv: OK
+memory/result_store_mbist.sv: OK
+rtl/result_store.sv: OK
+io/ad4080_ddr_edge_words.sv: OK
+integration/ad4080_peripheral_services.sv: OK
+transport/ad4080_result_transport.sv: OK
+io/ad4080_fifo_record_framer.sv: OK
+integration/ad4080_result_readback_link.sv: OK
+integration/ad4080_fifo_lvds_record_link.sv: OK
+integration/files.f: OK
+integration/readback_files.f: OK
+integration/lint.vlt: OK
+integration/check_tool_run.py: OK
+integration/run_linked.sh: OK
+integration/peripheral_readback_link_tb.sv: OK
+
+Bench comment-only audit: 83/419 -> 87/419 (20.76%). Noncomment lines byte-identical.
+Noncomment SHA-256 a3659f5d322d7b635c2da97b85de916baf167a9d20418df3a484db2255676449

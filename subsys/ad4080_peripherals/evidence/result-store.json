@@ -1,0 +1,21 @@
+{
+  "top": "result_store",
+  "bank_count": 4,
+  "generic_bank": {
+    "ABITS": 12,
+    "WIDTH": 20,
+    "SIZE": 4096,
+    "RD_PORTS": 1,
+    "WR_PORTS": 1
+  },
+  "payload_bits": 327680,
+  "simulation": "PASS result_store depth=16384 width=20 banks=4 checked_cycles=49156",
+  "simulator": "Verilator 5.30",
+  "synthesis_tool": "Yosys 0.69 (git sha1 9f75ca1f9)",
+  "synthesis_scope": "generic memory inference; PDK SRAM mapping and STA pending",
+  "sources_sha256": {
+    "rtl/result_store.sv": "277c131ca1daf4b9b42d1a899091fee1fa4eae44c21acf3883d9140717d93699",
+    "verify/store_tb.sv": "e2c2bc17799d51f73f1376cc8ba1f8bd7c16e5f1c78bc858a41844cfd9ca706f",
+    "verify/store.ys": "2b295f5b9939b0c9f06bef1794ab6501b42467c81062206334c0e6334413db9f"
+  }
+}

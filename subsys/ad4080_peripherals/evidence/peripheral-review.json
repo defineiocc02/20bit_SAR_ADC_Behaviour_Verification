@@ -1,0 +1,378 @@
+{
+  "status": "PASS",
+  "scope": "all registered open-source checks",
+  "frozen_dsp": "7408edf8db9a41eebdd756378b69d2775f107dec",
+  "checks": {
+    "ownership": {
+      "status": "PASS",
+      "observed": [
+        "PASS [('adc_digital_ip_v21', 11), ('sar20_ad4080_top', 13), ('ad4080_peripheral_services', 8), ('ad4080_result_readback_link', 4), ('ad4080_fifo_lvds_record_link', 6)]",
+        "PASS [('adc_digital_ip_v21', 11), ('sar20_ad4080_top', 13), ('ad4080_peripheral_services', 8), ('ad4080_result_readback_link', 4), ('ad4080_fifo_lvds_record_link', 6)]",
+        "PASS [('adc_digital_ip_v21', 11), ('sar20_ad4080_top', 13), ('ad4080_peripheral_services', 8), ('ad4080_result_readback_link', 4), ('ad4080_fifo_lvds_record_link', 6)]"
+      ]
+    },
+    "layout": {
+      "status": "PASS",
+      "observed": [
+        "规划几何验收通过，记录 <run>/layout.json"
+      ]
+    },
+    "area": {
+      "status": "PASS",
+      "observed": [
+        "Ran 34 tests in 0.378s",
+        "OK"
+      ]
+    },
+    "store": {
+      "status": "PASS",
+      "observed": [
+        "{\"top\": \"result_store\", \"bank_count\": 4, \"generic_bank\": {\"ABITS\": 12, \"WIDTH\": 20, \"SIZE\": 4096, \"RD_PORTS\": 1, \"WR_PORTS\": 1}, \"payload_bits\": 327680, \"simulation\": \"PASS result_store depth=16384 width=20 banks=4 checked_cycles=49156\", \"simulator\": \"Verilator 5.30\", \"synthesis_tool\": \"Yosys 0.69 (git sha1 9f75ca1f9)\", \"synthesis_scope\": \"generic memory inference; PDK SRAM mapping and STA pending\", \"sources_sha256\": {\"rtl/result_store.sv\": \"277c131ca1daf4b9b42d1a899091fee1fa4eae44c21acf3883d9140717d93699\", \"verify/store_tb.sv\": \"e2c2bc17799d51f73f1376cc8ba1f8bd7c16e5f1c78bc858a41844cfd9ca706f\", \"verify/store.ys\": \"2b295f5b9939b0c9f06bef1794ab6501b42467c81062206334c0e6334413db9f\"}}",
+        "{\"top\": \"result_store\", \"bank_count\": 4, \"generic_bank\": {\"ABITS\": 12, \"WIDTH\": 20, \"SIZE\": 4096, \"RD_PORTS\": 1, \"WR_PORTS\": 1}, \"payload_bits\": 327680, \"simulation\": \"PASS result_store depth=16384 width=20 banks=4 checked_cycles=49156\", \"simulator\": \"Verilator 5.30\", \"synthesis_tool\": \"Yosys 0.69 (git sha1 9f75ca1f9)\", \"synthesis_scope\": \"generic memory inference; PDK SRAM mapping and STA pending\", \"sources_sha256\": {\"rtl/result_store.sv\": \"277c131ca1daf4b9b42d1a899091fee1fa4eae44c21acf3883d9140717d93699\", \"verify/store_tb.sv\": \"e2c2bc17799d51f73f1376cc8ba1f8bd7c16e5f1c78bc858a41844cfd9ca706f\", \"verify/store.ys\": \"2b295f5b9939b0c9f06bef1794ab6501b42467c81062206334c0e6334413db9f\"}}"
+      ]
+    },
+    "mbist": {
+      "status": "PASS",
+      "observed": [
+        "PASS full March pattern=00000 accesses=163840 elapsed_cycles=163841",
+        "PASS full March pattern=55555 accesses=163840 elapsed_cycles=163841",
+        "PASS dropped read response addr=1000",
+        "PASS result_store_mbist banks=4 full_scan_accesses=327680"
+      ]
+    },
+    "otp": {
+      "status": "PASS",
+      "observed": [
+        "PASS unrequested macro response closes the session with code 10",
+        "PASS unrequested checker pass closes the session with code 11",
+        "OTP SHADOW LOADER REGRESSION PASS"
+      ]
+    },
+    "power": {
+      "status": "PASS",
+      "observed": [
+        "PASS 02 6 ns REFIN capture while AON stopped, W1C re-set and retained state",
+        "PASS ad4080 power supervisor directed 8/8"
+      ]
+    },
+    "power_zero": {
+      "status": "PASS",
+      "observed": [
+        "PASS PARAM 0 Hz protected clients held"
+      ]
+    },
+    "power_fraction": {
+      "status": "PASS",
+      "observed": [
+        "PASS PARAM 10000001 Hz INIT=3001 STBY=1001 SLEEP=1801"
+      ]
+    },
+    "power_max": {
+      "status": "PASS",
+      "observed": [
+        "PASS PARAM 4294967295 Hz INIT=1288491 STBY=429497 SLEEP=773095"
+      ]
+    },
+    "edge_words": {
+      "status": "PASS",
+      "observed": [
+        "PASS IO edge words: 1109 frame-word checks and both fixed edge literals"
+      ]
+    },
+    "edge_words_formal": {
+      "status": "PASS",
+      "observed": [
+        "SAT proof finished - no model found: SUCCESS!",
+        "End of script. Logfile hash: c2b24b16bd, time: 0.07s, user: 0.08s, system: 0.00s"
+      ]
+    },
+    "record_frame_0": {
+      "status": "PASS",
+      "observed": [
+        "PASS FIFO record SPI_TAIL=0 beats=98509 fault_checks=15"
+      ]
+    },
+    "record_frame_1": {
+      "status": "PASS",
+      "observed": [
+        "PASS FIFO record SPI_TAIL=1 beats=227 fault_checks=15"
+      ]
+    },
+    "frozen_result_fifo_tb": {
+      "status": "PASS",
+      "observed": [
+        "RESULT_FIFO_CONTRACT_COMPLETE depth=32 queue_reads=124 snapshot_reads=37 collisions=13 writes=166 checks=2724"
+      ]
+    },
+    "frozen_fifo_capture_contract_tb": {
+      "status": "PASS",
+      "observed": [
+        "FIFO_CAPTURE_CONTRACT_COMPLETE depth=16384 early_reads=16384 known_history_compares=5 post_event_compares=4 rearm_rejects=1 ordered_compares=4 checks=32783"
+      ]
+    },
+    "queue_port_full_depth": {
+      "status": "PASS",
+      "observed": [
+        "PINNED_FIFO_1RW_PASS depth=16384 queue_both=1 captured_writes=16384 captured_reads=16384"
+      ]
+    },
+    "dsp_data": {
+      "status": "PASS",
+      "observed": [
+        "PASS config SPI -> correction: -1024 -> -1104, input-relative clk=3",
+        "PASS result SPI SDOB: beats=80 wire=aa00075e0009e8fff30e (0xAA + three signed24 words)",
+        "PASS result SPI SDOB: beats=80 wire=aa00075e0009e8fff30e (0xAA + three signed24 words)",
+        "AD4080_DSP_RATE_SCAN_COMPLETE legal=27 clamp=3 pause_switch=1",
+        "AD4080_DSP_REVIEW_COMPLETE"
+      ]
+    },
+    "dsp_control": {
+      "status": "PASS",
+      "observed": [
+        "CONTROL_REVIEW_COMPLETE checks=187 default_rejections=67 bound_rejections=10",
+        "OBS watermark_host low_mismatch=blocked high_mismatch=blocked mode11_granularity=blocked ASC=0x01aa DESC=0x01aa FIFO_MODE=01",
+        "OBS bridge_gpio addresses=0x1a,0x1b blocked=24 reject=2 atomic=1 filter_rdy_bank=2",
+        "POWER_BRIDGE_COMPLETE checks=561 por_events=2 collisions=1 resets=1"
+      ]
+    },
+    "transport": {
+      "status": "PASS",
+      "observed": [
+        "PASS single 40/400 MHz: 512 accepted and reassembled without bubbles",
+        "PASS dual 40/200 MHz: 512 accepted and reassembled without bubbles",
+        "PASS startup discard visible after local reset release; hard reset and overflow remain distinct",
+        "AD4080 RESULT TRANSPORT REGRESSION PASS",
+        "Yosys generic synthesis and check PASS"
+      ]
+    },
+    "services": {
+      "status": "PASS",
+      "observed": [
+        "PASS BIST hold before grant is harmless and excludes same-edge reset/mode",
+        "PASS illegal mode and incomplete-capture reset/mode/BIST blocked without stopping capture",
+        "PERIPHERAL_SERVICES PASS",
+        "Generic synthesis structure PASS"
+      ]
+    },
+    "record_link": {
+      "status": "PASS",
+      "observed": [
+        "RECORD_LVDS_GOLDEN PASS",
+        "PASS real SRAM full record aa95e2b8000181a4d4, 36 pairs, 2 data words",
+        "PERIPHERAL_READBACK_LINK PASS",
+        "Readback generic structure PASS"
+      ]
+    },
+    "adi_noos": {
+      "status": "PASS",
+      "observed": [
+        "NOOS_HOST_COMPLETE checks=47",
+        "NOOS_SPI_RTL_COMPLETE frames=126 reject_frames=4 ready_waits=2 data_guard=1"
+      ]
+    },
+    "adi_receiver": {
+      "status": "PASS",
+      "observed": [
+        "PASS ADI receiver interop: 4 runs, commit f518dd124fc005c6f9cd80b7947b10a638c37b37"
+      ]
+    },
+    "adi_crc_analysis": {
+      "status": "PASS",
+      "observed": [
+        "Ran 12 tests in 0.028s",
+        "OK"
+      ]
+    },
+    "adctoolbox_host": {
+      "status": "PASS",
+      "observed": [
+        "Ran 13 tests in 5.730s",
+        "OK"
+      ]
+    },
+    "adctoolbox_rtl": {
+      "status": "PASS",
+      "observed": [
+        "Verified 8234 RTL outputs against sys_corr"
+      ]
+    },
+    "product_binding": {
+      "status": "PASS",
+      "observed": [
+        "AD4080_PRODUCT_BINDING PASS",
+        "PRODUCT_STRUCTURE PASS: original DSP/control leaves, four 4096x20 result banks, one 8x22 transport queue"
+      ]
+    },
+    "product_calibration": {
+      "status": "PASS",
+      "observed": [
+        "AD4080_PRODUCT_CALIBRATION PASS",
+        "PRODUCT_STRUCTURE PASS: original DSP/control leaves, four 4096x20 result banks, one 8x22 transport queue"
+      ]
+    }
+  },
+  "full_suite": true,
+  "failed": [],
+  "scope_rows": 36,
+  "photo_bytes_compared": true,
+  "open_items": [
+    {
+      "id": "FRAME-CRC",
+      "scope": "FIFO商业器件LVDS尾",
+      "blocking_evidence": "公开资料给24位尾和头格式；官方源码与本机已有资料未含可独立闭合的商用尾样本/算法",
+      "owner": "数字接口与验证岗",
+      "acceptance": "用 io/adi_crc 的捕获工具处理不同输入与N的训练和留出实物帧，排除等效模型歧义，给原厂参数或独立可重算证据"
+    },
+    {
+      "id": "SPI-CLOCK",
+      "scope": "结果SPI和LVDS的封装级时序",
+      "blocking_evidence": "官方HDL的接收位序在理想原语上跑通，真实封装引脚、DCS/DCLK持续访问及最短CNV首位仍待板测",
+      "owner": "混合信号总责和接口岗",
+      "acceptance": "用实际ODDR与引脚模型验证持续输出及首次位点并配板级采样确认"
+    },
+    {
+      "id": "DSP-MAP",
+      "scope": "用户校正与补偿",
+      "blocking_evidence": "ADCToolbox与原DSP已闭环验证工程增益，板上有效增益码表、偏移试调、滤波补偿真实系数仍需实测",
+      "owner": "片外校准岗和外围RTL",
+      "acceptance": "两点测量与滤波幅频/相位样本建立与器件相符的系数及饱和舍入规则"
+    },
+    {
+      "id": "CNV-READY",
+      "scope": "结果就绪与设备时基",
+      "blocking_evidence": "数值valid与真实CNV不是同一事件且全倍率器件首笔相位未实绑",
+      "owner": "外围RTL与模拟时序负责人",
+      "acceptance": "按手册图97至99与合法倍率逐笔对照真实CNV及接口首字"
+    },
+    {
+      "id": "PRODUCT-JOIN",
+      "scope": "真实转换核和产品单存储集成",
+      "blocking_evidence": "原 DSP 及一份四银行已在数字产品绑定中联合验证；真实转换源、板级I/O和产品最终使能/时钟仍需接入",
+      "owner": "总后端",
+      "acceptance": "固定一个产品网表将记录控制接唯一物理存储并以真实转换源验证取得到引脚的带标识结果"
+    },
+    {
+      "id": "MACROS",
+      "scope": "目标存储与小SRAM",
+      "blocking_evidence": "4Kx20规划窗和单口行为已核对但目标库LEF/Liberty及小存储用途未交",
+      "owner": "存储后端与宏供应方",
+      "acceptance": "用 sram_macro_gate.py 读批准的PVT与供应商LEF/Liberty/1RW规格，验全部角和引脚、读时延、外形，另明示小SRAM消费者"
+    },
+    {
+      "id": "OTP-FACTORY",
+      "scope": "量产OTP/校准数据/DFT",
+      "blocking_evidence": "训练镜像与逻辑MBIST有回归而实际镜像格式编程电压和ATE流程尚待交",
+      "owner": "产品测试与NVM宏负责人",
+      "acceptance": "交授权宏数据目录/读回/镜像完整性及生产测试证据并确认软复位与掉电策略"
+    },
+    {
+      "id": "POWER-PHY",
+      "scope": "电源和真实POR",
+      "blocking_evidence": "逻辑PG事件与模式许可有模型而LDO/比较器/隔离单元和真实最小脉宽未验证",
+      "owner": "模拟电源负责人",
+      "acceptance": "给出PVT/环稳/恢复和跨域PG边界并结合功耗状态验证硅宏"
+    },
+    {
+      "id": "PHYSICAL",
+      "scope": "真实面积与时序",
+      "blocking_evidence": "规划几何与物理门可复算但目标40nm全功能网表及布线/PDN尚无签核",
+      "owner": "总后端",
+      "acceptance": "冻结功能配置和PDK后交面积/端口可达/多角STA/CDC/RDC/IR与EM/DFT及物理检查证据"
+    },
+    {
+      "id": "GPIO-STATE",
+      "scope": "事件与配置控制面",
+      "blocking_evidence": "原寄存器和独立桥的读写检查已跑而HI_DTCT回窗时序与图83和正文之间的适用口径尚待确认",
+      "owner": "接口验证岗和外围RTL",
+      "acceptance": "用阈值上下穿越及迟滞窗口的原始码逐CNV同时录GPIO和粘滞位并核对W1C与新事件碰撞"
+    }
+  ],
+  "product_signoff": "NOT_VERIFIED",
+  "source_sha256": {
+    "budget/area_gate.py": "4b200f8b5bb621dddb6abad8005ee9c0328f0c8852185881e632e5d2a8d2df26",
+    "budget/sram_macro_gate.py": "5d47512de9188541100b47820f5dfdbb92628a182b13c51facef88227b86928f",
+    "budget/sram_view_readers.py": "38e9d5f15a6a496f8fe2572bd27aacc02999861740665bf1520d31f045eb5798",
+    "budget/test_area_gate.py": "bee59fd7d3153a0cb12830d62ae66541c21075228c1b1c81cd253e81861ab754",
+    "budget/test_sram_macro_gate.py": "3452bf2b2a004c7710bae3dc13b146e6b8cd9a8320c00887d1405bf3801ef8ff",
+    "calibration/calibration_verify_tb.sv": "3ac32e4d4de2176e0b4590f3ded2552fbf7420168df6296c58e213654bb91eb6",
+    "calibration/characterize_registers.py": "16e24cf85110a1c6c806502e18b8ff8e934010e71f034716bdb71cb1b5ced6d5",
+    "calibration/example_dc.csv": "376401e47049f9eeb30469d0252db997dd77267ad9276b8e8562d0c24d8cf0aa",
+    "calibration/requirements.txt": "24fc022b6049bf753aaf2efce50ef86063012eba3e93886ed8f89ba7496d2e5c",
+    "calibration/system_cal.py": "3f7f928b22c38a790ea1b83afc54e45c2525cb473b24e8e31184c91bf363d887",
+    "calibration/test_characterize_registers.py": "ef09b74ee54c408e6702afc5ce25d750b371abfc6056756961e80455c29c0350",
+    "calibration/test_system_cal.py": "5c7094bb4f34c391e324ad15d07570d88028b294c4cba92e8c32e9d2551823e7",
+    "calibration/verify_rtl.py": "356f42987e70bb50a20cfe635fc87db260de4b031107db956265ce5b3795fca3",
+    "evidence/isscc_digital_area.py": "200f4db1f6a351f3dc18966de754f034706768375e549bf2592b2a1a62f3061e",
+    "evidence/peripheral_open_items.csv": "c6daf5978538c41360571b5215da7f9adf1728fcd1cca92184fc43f556fba0a8",
+    "figures/render_floorplan.py": "5ef1d8ee50d093687571ae519ff7957caec803bf80a3b8cfa05fdd7e81c93be8",
+    "floorplan/block_binding.csv": "2038bf4a9bc49bf690711518fa528b763a84cf4ac06840f727b508e221d499a6",
+    "floorplan/build.py": "b595cd51833631744be1f65ed0436fa609b8a25e8b6120e48f7ede7403676dca",
+    "floorplan/plan.json": "b5bd712fc9aa18937a0fa116c11fbd75a7e7dc29773fba3dbf7c963d6f769386",
+    "integration/ad4080_fifo_lvds_record_link.sv": "5de1755b65c74bd936bc04c717dfcfac59d3bb89c05eab7f90a854999c655ddb",
+    "integration/ad4080_peripheral_services.sv": "8230a7c6bf21b37d9bb38eecb757ee28287f05a0788c1e69d9ebca55c350b152",
+    "integration/ad4080_result_readback_link.sv": "e1e16019c8e6eec5de4910fd14930b79bdd243b3d1a08cbdaa6abe3199646075",
+    "integration/check_tool_run.py": "b46e2abcb58cdd0a73cb03d2cb003148161b63ccacd2356a5f69d4f9b509ff81",
+    "integration/files.f": "263554ea37b832e2f9a2323923dccde34c465825e1b31ada870dad4a382d6c6d",
+    "integration/lint.vlt": "08f5aa5ab2084e35fa1b8f352f073c8bb6c10941a3d2fd321b762d1416c54c9a",
+    "integration/peripheral_readback_link_tb.sv": "122577e7830b5903ab403109c3aa459a2c535d71ec7262293a13ad8f2e840e06",
+    "integration/peripheral_services_tb.sv": "25b0596ef53759939f28f15855a09c5cf0ecb490c24bb2ea30264a176cbfcc74",
+    "integration/product/ad4080_peripheral_product.sv": "a5a6c9926cfad448e57e9bc4d8db9cdeeb8333ddeb9d4c609a09cd420a432896",
+    "integration/product/ad4080_product_record_session.sv": "01b05e4959b80996ea4045561b13dff20185b0cab3ae8c31ed220b36e2afcfd4",
+    "integration/product/bind_dsp.py": "7dae0145bdbe918abc5774524fefe15ec96b8b3d326a4c867818b43eed5a9984",
+    "integration/product/check_product_netlist.py": "0c053765f992043f973da2be07c9c867393400961e4256aa02b8725b8bc37a80",
+    "integration/product/prepare_calibration.py": "7477c244af5eecd2b7e83cdc09bbdee6a86e35edc3adf67175efccfc7a7b6ba9",
+    "integration/product/rtl.f": "7fa07424fec62fb192b1cf192db05d491a747d4ad28b8e635b5eb5a9cbac040e",
+    "integration/product/run_product.sh": "5539305ea792f7ab0edb84a984b4939f0b5487f74f0eb268617008afd31d327f",
+    "integration/product/tb_ad4080_peripheral_product.sv": "102ce92ddf3746315fc8acef1e4383c839e6f1bbf810a0b2954045d18e7b67d8",
+    "integration/readback_files.f": "9067942dd9ede7a46eccfaee3352c70b4912927b060c6ac069e3199f4de4e1a6",
+    "integration/run_linked.sh": "442628e04c5706c1b73237badea73ba854ef2f434694233dd248b9b25943cdd0",
+    "integration/run_verify.sh": "0062cf8488393445bbcfc0f907a15e657068b2c7e69594adc90e58d1ad1e318a",
+    "interfaces/control_review/ad4080_csr_power_bridge.sv": "ac19a1cd6988ec9be99746542f2fbd95145a031e0e5d7c4a4a814f2f64b2f51c",
+    "interfaces/control_review/control_review_tb.sv": "57ceb15cb9abc8841c456d8dd4d52d8bc5b9bd402eeef7243dda66a7048e3798",
+    "interfaces/control_review/noos_host_recipe.c": "1a3fec2ebb0c7c0ff0742f9979732ce64564e194a006106d54c8069589f93263",
+    "interfaces/control_review/noos_spi_rtl.sv": "0ee16b414b40727bf2131c99c53055f9ae274e440c189b439c1b18085b8d02e9",
+    "interfaces/control_review/noos_spi_sim.cpp": "68ae5b3647dfb60b645aaecce8b73c1c83b411bab7535591efede228bd33d708",
+    "interfaces/control_review/power_bridge_tb.sv": "87a4d1fb0bcf9aa78b31007f5bac35f5c046c905d127cf5573b04dda864a1919",
+    "interfaces/control_review/run.py": "7e5e55d6a7538eeb35f99a360bc0176d2d05a9615a9eb5a435696917a17b5ea9",
+    "interfaces/control_review/run_noos.py": "82fd8170b1ee76cd53b1a531c964989a9dacec8266a89dc89f6bca23b09f829e",
+    "interfaces/dsp_review/ad4080_record_guard.sv": "363cbee29fa294741c6f744b7cbe54085cb10866a41b49a3e7786b4e0386dda2",
+    "interfaces/dsp_review/run.sh": "138351a7b6997fd699cb16edcc08734337822f9da6218dd89ed4b36c3bbc6bf8",
+    "interfaces/dsp_review/tb_dsp_path.sv": "4f2fc5da06c42f4eb3ec1d27327198e67c437b920d035ea40065a6cb285d7f3b",
+    "interfaces/function_ownership.csv": "abcbde10a98745d96a72c669e924e5967bec26d1f6a9be96f285d791216718bd",
+    "io/ad4080_ddr_edge_words.sv": "5ce0894e7d921cdb582dd3e5984447c1f2f0a1a0443f1bd971745b41486b633c",
+    "io/ad4080_ddr_edge_words_properties.sv": "5dc47ea8455b86d1a90fa616f71283f59d17eab5d83a8b7ad21456a4aad9e856",
+    "io/ad4080_ddr_edge_words_tb.sv": "eaa702a4c2004107b3cc4c1cf42e966afb628c4a71acaa8158103587a4a315b5",
+    "io/ad4080_fifo_record_framer.sv": "b53600e2725c62bd4bd4a09ddf434f75acec107ac9be57d3ba017570ac9e4218",
+    "io/ad4080_fifo_record_framer_tb.sv": "0deaae07e9ae38ac4ac44c9b5f74789d6ef31c12a2977b0bf268c1e2d633c704",
+    "io/adi_crc/capture.py": "c80a272138c1e2c73828721924c03ef0a368335f7fdfdf5553ef33ad5f13683c",
+    "io/adi_crc/crc24.py": "02fa5bb67d1068160a1b7fe0b89e251f1a164b0d37237080eab4da7c499a6959",
+    "io/adi_crc/fifo_crc_probe.py": "93565325f44ebac833ce31afdd832dbf73d412c912ac32897c348bac68bcedd6",
+    "io/adi_crc/test_probe.py": "b8fc66df49b3c6c9ab5f53df334bd35272ab6bc26e750fe42b77d337a18ed781",
+    "io/adi_receiver/adi_receiver_tb.sv": "14c20c0c4e89ac08082ea225c5e75aa0fbde53e1e38a69608fbd3f280d356748",
+    "io/adi_receiver/adi_upstream.sha256": "7690dfa6f002a059d181af4bceb51850ef1e96911fe7b35db2ab2ab15d31f275",
+    "io/adi_receiver/ideal_7series_io.sv": "962dd6d28112639558960431bb0099e66098391c559ca31079cd5e0083099a3b",
+    "io/adi_receiver/run_verify.sh": "903f0a4ed1b3d7d02bf6c795e0dff59498321e7d4cf39e4de51bad6b8d8ab76c",
+    "io/evidence/record-source-vectors.py": "76140e05425c1b915f6335066b85c0f3bdce9b356d50fe85326da159455d49d4",
+    "io/package_pins.csv": "83dbbd5fb629be5118b1ca82eb0cae104f584bb55819ea79489209f44913a0c4",
+    "io/prove_edge_words.ys": "9a46b431b97f42171097601c803e213a0fef08d86541fd55c6b09dbd84525c50",
+    "memory/result_store_mbist.sv": "40ab0e3965df8d437acece0c5d5547ffb2bf7f823ab674dae1d139e618f00773",
+    "memory/result_store_mbist_tb.sv": "21ba3a9227e817c070836006f8567976931cfc0ed4cb18eb84f2513a54347290",
+    "otp/otp_shadow_loader.sv": "3ab1f0c6927f3c10d7c7e83efbf8c663565cc7d3d1416b3d89fcd60991f0659f",
+    "otp/tb_otp_shadow_loader.sv": "771fa6740abf049d1623be83bc920031d4e19da3e57ce40a815b64b36e5dd581",
+    "power/ad4080_pwr_reset_sync.sv": "460dc21f9652683a2b30b608f2196249eb9ab6e9e22df2b416e7af1e418aa82e",
+    "power/ad4080_pwr_supervisor.sv": "fc5c33a865ffd6329f3d4b05ba57a1b6d578500a0ed342b386c730ed4450f904",
+    "power/tb_ad4080_pwr_supervisor.sv": "30538fa8cb90d2f5b9a511c0ea352d67f190cba2cb71333f1ff2a7c94d6156c2",
+    "rtl/result_store.sv": "277c131ca1daf4b9b42d1a899091fee1fa4eae44c21acf3883d9140717d93699",
+    "transport/ad4080_result_transport.sv": "e33cae2a00b1868086f1fa17089f31a702fa8bee137ace60cafde55f551d940c",
+    "transport/tb_ad4080_result_transport.sv": "5b0b02651d1d5ca55018ad9fa25a960e16d00ebf7f1c1030da49939e479aa91f",
+    "transport/verify.sh": "6c9c3c7b42bda3c3295fad782c09930719b403f5f6c7c29ce5056b663a12ad80",
+    "verify/check_delivery.py": "86e9d117eed031638d61a60aac364099ccb9702f8e8e3f860e05d69e3e8168d1",
+    "verify/check_floorplan.py": "3bb3e7178ca8c2cca478075791e073efb753f64fdb3b6ea4c051cabe6bb48538",
+    "verify/check_ownership.py": "715f51e56e452c46d5cb3fea56330883e6467cfb54e4f6c0056a5c02eb80c06c",
+    "verify/pinned_fifo_contract_tb.sv": "25b70ab2a5866f14090ec4183660964c6eadec327200c7991b923ff773f613a5",
+    "verify/run_peripheral_audit.py": "bf52cf2b7e0b9a72a57e45b1d6b1c27a24febaeb91f628bd042761017f2f6b1c",
+    "verify/run_store.py": "c2a1bfe9efd0774ba27bde3fa7e6f6963d1022df56a45943bb1189d0bebc5227",
+    "verify/store.ys": "2b295f5b9939b0c9f06bef1794ab6501b42467c81062206334c0e6334413db9f",
+    "verify/store_tb.sv": "e2c2bc17799d51f73f1376cc8ba1f8bd7c16e5f1c78bc858a41844cfd9ca706f"
+  }
+}

@@ -1,0 +1,23 @@
+Tool: Verilator 5.30; Clang C++20; timing simulation with ideal Series-7 primitives
+Untouched ADI HDL commit: f518dd124fc005c6f9cd80b7947b10a638c37b37
+Original file hash checks: PASS (3 HDL modules and 2 license files)
+Static reference board and register snapshot: PASS (8 file hashes)
+run_verify.sh with verified external ADI_HDL_SOURCE_DIR: exit 0
+PASS ADI receiver lane=1 hold_pairs=8 shift=7 fixed=109 words=14 tx=150
+PASS ADI receiver lane=1 hold_pairs=9 shift=5 fixed=111 words=14 tx=150
+PASS ADI receiver lane=2 hold_pairs=8 shift=2 fixed=114 words=14 tx=150
+PASS ADI receiver lane=2 hold_pairs=9 shift=18 fixed=99 words=14 tx=150
+PASS ADI receiver interop: 4 runs, commit f518dd124fc005c6f9cd80b7947b10a638c37b37
+
+Verilator warning classes. Original source and primitive diagnostics remain in private build logs.
+  lane-1-phase-8: BLKSEQ=10, COMBDLY=1, DECLFILENAME=1, GENUNNAMED=21, IMPLICIT=2, PINCONNECTEMPTY=9, REALCVT=1, SYNCASYNCNET=2, UNUSEDPARAM=18, UNUSEDSIGNAL=27, WIDTHEXPAND=17, WIDTHTRUNC=14
+  lane-1-phase-9: BLKSEQ=10, COMBDLY=1, DECLFILENAME=1, GENUNNAMED=21, IMPLICIT=2, PINCONNECTEMPTY=9, REALCVT=1, SYNCASYNCNET=2, UNUSEDPARAM=18, UNUSEDSIGNAL=27, WIDTHEXPAND=17, WIDTHTRUNC=14
+  lane-2-phase-8: BLKSEQ=10, COMBDLY=1, DECLFILENAME=1, GENUNNAMED=21, IMPLICIT=2, PINCONNECTEMPTY=9, REALCVT=1, SYNCASYNCNET=2, UNUSEDPARAM=18, UNUSEDSIGNAL=27, WIDTHEXPAND=17, WIDTHTRUNC=14
+  lane-2-phase-9: BLKSEQ=10, COMBDLY=1, DECLFILENAME=1, GENUNNAMED=21, IMPLICIT=2, PINCONNECTEMPTY=9, REALCVT=1, SYNCASYNCNET=2, UNUSEDPARAM=18, UNUSEDSIGNAL=27, WIDTHEXPAND=17, WIDTHTRUNC=14
+
+Comment audit on initial delivery files:
+  ideal_7series_io.sv: code=94, comments=40
+  adi_receiver_tb.sv: code=144, comments=38
+  run_verify.sh: code=54, comments=23
+
+Physical board timing/PVT, FIFO record, Manchester and configuration SPI: outside this receiver simulation.

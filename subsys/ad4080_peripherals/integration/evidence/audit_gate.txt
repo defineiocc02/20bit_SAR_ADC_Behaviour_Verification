@@ -1,0 +1,11 @@
+New run_verify.sh and run_linked.sh with YOSYS=/usr/bin/true both returned 1 after real simulation
+/tmp/ad4080-peripherals.BSBM3F
+PERIPHERAL_SERVICES PASS
+Verification artifact check failed: missing synth.log
+/tmp/ad4080-readback-link.08a8nS
+PERIPHERAL_READBACK_LINK PASS
+Verification artifact check failed: missing synth.log
+Verification artifact check failed: missing or repeated simulation end marker: PERIPHERAL_SERVICES PASS
+Empty simulation log rejected, exit 1
+Verification artifact check failed: wrong JSON top: ['ad4080_fifo_lvds_record_link'], expected [ad4080_peripheral_services]
+Wrong JSON top rejected, exit 1

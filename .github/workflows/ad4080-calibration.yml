@@ -3,14 +3,16 @@
 # 模块名     : 独立外围的板级校准回归
 # 版本       : v1.0
 # 功能       : 用固定 ADCToolbox 源码和仓内原 DSP，验证主机估算及定点寄存器计划。
-# 设计说明   : 触发范围限定在外围校准、实际修正模块与参考模型。无需商业 EDA 或实物写入。
-# 变更记录   : 两点、正弦、实测寄存器和独立留出向量在同一作业中运行。
+# 设计说明   : 校准源码、产品读回路径或实际修正模块变化时复测。使用开源工具。
+# 变更记录   : 主机估计、逐码核对与 SPI 写入到存储读回在同一作业中运行。
 # =============================================================================
 name: AD4080 system calibration
 on:
   pull_request:
     paths:
       - 'subsys/ad4080_peripherals/calibration/**'
+      - 'subsys/ad4080_peripherals/integration/**'
+      - 'subsys/ad4080_peripherals/**/*.sv'
       - 'subsys/ad4080_dsp/rtl/sys_error_corr.sv'
       - 'subsys/ad4080_dsp/model/ad4080_cal_model.py'
       - '.github/workflows/ad4080-calibration.yml'
@@ -64,7 +66,17 @@ jobs:
           clang++ --version
       - name: Compare held-out samples with the existing DSP RTL
         run: python "$CAL/verify_rtl.py" --repo . --out "$RUNNER_TEMP/ad4080-system-calibration.json"
+      - name: Write the estimated coefficients through SPI and read both records
+        shell: bash
+        run: |
+          # 输入是主机实算的寄存器字节，断言比较从同一四银行存储读出的完整记录。
+          export DSP_UPSTREAM_REPO="$GITHUB_WORKSPACE"
+          export CAL_PYTHON="$(command -v python)"
+          bash subsys/ad4080_peripherals/integration/product/run_product.sh --calibration |
+            tee "$RUNNER_TEMP/ad4080-calibrated-record.txt"
       - uses: actions/upload-artifact@v4
         with:
           name: ad4080-system-calibration
-          path: ${{ runner.temp }}/ad4080-system-calibration.json
+          path: |
+            ${{ runner.temp }}/ad4080-system-calibration.json
+            ${{ runner.temp }}/ad4080-calibrated-record.txt

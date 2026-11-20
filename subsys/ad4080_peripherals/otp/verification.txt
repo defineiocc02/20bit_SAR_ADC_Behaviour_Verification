@@ -1,0 +1,55 @@
+AD4080 OTP 影子加载器验证回执
+日期 2026-11-20 CST
+工具 Verilator 5.30，Clang C++20，Yosys 0.69（9f75ca1f9）
+正式入口 otp/README.md 第 5 节，从交付根执行
+临时验证 ID ad4080-otp-regression-3yh8mlqo
+
+输入 SHA-256
+f08f2586dc82d5f583b42071b3570c06f1fe736d3053e15a559a47ed2841cbc1  AD4080 Rev. B
+689cd44fc8afd8f23ced86f6f1beaad5b8e5687fdea67176ee2866a6bdfcc25c  IPBrain ipbrain_die.png
+b5bd712fc9aa18937a0fa116c11fbd75a7e7dc29773fba3dbf7c963d6f769386  floorplan/plan.json
+复核与本工作包关联的 OTP、SR2、FIFO 坐标、照片、手册摘要均一致。
+
+修后源码 SHA-256
+3ab1f0c6927f3c10d7c7e83efbf8c663565cc7d3d1416b3d89fcd60991f0659f  otp_shadow_loader.sv
+771fa6740abf049d1623be83bc920031d4e19da3e57ce40a815b64b36e5dd581  tb_otp_shadow_loader.sv
+
+修前与修后定向重放
+修前 DUT 来自统一备份 previous.zip，同原封存 SHA-256 相符。
+268b3bf863e3fc181ce10cef104e2245804f6eeb905693af3cf8b5c1c2a44a58  otp_shadow_loader.sv
+两边都使用上述同一修后测试台及 --binary --timing -Wall --output-split 0。
++otp_early_read，修前 exit 134，56 ns
+  old macro response was consumed as the first word
+  修后 exit 0，错误码 10，未推进候选镜像。
++otp_early_verify，修前 exit 134，116 ns
+  old checker PASS committed a new image without verifying it
+  修后 exit 0，错误码 11，影子有效和数据都保持关闭。
+两用例把旧 valid 保持到请求后来获准的沿，观察误消费及误提交。
+
+注释验收（修前 → 修后）
+otp_shadow_loader.sv: 76/154 = 49.35% → 78/166 = 46.99%
+tb_otp_shadow_loader.sv: 75/339 = 22.12% → 84/392 = 21.43%
+
+正式入口执行及 lint、构建、仿真均退出 0。-Wall 无告警。
+PASS one word, one bit and one-cycle deadlines
+PASS power wait, stale drain, ordered reads, backpressure, deadline and commit
+PASS committed shadow revoked on power loss; recovery requires reset
+PASS mid-image read failure without partial commit
+PASS complete image rejected by checker
+PASS five independent timeout phases and sticky failure
+PASS brownout wins over coincident checker pass
+PASS async reset, stale-response drain and clean reload
+PASS unrequested macro response closes the session with code 10
+PASS unrequested checker pass closes the session with code 11
+PASS checker response valid on the accepting request edge commits after response handshake
+OTP SHADOW LOADER REGRESSION PASS
+- tb_otp_shadow_loader.sv:427: Verilog $finish
+
+Yosys 通用综合与 check -assert 退出 0，三字 × 八位、四拍时限
+Found and reported 0 problems.
+507 个通用元件，35 位寄存器，0 锁存器。
+9971fc82e3e4bed246d8118ff8d35591fd6552ffcfdd905d890a71a3467b3a35  otp_generic.json
+
+仿真构型 三字 × 八位/四拍与一字 × 一位/一拍，均为测试值。
+证据 已验证读/检请求背压、部分失败、拒绝无归属应答、合法同沿握手与清除。
+待闭合 实际适配器须证明静默后不会发出旧返回，尤其是与新请求同沿或已挂起新请求时。供应方实际镜像格式、验证函数和供电隔离待绑定，通用元件数不用于目标工艺签核。

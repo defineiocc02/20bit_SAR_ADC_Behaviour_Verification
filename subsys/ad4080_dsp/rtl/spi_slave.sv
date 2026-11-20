@@ -31,6 +31,7 @@ module spi_slave #(
     input  logic cs_n, sclk, sdi,
     output logic sdo, sdo_oe,
     input  logic interface_ready,
+    input  logic reset_poll_only_i = 1'b0, // 供电、Pad 和所有权均合格的软复位初始化轮询许可
     input  logic crc_en, send_status, single_inst, short_instr, addr_asc,
     input  logic strict_access,
     input  logic [15:0] status_long,
@@ -69,7 +70,15 @@ module spi_slave #(
     logic cs_close_pending;
     wire close_with_sample = cs_rise && sck_rise;
     logic crc_frame, status_frame, single_frame, short_frame, ascend_frame, strict_frame;
-    logic read_command, poisoned, optional_entity, data_started, wrap_unbound;
+    logic read_command, poisoned, optional_entity, data_started;
+    logic poll_only_frame;
+    // 未连接或未知许可均封闭。该信号须已经同步到配置执行时钟。
+    wire reset_poll_requested = reset_poll_only_i === 1'b1;
+    wire normal_access_ready = interface_ready === 1'b1;
+    // 初始化期间仅接受本来就是轮询的帧。恢复后允许这种帧收完，
+    // 失去合法供电/所有权且普通权限也为低时立即撤销。
+    wire frame_access_ready = poll_only_frame ? (reset_poll_requested || normal_access_ready) :
+                                                  (normal_access_ready && !reset_poll_requested);
     logic framing_write;
     logic [4:0] instruction_bits, data_bits;
     logic [2:0] crc_bits;
@@ -80,6 +89,14 @@ module spi_slave #(
     logic address_valid_r, read_only_r, supported_r;
     logic [3:0] reject_reason_r;
     logic [7:0] host_crc, device_crc, host_crc_expected, crc_tx;
+    // 表 18：流读仅首实体需要控制器校验，后续数据和器件 CRC 仍完整送出。
+    wire host_crc_required = !read_command || !optional_entity;
+    // p37 的地址指针是固定 15 位，短格式只缩短首地址的指令字段。
+    wire [15:0] advanced_addr = ascend_frame ? addr + {14'd0, length_r} :
+                                               addr - {14'd0, length_r};
+    // 表 19 的后续 seed 是本实体起址。现行有效 bank 地址都可用一字节
+    // 无损表示。扩展到 0x0100 以上的有效地址需明确到 CRC8 种子的映射。
+    wire crc_address_seed_missing = crc_frame && optional_entity && addr[15:8] != 8'd0;
     logic [6:0] crc_rx;
     wire [15:0] instruction_next = {instruction_shift[14:0], sdi};
     wire [15:0] payload_next = {rx_shift[14:0], sdi};
@@ -137,7 +154,8 @@ module spi_slave #(
             crc_frame <= 1'b0; status_frame <= 1'b0; single_frame <= 1'b0;
             short_frame <= 1'b0; ascend_frame <= 1'b0; strict_frame <= 1'b1;
             read_command <= 1'b0; poisoned <= 1'b0; optional_entity <= 1'b0;
-            data_started <= 1'b0; wrap_unbound <= 1'b0; framing_write <= 1'b0;
+            poll_only_frame <= 1'b0;
+            data_started <= 1'b0; framing_write <= 1'b0;
             instruction_bits <= '0; data_bits <= '0; crc_bits <= '0;
             instruction_shift <= '0; rx_shift <= '0; tx_shift <= '0;
             status_shift <= '0; pending_write <= '0; length_r <= 2'd1;
@@ -163,8 +181,12 @@ module spi_slave #(
                 // 实体缺校验。数据缺位时按严格实体宽度区分少字节和钟数错。
                 if (!poisoned) begin
                     if (phase == CRC) begin
-                        crc_err_pulse <= 1'b1;
-                        cfg_reject <= 1'b1; cfg_reject_reason <= REJECT_CRC;
+                        // 对后续流读，提前结束的是器件 CRC 的出线时钟，
+                        // 控制器在表 18 中无独立 CRC 发送义务。
+                        crc_err_pulse <= host_crc_required;
+                        clk_cnt_err_pulse <= !host_crc_required;
+                        cfg_reject <= 1'b1;
+                        cfg_reject_reason <= host_crc_required ? REJECT_CRC : REJECT_CLOCK;
                     end else if ((phase == INSTRUCTION && instruction_bits != 0) ||
                                  (phase == PREPARE && !optional_entity) ||
                                  // 流末尾预读下个地址是可选实体。未启动其数据相的
@@ -184,8 +206,13 @@ module spi_slave #(
                 poisoned <= 1'b0; data_started <= 1'b0;
             end else if (cs_fall) begin
                 phase <= INSTRUCTION;
-                crc_frame <= crc_en; status_frame <= send_status;
-                single_frame <= single_inst; short_frame <= short_instr;
+                // 软复位后的专用轮询按默认长指令，无 CRC 和附带状态。
+                // 不在指令被证明是 0x11 读之前打开其它状态驱动。
+                poll_only_frame <= reset_poll_requested;
+                crc_frame <= crc_en && !reset_poll_requested;
+                status_frame <= send_status && !reset_poll_requested;
+                single_frame <= single_inst && !reset_poll_requested;
+                short_frame <= short_instr && !reset_poll_requested;
                 ascend_frame <= addr_asc; strict_frame <= strict_access;
                 // 图 67/70 的首采样可与 CS 下降同拍。此位参与指令
                 // 和 CRC 起始累计，避免后续把首数据位当成地址末位。
@@ -194,24 +221,30 @@ module spi_slave #(
                 host_crc <= sck_rise ? crc_bit(8'hA5, sdi) : 8'hA5;
                 device_crc <= sck_rise ? crc_bit(8'hA5, sdi) : 8'hA5;
                 poisoned <= 1'b0; optional_entity <= 1'b0;
-                data_started <= 1'b0; wrap_unbound <= 1'b0;
-                sdo <= 1'b0; sdo_oe <= send_status;
+                data_started <= 1'b0;
+                sdo <= 1'b0; sdo_oe <= send_status && !reset_poll_requested;
                 // 首降沿若与选片同拍，状态首位也在这个拍预装。首升沿同拍时
                 // 预装后续状态位，外部首位建立仍由 pad/主机实际时序保证。
-                if (send_status && (sck_fall || sck_rise)) begin
+                if (send_status && !reset_poll_requested && (sck_fall || sck_rise)) begin
                     sdo <= short_instr ? status_short[7] : status_long[15];
                     status_shift <= short_instr ? {status_short[6:0], 9'd0} :
                                                   {status_long[14:0], 1'b0};
                 end
-                if (interface_ready !== 1'b1) begin
+                if (!normal_access_ready && !reset_poll_requested) begin
                     not_ready_err_pulse <= 1'b1;
                     reject_frame(REJECT_NOT_READY);
-                end else if (short_instr && P_SHORT_ADDR_BITS != 7)
+                end else if (!reset_poll_requested && short_instr && P_SHORT_ADDR_BITS != 7)
                     reject_frame(REJECT_UNBOUND);
             end else if (!cs_sync || close_with_sample) begin
                 // 已开始的配置事务若失去电源/接口许可，撤销尚未提交的实体。
                 // 闲置及等待退场路径不会因重复采样该许可而重复报错。
-                if (phase != IDLE && phase != WAIT_CS && interface_ready !== 1'b1) begin
+                if (phase != IDLE && phase != WAIT_CS && !frame_access_ready) begin
+                    not_ready_err_pulse <= 1'b1;
+                    reject_frame(REJECT_NOT_READY);
+                end else if (phase == PREPARE && poll_only_frame &&
+                             (!read_command || addr != 16'h0011)) begin
+                    // p28 允许读 0x11，p82 的提前事务错误与被忽略的写分开。
+                    // 只有非法事务产生事件；合法轮询读 bank 的忙态与粘滞视图。
                     not_ready_err_pulse <= 1'b1;
                     reject_frame(REJECT_NOT_READY);
                 end else if (phase == PREPARE) begin
@@ -220,8 +253,14 @@ module spi_slave #(
                     length_r <= entity_bytes;
                     address_valid_r <= address_valid;
                     read_only_r <= read_only;
-                    supported_r <= access_supported && !wrap_unbound;
-                    reject_reason_r <= wrap_unbound ? REJECT_UNBOUND : access_reject_reason;
+                    supported_r <= access_supported && !crc_address_seed_missing;
+                    reject_reason_r <= crc_address_seed_missing ? REJECT_UNBOUND : access_reject_reason;
+                    // 严格实体的实际开头由 bank 的 ASC 起址与宽度决定。
+                    // 同帧后续实体没有新指令，只把当前地址本身装为种子。
+                    if (crc_frame && optional_entity) begin
+                        host_crc <= addr[7:0];
+                        device_crc <= addr[7:0];
+                    end
                     tx_shift <= {rdata[7:0], rdata[15:8]};
                     rx_shift <= '0; data_bits <= '0; data_started <= 1'b0;
                     phase <= DATA;
@@ -229,7 +268,7 @@ module spi_slave #(
                     // 寄存器堆完成提交的整个时钟沿保持 addr 不变，再推进到下一实体。
                     // 0x00/01/10 会改变帧格式。完成当前实体后等待新 CS，
                     // 后续指令和 CRC 的模式开关只在新帧生效。
-                    if (framing_write) begin
+                    if (framing_write || poll_only_frame) begin
                         poisoned <= 1'b0;
                         phase <= WAIT_CS;
                     end else if (single_frame) begin
@@ -238,16 +277,10 @@ module spi_slave #(
                         host_crc <= 8'hA5; device_crc <= 8'hA5;
                         optional_entity <= 1'b0;
                     end else begin
-                        if ((ascend_frame && (addr > (16'h7fff - {14'd0, length_r}))) ||
-                            (!ascend_frame && (addr < {14'd0, length_r}))) begin
-                            wrap_unbound <= 1'b1;
-                        end else begin
-                            addr <= ascend_frame ? addr + {14'd0, length_r} :
-                                                   addr - {14'd0, length_r};
-                            wrap_unbound <= 1'b0;
-                        end
-                        // 后续 CRC 实体需要尚未披露的地址到种子映射，因此保持不可用。
-                        if (crc_frame) wrap_unbound <= 1'b1;
+                        // p37/图 60 的滚转与 CRC 可共用同一个地址计数。
+                        // 落在空洞时由实际 bank 判断 ADDRESS_INVALID，与
+                        // 是否有后续首实体种子无关。
+                        addr <= {1'b0, advanced_addr[14:0]};
                         optional_entity <= 1'b1;
                         phase <= PREPARE;
                     end
@@ -310,7 +343,7 @@ module spi_slave #(
                                 addr <= short_frame ? {9'd0, instruction_next[6:0]} :
                                                       {1'b0, instruction_next[14:0]};
                                 instruction_bits <= '0;
-                                optional_entity <= 1'b0; wrap_unbound <= 1'b0;
+                                optional_entity <= 1'b0;
                                 phase <= PREPARE;
                             end else instruction_bits <= instruction_bits + 5'd1;
                         end
@@ -345,7 +378,7 @@ module spi_slave #(
                             if (crc_bits == 3'd7) begin
                                 // 校验在第八个 CRC 位进入后比较，包含最后一位。
                                 // 错帧走相同 WAIT_CS 丢弃，旧寄存器继续有效。
-                                if (crc_rx_next != host_crc_expected) begin
+                                if (host_crc_required && crc_rx_next != host_crc_expected) begin
                                     crc_err_pulse <= 1'b1;
                                     reject_frame(REJECT_CRC);
                                 end else begin

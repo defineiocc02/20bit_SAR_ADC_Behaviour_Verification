@@ -28,11 +28,12 @@ module ad4080_regs #(
     parameter int P_SHORT_ADDR_BITS = -1,
     parameter bit P_GAIN_MAP_VALID = 1'b0,
     parameter bit P_GAIN_CODE0_SUPPORTED = 1'b0,
-    parameter bit P_COMP_COEFF_VALID = 1'b0,
     parameter bit P_CONTINUOUS_LVDS_BOUND = 1'b0, // 存在连续 LVDS 时隙发射端才开放 A/B 配置。
     parameter bit P_CNV_TIMING_BOUND = 1'b0,   // 接入已有 CNV 定相逻辑才开放 GPIO RDY。
     parameter bit P_CNV_ERROR_BOUND = 1'b0,    // 仅可信同域 tCONV 监测提供器件错误事件。
-    parameter bit P_POR_ANA_EVENT_ENABLE = 1'b0 // 仅绑定已跨域交付的实际参考故障脉冲。
+    parameter bit P_POR_ANA_EVENT_ENABLE = 1'b0, // 仅绑定已跨域交付的实际参考故障脉冲。
+    parameter bit P_AON_CFG_BOUND = 1'b0,       // 真正 AON 裁决后提交 0x00/02/18。
+    parameter bit P_ROM_CRC_ERROR_BOUND = 1'b0  // 仅绑实际 ROM 校验输出。
 ) (
     // --- 严格实体协议 ---
     input  logic clk, rst_n,                 // CSR 与 SPI 已在同一核心域。
@@ -46,7 +47,7 @@ module ad4080_regs #(
     // --- 可提交配置的控制状态与时序错误 ---
     input  logic adc_idle,                   // 由上游显式给停收排空确认，不能用空拍代替。
     input  logic data_config_ready_i,         // 前次配置已经跨域受理；传输中拒绝下一次变更。
-    output logic [7:0] data_intf_config_a_o, data_intf_config_b_o,
+    output logic [7:0] data_intf_config_a_o, data_intf_config_b_o, data_intf_config_c_o,
     input  logic [3:0] gpio_levels,           // 脚的观察值，与 GPIO_DATA 输出寄存器不同。
     input  logic capture_active, capture_incomplete, capture_io_active, // 锁配置、保护半记录、仲裁读回三种资格。
     input  logic st_fifo_full, st_fifo_read_done, st_hi_flag, st_lo_flag, // 均为适合 CSR 的核心域视图。
@@ -78,7 +79,19 @@ module ad4080_regs #(
     output logic [7:0] status_short,
     output logic cfg_reject,
     output logic [3:0] cfg_reject_reason,
-    input  logic por_ana_event_i = 1'b0       // 核心域单拍，软件和硬 POR 初值仍由本 bank 设置。
+    input  logic por_ana_event_i = 1'b0,      // 核心域单拍，软件和硬 POR 初值仍由本 bank 设置。
+    input  logic rom_crc_error_i = 1'b0,      // 实际 ROM 故障的同域只读电平。
+    input  logic pwr_cfg_full_allow_i = 1'b0,  // 无 IOVDD 时只允许管理写，SDO 另行关闭。
+    input  logic pwr_init_poll_i = 1'b0,       // 真实软初始化期间只读 0x11 的资格。
+    input  logic pwr_cmd_ready_i = 1'b0,      // 允许本次登记，不等同于 AON 执行。
+    output logic pwr_cmd_valid_o,             // 一次 CRC/实体检查后的候选。
+    output logic [1:0] pwr_cmd_op_o,          // 0 mode，1 reset，2 LDO。
+    output logic [1:0] pwr_cmd_value_o,       // 候选管理字段。
+    input  logic pwr_rsp_valid_i = 1'b0,      // 唯一实际 AON 结果。
+    input  logic pwr_rsp_accept_i = 1'b0,
+    input  logic [1:0] pwr_rsp_op_i = 2'b00,
+    input  logic [1:0] pwr_mode_i = 2'b00,    // AON 真实已提交读回。
+    input  logic [1:0] pwr_ldo_pd_i = 2'b00
 );
     localparam logic [3:0] REJECT_UNBOUND=4'd1, REJECT_UNSUPPORTED=4'd2,
         REJECT_ADDRESS=4'd3, REJECT_READONLY=4'd4, REJECT_PARTIAL=4'd5,
@@ -107,7 +120,18 @@ module ad4080_regs #(
     wire software_reset_allowed = (adc_idle === 1'b1) && !capture_incomplete && !capture_io_active;
     wire sw_reset_request = we && write_bytes==2'd1 && addr == 16'h0000 && reset_armed &&
                             !(wdata[7] && wdata[0]);
-    wire sw_reset_now = sw_reset_request && software_reset_allowed;
+    wire power_cfg_idle = software_reset_allowed && !capture_active;
+    wire remote_reset = pwr_rsp_valid_i && pwr_rsp_accept_i && pwr_rsp_op_i == 2'd1;
+    wire sw_reset_now = P_AON_CFG_BOUND ? remote_reset : (sw_reset_request && software_reset_allowed);
+    wire mode_value_ok = wdata[7:2] == '0 && wdata[1:0] != 2'b01;
+    wire ldo_value_ok = wdata[7:2] == '0;
+    // 来自同一份原 bank 译码和两步 arm 状态。主机提交时若队列满或
+    // 本域不空闲，拒绝整个候选；没有另一份模式/PD 镜像接受它。
+    assign pwr_cmd_valid_o = P_AON_CFG_BOUND && we && write_bytes == 2'd1 && access_supported && power_cfg_idle &&
+                             (sw_reset_request || (addr == 16'h0002 && mode_value_ok) ||
+                              (addr == 16'h0018 && ldo_value_ok));
+    assign pwr_cmd_op_o = addr == 16'h0002 ? 2'd0 : (addr == 16'h0000 ? 2'd1 : 2'd2);
+    assign pwr_cmd_value_o = wdata[1:0];
     wire cnv_error_w1c = we && write_bytes == 2'd1 && addr == 16'h0014 && wdata[2];
     wire conversion_cfg_locked = P_CNV_TIMING_BOUND && capture_active;
 
@@ -182,7 +206,7 @@ module ad4080_regs #(
         case (addr)
             16'h0000: rdata={8'd0,2'b00,ascend_r,1'b1,4'd0};
             16'h0001: rdata={8'd0,single_r,3'd0,short_r,3'd0};
-            16'h0002: rdata=16'd0;
+            16'h0002: rdata=P_AON_CFG_BOUND ? {14'd0,pwr_mode_i} : 16'd0;
             16'h0003: begin rdata=16'h0007; read_only=1'b1; end
             16'h0004: begin
                 read_only=1'b1;
@@ -197,12 +221,17 @@ module ad4080_regs #(
             16'h000B: begin rdata=16'h0083; read_only=1'b1; end
             16'h000C: begin rdata=16'h0056; read_only=1'b1; end
             16'h000D: begin rdata=16'h0004; read_only=1'b1; end
+            16'h000E,16'h000F: rdata=16'h0000;
             16'h0010: rdata={8'd0,crc_enable_bits_r,strict_r,send_status_r,2'd0,crc_inverse_bits_r};
             16'h0011: rdata={8'd0,interface_status};
             16'h0014: rdata={8'd0,status};
             16'h0015: rdata={8'd0,data_intf_config_a_o};
             16'h0016: rdata={8'd0,data_intf_config_b_o};
-            16'h0017: rdata=16'h0020;
+            16'h0017: rdata={8'd0,data_intf_config_c_o};
+            16'h0018: begin
+                if (P_AON_CFG_BOUND) rdata={14'd0,pwr_ldo_pd_i};
+                else begin address_valid=1'b0; access_supported=1'b0; access_reject_reason=REJECT_ADDRESS; end
+            end
             16'h0019: rdata={8'd0,gpio_levels,gpio_dir_r};
             16'h001A: rdata={8'd0,gpio_sel_r[1],gpio_sel_r[0]};
             16'h001B: rdata={8'd0,gpio_sel_r[3],gpio_sel_r[2]};
@@ -226,6 +255,12 @@ module ad4080_regs #(
             16'h0029: rdata={8'd0,1'b0,dec_r,1'b0,filter_r};
             default: begin address_valid=1'b0; access_supported=1'b0; access_reject_reason=REJECT_ADDRESS; end
         endcase
+        if (P_AON_CFG_BOUND && (pwr_init_poll_i === 1'b1)) begin
+            if (addr == 16'h0011) read_only=1'b1;
+            else begin access_supported=1'b0; access_reject_reason=REJECT_NOT_IDLE; end
+        end else if (P_AON_CFG_BOUND && pwr_cfg_full_allow_i !== 1'b1 && addr != 16'h0000 && addr != 16'h0002) begin
+            access_supported=1'b0; access_reject_reason=REJECT_NOT_IDLE;
+        end
     end
 
     // 单份实体合并值用于范围检查及写入，防止部分合并后检查的口径不一致。
@@ -272,7 +307,7 @@ module ad4080_regs #(
             crc_r<=1'b0; send_status_r<=1'b0; strict_r<=1'b1;
             ascend_r<=1'b0; single_r<=1'b0; short_r<=1'b0;
             crc_enable_bits_r<=2'd0; crc_inverse_bits_r<=2'd3;
-            data_intf_config_a_o<=8'h40; data_intf_config_b_o<=8'h00;
+            data_intf_config_a_o<=8'h40; data_intf_config_b_o<=8'h00; data_intf_config_c_o<=8'h20;
             scratch_r<='0; reset_armed<=1'b0; por_r<=1'b1; por_analog_r<=1'b1;
             not_ready_r<=1'b0; clock_r<=1'b0; crc_error_r<=1'b0;
             readonly_r<=1'b0; partial_r<=1'b0; address_r<=1'b0;
@@ -288,7 +323,7 @@ module ad4080_regs #(
             crc_r<=1'b0; send_status_r<=1'b0; strict_r<=1'b1;
             single_r<=1'b0; short_r<=1'b0;
             crc_enable_bits_r<=2'd0; crc_inverse_bits_r<=2'd3;
-            data_intf_config_a_o<=8'h40; data_intf_config_b_o<=8'h00;
+            data_intf_config_a_o<=8'h40; data_intf_config_b_o<=8'h00; data_intf_config_c_o<=8'h20;
             scratch_r<='0; reset_armed<=1'b0; por_r<=1'b1; por_analog_r<=1'b1;
             not_ready_r<=1'b0; clock_r<=1'b0; crc_error_r<=1'b0;
             readonly_r<=1'b0; partial_r<=1'b0; address_r<=1'b0;
@@ -316,19 +351,37 @@ module ad4080_regs #(
                 else case (addr)
                     16'h0000: begin
                         if (wdata[7] && wdata[0]) begin
-                            if (software_reset_allowed) reset_armed<=1'b1;
-                            else reject_write(REJECT_NOT_IDLE);
+                            if (software_reset_allowed && (!P_AON_CFG_BOUND || (power_cfg_idle && pwr_cmd_ready_i)))
+                                reset_armed<=1'b1;
+                            else begin
+                                if (P_AON_CFG_BOUND) reset_armed<=1'b0;
+                                reject_write(REJECT_NOT_IDLE);
+                            end
                         end else if (reset_armed) begin
+                            // 唯一的第二步写消耗 arm。只有 AON 真实接受才
+                            // 在回执沿执行 bank 软复位，拒收不改保留配置。
                             reset_armed<=1'b0;
-                            reject_write(REJECT_NOT_IDLE);
+                            if (!pwr_cmd_valid_o || !pwr_cmd_ready_i) reject_write(REJECT_NOT_IDLE);
                         end else ascend_r<=wdata[5];
                     end
                     16'h0001: begin
                         if (wdata[3] && P_SHORT_ADDR_BITS != 7) reject_write(REJECT_UNBOUND);
                         else begin single_r<=wdata[7]; short_r<=wdata[3]; end
                     end
-                    16'h0002: if (wdata[1:0] != 2'd0) reject_write(REJECT_UNSUPPORTED);
+                    16'h0002: begin
+                        if (!P_AON_CFG_BOUND) begin
+                            if (wdata[1:0] != 2'd0) reject_write(REJECT_UNSUPPORTED);
+                        end else if (!mode_value_ok) reject_write(REJECT_VALUE);
+                        else if (!pwr_cmd_valid_o || !pwr_cmd_ready_i) reject_write(REJECT_NOT_IDLE);
+                    end
+                    16'h0018: begin
+                        if (!ldo_value_ok) reject_write(REJECT_VALUE);
+                        else if (!pwr_cmd_valid_o || !pwr_cmd_ready_i) reject_write(REJECT_NOT_IDLE);
+                    end
                     16'h000A: scratch_r<=wdata[7:0];
+                    // Rev. B p80 与表43/44 对非零循环的支持相冲突。
+                    // 两个寄存器仍为已定义的读零、可写复位值的实体。
+                    16'h000E,16'h000F: if (wdata[7:0] != 8'd0) reject_write(REJECT_UNSUPPORTED);
                     16'h0010: begin
                         strict_r<=wdata[5]; send_status_r<=wdata[4];
                         crc_enable_bits_r<=wdata[7:6]; crc_inverse_bits_r<=wdata[1:0];
@@ -348,29 +401,37 @@ module ad4080_regs #(
                         if (wdata[3]) por_analog_r<=1'b0;
                         if (wdata[0]) por_r<=1'b0;
                     end
-                    // 图126和表48：LVDS 范围只开放固定测试字和单/双 lane；bit6 必须保留为1。
+                    // 表48：bit0 选择结果 SPI，bit2 选择各接口的 lane 数，bit4 固定字仅用于 LVDS。
                     // 两字节分属独立寄存器，逐次事务都必须给出表20中合法的 lane/CNT 组合。
-                    // 实际硬件不接的 Manchester、差分 CNV 选择、结果 SPI 和模拟驱动属性不能写入后假装生效。
+                    // 配置从一整组跨域快照驱动收发端；非法组合保留旧配置。bit6 按表48恒置1。
                     16'h0015: begin
-                        if (!P_CONTINUOUS_LVDS_BOUND || (wdata[7:0] & 8'hEB) != 8'h40)
+                        if (!P_CONTINUOUS_LVDS_BOUND || (wdata[7:0] & 8'hEA) != 8'h40 || (wdata[0] && wdata[4]))
                             reject_write(REJECT_UNSUPPORTED);
-                        else if (wdata[2] && data_intf_config_b_o[7:4] > 4'd4)
+                        else if (!wdata[0] && ((wdata[2] && data_intf_config_b_o[7:4] > 4'd4) ||
+                                 (data_intf_config_b_o[2] && (!wdata[2] || filter_r != 0 || fifo_mode_r != 0))))
                             reject_write(REJECT_VALUE);
                         else if (wdata[7:0] != data_intf_config_a_o && !config_edit_idle)
                             reject_write(REJECT_NOT_IDLE);
                         else data_intf_config_a_o <= wdata[7:0];
                     end
-                    // 表49 的高四位为位置编码，self 位只控制返回时钟。无效写不能改变原来的组合。
+                    // 表49：位3关返回钟，位2只在双lane直通转换时启用802.3线码，位0控制物理CNV接收选择。
                     16'h0016: begin
-                        if (!P_CONTINUOUS_LVDS_BOUND || wdata[2:0] != 3'b000)
+                        if (!P_CONTINUOUS_LVDS_BOUND || wdata[1] ||
+                            (wdata[2] && (data_intf_config_a_o[0] || !data_intf_config_a_o[2] || filter_r != 0 || fifo_mode_r != 0)))
                             reject_write(REJECT_UNSUPPORTED);
-                        else if (wdata[7:4] > (data_intf_config_a_o[2] ? 4'd4 : 4'd9))
+                        else if (!data_intf_config_a_o[0] && wdata[7:4] > (data_intf_config_a_o[2] ? 4'd4 : 4'd9))
                             reject_write(REJECT_VALUE);
                         else if (wdata[7:0] != data_intf_config_b_o && !config_edit_idle)
                             reject_write(REJECT_NOT_IDLE);
                         else data_intf_config_b_o <= wdata[7:0];
                     end
-                    16'h0017: reject_write(REJECT_UNSUPPORTED);
+                    16'h0017: begin
+                        // 表50规定非法 VOD 字段仍可原样读回，输出驱动端另选默认档。
+                        if (!P_CONTINUOUS_LVDS_BOUND || wdata[3:0] != 0) reject_write(REJECT_UNSUPPORTED);
+                        else if (wdata[7:0] != data_intf_config_c_o && !config_edit_idle)
+                            reject_write(REJECT_NOT_IDLE);
+                        else data_intf_config_c_o <= wdata[7:0];
+                    end
                     16'h0019: begin gpio_dir_r<=wdata[3:0]; gpio_data_r<=wdata[7:4]; end
                     16'h001A,16'h001B: begin
                         if (!gpio_function_supported(wdata[3:0]) || !gpio_function_supported(wdata[7:4]))
@@ -380,6 +441,8 @@ module ad4080_regs #(
                     end
                     16'h001C: begin
                         if (wdata[4] && !P_CNV_ERROR_BOUND) reject_write(REJECT_UNSUPPORTED);
+                        else if (P_CONTINUOUS_LVDS_BOUND && !data_intf_config_a_o[0] && data_intf_config_b_o[2] &&
+                                 wdata[1:0] != 0) reject_write(REJECT_UNSUPPORTED);
                         else if (wdata[1:0]!=2'd0 && capture_active) reject_write(REJECT_NOT_IDLE);
                         else if (wdata[1:0]==2'd3 && watermark_r[1:0]!=0) reject_write(REJECT_VALUE);
                         else begin
@@ -420,11 +483,13 @@ module ad4080_regs #(
                         else gain_r<=pair_value[9:0];
                     end
                     16'h0029: begin
-                        // 0x29 会清流水。COMP 厂商系数与真实首字相位尚未绑定。采集或
-                        // 未读完期间保留本批配置，避免将两种模式或系数拼入同一记录。
-                        if (conversion_cfg_locked) reject_write(REJECT_NOT_IDLE);
-                        else if (P_CNV_TIMING_BOUND && wdata[1:0]==2'd3) reject_write(REJECT_UNSUPPORTED);
-                        else if (wdata[1:0]==2'd3 && !P_COMP_COEFF_VALID) reject_write(REJECT_UNBOUND);
+                        // 0x29 会清流水并更换唯一 PF1 的档位。采集或未读完期间
+                        // 保留本批配置，避免将两种模式或系数拼入同一记录。
+                        if (P_CONTINUOUS_LVDS_BOUND && !data_intf_config_a_o[0] && data_intf_config_b_o[2] &&
+                            wdata[1:0] != 0) reject_write(REJECT_UNSUPPORTED);
+                        else if (P_CONTINUOUS_LVDS_BOUND && {wdata[6:3],wdata[1:0]} != {dec_r,filter_r} &&
+                                 !config_edit_idle) reject_write(REJECT_NOT_IDLE);
+                        else if (conversion_cfg_locked) reject_write(REJECT_NOT_IDLE);
                         else begin filter_r<=wdata[1:0]; dec_r<=wdata[6:3]; fsync_pulse<=1'b1; end
                     end
                     default: begin address_r<=1'b1; reject_write(REJECT_ADDRESS); end
@@ -433,11 +498,16 @@ module ad4080_regs #(
             // Rev. B p.24 和表 47。一个新参考故障与 bit3 W1C 同沿时，
             // 末次赋值保留新事件。公开 ROM 状态位的来源独立于参考事件。
             if (P_POR_ANA_EVENT_ENABLE && (por_ana_event_i === 1'b1)) por_analog_r<=1'b1;
+            // 来自 AON 的拒收可能在 SPI 帧后才到达，仍应送工程诊断。
+            if (P_AON_CFG_BOUND && pwr_rsp_valid_i && !pwr_rsp_accept_i) reject_write(REJECT_NOT_IDLE);
         end
     end
 
-    assign status={st_fifo_full,st_fifo_read_done,st_hi_flag,st_lo_flag,por_analog_r,cnv_error_alert_o,1'b0,por_r};
-    assign interface_status={not_ready_r,2'b00,clock_r,crc_error_r,readonly_r,partial_r,address_r};
+    assign status={st_fifo_full,st_fifo_read_done,st_hi_flag,st_lo_flag,por_analog_r,cnv_error_alert_o,
+                   (P_ROM_CRC_ERROR_BOUND && rst_n && (rom_crc_error_i === 1'b1)),por_r};
+    // p.28 的忙状态随真实初始化结束；表46 的违规事件仍由独立 W1C 清。
+    assign interface_status={(not_ready_r || (P_AON_CFG_BOUND && (pwr_init_poll_i === 1'b1))),
+                             2'b00,clock_r,crc_error_r,readonly_r,partial_r,address_r};
     assign status_long={2'b00,status[7:4],status[2:1],status[3],status[0],
                         interface_status[7],interface_status[4:0]};
     assign status_short={1'b0,status[0],interface_status[7],interface_status[4:0]};

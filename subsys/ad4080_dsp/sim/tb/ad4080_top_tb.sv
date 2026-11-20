@@ -25,11 +25,18 @@ module ad4080_top_tb;
   // =========================================================================
   // 参数默认关闭全部物理适配，旧样本从 valid_in 直接推进；为 .* 补全新增端口。
   ad4080_top #(.FIFO_DEPTH(DEPTH),.P_MULTIBYTE_ORDER(0),.P_OFFSET_LSB_ADDR(37),.P_PRODUCT_ID_L(55),.P_SHORT_ADDR_BITS(7),.P_WRITE_SDO_DRIVE(0)) dut(
+    // 独立数值或协议配置没有 AON 响应；真实功耗命令在产品台架验证。
+    .pwr_cfg_full_allow_i(1'b1), .pwr_cfg_poll_allow_i(1'b0), // 该台架没有软初始化中的 AON 轮询窗口。
+    .pwr_cmd_ready_i(1'b0), .pwr_cmd_valid_o(),
+    .pwr_cmd_op_o(), .pwr_cmd_value_o(), .pwr_rsp_valid_i(1'b0),
+    .pwr_rsp_accept_i(1'b0), .pwr_rsp_op_i(2'b00), .pwr_mode_i(2'b00),
+    .pwr_ldo_pd_i(2'b00), .rom_crc_error_i(1'b0),
+
     .por_ana_event_i(1'b0),
     .cnv_tick_i(1'b0), .conversion_timing_error_i(1'b0), .cnv_data_timing_error_o(),
     .phy_fifo_full_i(1'b0), .phy_fifo_read_done_i(1'b0), .csr_fifo_full_i(1'b0), .csr_fifo_read_done_i(1'b0),
-    .data_config_ready_i(1'b0), .sample_tag_i(32'd0), .data_intf_config_a_o(), .data_intf_config_b_o(),
-    .continuous_bypass_o(), .continuous_word_valid_o(), .continuous_word_o(), .continuous_word_tag_o(), .*
+    .data_config_ready_i(1'b0), .sample_tag_i(32'd0), .data_intf_config_a_o(), .data_intf_config_b_o(), .data_intf_config_c_o(),
+    .continuous_bypass_o(), .continuous_enable_o(), .continuous_flush_o(), .filter_config_o(), .continuous_word_valid_o(), .continuous_word_o(), .continuous_word_tag_o(), .*
   );
   task automatic require(input bit yes,input string why);checks++;if(!yes)$fatal(1,"DSP_TOP: %s",why);endtask
   always @(posedge clk)begin

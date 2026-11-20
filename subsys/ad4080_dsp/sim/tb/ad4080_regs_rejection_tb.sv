@@ -17,10 +17,16 @@ module ad4080_regs_rejection_tb;
   wire[9:0]gain_code;wire[1:0]filter_sel,fifo_mode;wire[14:0]fifo_watermark;
   int checks=0,rejects=0,metadata_rejects=0,preserved=0;
   always #5 clk=~clk;
-  ad4080_regs dut(.por_ana_event_i(1'b0),.clk(clk),.rst_n(rst_n),.addr(addr),.wdata(wdata),.write_bytes(2'd1),.we(we),
+  ad4080_regs dut(
+    // 独立数值或协议配置没有 AON 响应；真实功耗命令在产品台架验证。
+    .pwr_cfg_full_allow_i(1'b1), .pwr_cmd_ready_i(1'b0), .pwr_cmd_valid_o(),
+    .pwr_cmd_op_o(), .pwr_cmd_value_o(), .pwr_rsp_valid_i(1'b0),
+    .pwr_rsp_accept_i(1'b0), .pwr_rsp_op_i(2'b00), .pwr_mode_i(2'b00),
+    .pwr_ldo_pd_i(2'b00), .rom_crc_error_i(1'b0),
+.por_ana_event_i(1'b0),.clk(clk),.rst_n(rst_n),.addr(addr),.wdata(wdata),.write_bytes(2'd1),.we(we),
     .rdata(rdata),.entity_bytes(entity_bytes),.address_valid(address_valid),.read_only(read_only),.access_supported(access_supported),.access_reject_reason(access_reject_reason),
     .adc_idle(1'b1),.gpio_levels(4'd0),.capture_active(1'b0),.capture_incomplete(1'b0),.capture_io_active(1'b0),
-    .data_config_ready_i(1'b1),.data_intf_config_a_o(),.data_intf_config_b_o(),
+    .data_config_ready_i(1'b1),.data_intf_config_a_o(),.data_intf_config_b_o(), .data_intf_config_c_o(),
     .conversion_timing_error_i(1'b0),.cnv_error_alert_o(),
     .st_fifo_full(1'b0),.st_fifo_read_done(1'b0),.st_hi_flag(1'b0),.st_lo_flag(1'b0),
     .crc_err_pulse(1'b0),.clk_cnt_err_pulse(1'b0),.partial_err_pulse(1'b0),.addr_err_pulse(1'b0),.readonly_err_pulse(1'b0),.not_ready_err_pulse(1'b0),
@@ -50,7 +56,9 @@ module ad4080_regs_rejection_tb;
     meta_unbound(16'h0025); // 普通模式仍须拒绝未绑定 OFFSET 地址的访问。
     write_checked(16'h0027,8'h01,1);require(gain_code==512,"missing gain map silently applied");preserved++;
     write_checked(16'h0028,8'h00,1);require(gain_code==512,"unbound gain0 endpoint accepted");preserved++;
-    write_checked(16'h0029,8'h03,1);require(filter_sel==0,"missing COMP coefficients became identity");preserved++;
+    // PF1 系数由同一份固定表提供，合法选择 11 必须生效。切回旁路后继续拒绝路径。
+    write_checked(16'h0029,8'h03,0);require(filter_sel==3,"qualified PF1 selection was rejected");
+    read_checked(16'h0029,8'h03);write_checked(16'h0029,8'h00,0);
     write_checked(16'h001a,8'h03,2);read_checked(16'h001a,0);
     // 原 bank 两个选择地址均须原子拒绝 1010，另一 nibble 设置为不同合法值。
     write_checked(16'h001a,8'h71,0);read_checked(16'h001a,8'h71);
@@ -62,7 +70,7 @@ module ad4080_regs_rejection_tb;
     write_checked(16'h0002,8'h01,2);read_checked(16'h0002,0);
     write_checked(16'h001e,8'h00,0);write_checked(16'h001d,8'h03,0);require(fifo_watermark==3,"explicit invalid mode11 watermark fixture");
     write_checked(16'h001c,8'h03,9);require(fifo_mode==0,"bad mode11 WM changed mode");preserved++;
-    require(rejects==11&&metadata_rejects==4&&preserved>=13,"nonzero rejection/preservation coverage");
+    require(rejects==10&&metadata_rejects==4&&preserved>=13,"nonzero rejection/preservation coverage");
     $display("AD4080_REG_REJECTION_COMPLETE rejected_writes=%0d metadata_rejects=%0d preserved_compares=%0d checks=%0d",rejects,metadata_rejects,preserved,checks);$finish;
   end
   initial begin #10000;$fatal(1,"register rejection watchdog");end

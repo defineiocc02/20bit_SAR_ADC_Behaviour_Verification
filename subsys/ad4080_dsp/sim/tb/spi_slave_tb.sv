@@ -40,8 +40,14 @@ module spi_slave_tb;
     .partial_err_pulse(partial_err_pulse),.addr_err_pulse(addr_err_pulse),.readonly_err_pulse(readonly_err_pulse),
     .not_ready_err_pulse(not_ready_err_pulse),.cfg_reject(spi_reject),.cfg_reject_reason(spi_reason));
   ad4080_regs #(.P_MULTIBYTE_ORDER(0),.P_OFFSET_LSB_ADDR(37),.P_PRODUCT_ID_L(55),.P_SHORT_ADDR_BITS(7)) bank(
+    // 独立数值或协议配置没有 AON 响应；真实功耗命令在产品台架验证。
+    .pwr_cfg_full_allow_i(1'b1), .pwr_cmd_ready_i(1'b0), .pwr_cmd_valid_o(),
+    .pwr_cmd_op_o(), .pwr_cmd_value_o(), .pwr_rsp_valid_i(1'b0),
+    .pwr_rsp_accept_i(1'b0), .pwr_rsp_op_i(2'b00), .pwr_mode_i(2'b00),
+    .pwr_ldo_pd_i(2'b00), .rom_crc_error_i(1'b0),
+
     // 本夹具只验证配置帧，不把缺省外部监测事件接成真实的片上故障。
-    .data_config_ready_i(1'b0), .data_intf_config_a_o(), .data_intf_config_b_o(),
+    .data_config_ready_i(1'b0), .data_intf_config_a_o(), .data_intf_config_b_o(), .data_intf_config_c_o(),
     .conversion_timing_error_i(1'b0), .cnv_error_alert_o(), .por_ana_event_i(1'b0),
     .clk(clk),.rst_n(rst_n),.addr(addr),.wdata(wdata),.write_bytes(write_bytes),.we(we),.rdata(rdata),
     .entity_bytes(entity_bytes),.address_valid(address_valid),.read_only(read_only),.access_supported(access_supported),
@@ -129,7 +135,7 @@ module spi_slave_tb;
     byte_io(value[15:8],r,0);byte_io(value[7:0],r,0);end_frame();
   endtask
   initial begin
-    logic[7:0]r,c,h,d;int before_requests,before_errors,before_partial,before_reason;
+    logic[7:0]r,c,h,d;int before_requests,before_errors,before_partial;
     for(int i=0;i<16;i++)reason_count[i]=0;
     repeat(4)@(negedge clk);rst_n=1;repeat(8)@(negedge clk);
     require(strict_access&&!crc_en&&gain_code==512,"reset metadata/control");
@@ -166,7 +172,7 @@ module spi_slave_tb;
     // 当前帧发生 CRC 错误后，后续正确指令和 CRC 也不能恢复本帧写入。
     byte_io(8'h00,r,0);byte_io(8'h0a,r,0);byte_io(8'h66,r,0);c=crc_byte(instruction_crc(16'h000a),8'h66);byte_io(c,r,0);end_frame();
     require(requests==before_requests&&crc_errors==before_errors+1,"CRC poison allowed later write");read1(15'h000a,8'ha7);
-    // 首个 CRC 实体之后的流式访问未绑定，须明确拒绝。
+    // 首实体后的无时钟退场仍合法；继续供时钟时按次实体自己的 seed 发 CRC。
     write1(15'h0001,8'h00);require(!single_inst,"stream enable");
     before_errors=clock_errors;
     begin_frame();instruction(16'h8028);byte_io(0,r,1);require(r==2,"GAIN first byte");byte_io(0,r,1);require(r==0,"GAIN second byte");
@@ -176,8 +182,29 @@ module spi_slave_tb;
     begin_frame();instruction(16'h8028);byte_io(0,r,1);require(r==2,"prepare-end GAIN high");byte_io(0,r,1);require(r==0,"prepare-end GAIN low");read_compares+=2;
     crc_then_prepare_end(h,d);
     require(clock_errors==before_errors&&prepare_end_cases>0,"optional PREPARE CS end got CLOCK or was not exercised");
-    before_reason=reason_count[1];begin_frame();instruction(16'h8028);byte_io(0,r,1);byte_io(0,r,1);finish_crc(h,d,1);byte_io(0,r,-1);end_frame();
-    require(reason_count[1]==before_reason+1,"unbound second CRC entity not rejected");
+    // 降序严格 GAIN 的两字节之后，按地址 0x26 的 seed 读既有 OFFSET。
+    // 后续流读不比较主机的 CRC 槽填充值，仍要正确发送器件自己的 CRC。
+    before_requests=requests;
+    before_errors=crc_errors;
+    begin_frame();
+    instruction(16'h8028);
+    byte_io(8'd0,r,1);
+    require(r==8'h02,"stream GAIN high");
+    byte_io(8'd0,r,1);
+    require(r==8'h00,"stream GAIN low");
+    finish_crc(h,d,1);
+    byte_io(8'h01,r,1);
+    require(r==8'h0f,"stream OFFSET high");
+    byte_io(8'h9a,r,1);
+    require(r==8'h85,"stream OFFSET low");
+    c=crc_byte(crc_byte(8'h26,8'h0f),8'h85);
+    // 反码填充确保与器件返回值不同，揭示把回传 CRC 错当主机校验的实现。
+    byte_io(c^8'hff,r,1);
+    require(r==c,"stream OFFSET CRC uses its own start address");
+    read_compares+=4;
+    crc_compares++;
+    end_frame();
+    require(requests==before_requests&&crc_errors==before_errors,"stream read padding checked as host CRC");
     // 使用旧 CRC 帧规则关闭 CRC，再独立设置状态输入。
     write1(15'h0010,8'h30);require(!crc_en&&send_status,"status framing switch");
     write1(15'h0011,8'hff);write1(15'h0014,8'h09);

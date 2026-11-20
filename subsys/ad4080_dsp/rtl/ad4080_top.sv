@@ -27,11 +27,7 @@ module ad4080_top #(
     parameter int K_GAIN=-1,
     parameter int SHIFT=-1,
     parameter bit P_GAIN_CODE0_SUPPORTED=1'b0,
-    parameter bit P_COMP_COEFF_VALID=1'b0,
     parameter bit P_CONTINUOUS_LVDS_BOUND=1'b0, // 产品接入真实移位和配置 CDC 时启用。
-    parameter int C0=32'h40000000,
-    parameter int C1=32'h40000000,
-    parameter int C2=32'h40000000,
     parameter int P_MULTIBYTE_ORDER=-1,
     parameter int P_OFFSET_LSB_ADDR=-1,
     parameter int P_PRODUCT_ID_L=-1,
@@ -40,7 +36,9 @@ module ad4080_top #(
     parameter bit P_CNV_TIMING_BOUND=1'b0,       // 绑定真实核心域 CNV 与对应完成码。
     parameter bit P_PHY_FIFO_STATUS_BOUND=1'b0,  // 物理接口和 CSR 的记录状态由集成方分别提供。
     parameter bit P_CNV_ERROR_BOUND=1'b0,        // 绑定明确核心频率的同域转换间隔错误。
-    parameter bit P_POR_ANA_EVENT_ENABLE=1'b0  // 只在产品连接可信参考故障交付后开启。
+    parameter bit P_POR_ANA_EVENT_ENABLE=1'b0, // 只在产品连接可信参考故障交付后开启。
+    parameter bit P_AON_CFG_BOUND=1'b0,          // 单一 bank 经核心到常供域的真实管理通道。
+    parameter bit P_ROM_CRC_ERROR_BOUND=1'b0   // 实物 ROM 校验源为独立绑点。
 ) (
     // --- 核心、SPI 与并行转换数据 ---
     input logic clk, rst_n,             // 核心域，外部保证异步复位同步解除。
@@ -67,11 +65,23 @@ module ad4080_top #(
     // --- 连续读出的已校正样本与来源标签 ---
     input  logic data_config_ready_i,            // 来自实际 I/O 配置交接；未受理的下一次写会被拒绝。
     input  logic [31:0] sample_tag_i,            // 与进入校正器的转换结果同拍。
-    output logic [7:0] data_intf_config_a_o, data_intf_config_b_o,
-    output logic continuous_bypass_o, continuous_word_valid_o,
+    output logic [7:0] data_intf_config_a_o, data_intf_config_b_o, data_intf_config_c_o, filter_config_o,
+    output logic continuous_enable_o, continuous_bypass_o, continuous_flush_o, continuous_word_valid_o,
     output logic [IN_W-1:0] continuous_word_o,
     output logic [31:0] continuous_word_tag_o,
     input  logic por_ana_event_i = 1'b0,         // 核心域事件，与 0x14[3] 同沿消费。
+    input  logic rom_crc_error_i = 1'b0,         // 实际 ROM 校验状态，只读。
+    input  logic pwr_cfg_full_allow_i = 1'b0,     // 低功耗控制写时不驱动 SDO。
+    input  logic pwr_cfg_poll_allow_i = 1'b0,     // 已确认 Pad 供电与真实软初始化阶段。
+    input  logic pwr_cmd_ready_i = 1'b0,
+    output logic pwr_cmd_valid_o,                // 真实 SPI 提交后才发候选。
+    output logic [1:0] pwr_cmd_op_o,             // 0 mode，1 soft reset，2 LDO。
+    output logic [1:0] pwr_cmd_value_o,          // 本次单字节实体中的两位有效字段。
+    input  logic pwr_rsp_valid_i = 1'b0,
+    input  logic pwr_rsp_accept_i = 1'b0,
+    input  logic [1:0] pwr_rsp_op_i = 2'b00,
+    input  logic [1:0] pwr_mode_i = 2'b00,       // 已执行读回从 AON 返回。
+    input  logic [1:0] pwr_ldo_pd_i = 2'b00,
     output logic processing_reject
 );
     logic [15:0] addr,wdata,rdata,status_long;
@@ -82,6 +92,7 @@ module ad4080_top #(
     logic crc_error,clock_error,partial_error,address_error,readonly_error,notready_error;
     logic crc_en,send_status,single_inst,short_instr,addr_asc,strict_access;
     logic spi_reject,bank_reject,capture_reject;
+    logic spi_sdo_oe, pwr_reset_wait_q, reset_poll_only;
     logic [3:0] spi_reason,bank_reason,capture_reason;
     logic signed [11:0] offset_code;
     logic [9:0] gain_code;
@@ -119,29 +130,40 @@ module ad4080_top #(
     // =========================================================================
     // 1. 可选的真实 CNV 结果边界
     // =========================================================================
-    // [时基] Fig.99 的 E1 由真实 SYNC 和匹配同步后的 tick 同沿确认。滤波从 E3 收原码，
-    //        旁路在首 CNV 建批，随后收上一 CNV 的完成码。发送者负责 core setup/hold。
+    // [时基] FIFO 的 E1 由真实 SYNC 和匹配同步后的 tick 同沿确认。直接读取时，
+    //        p.67 允许 GPIO 或 0x29 重启。写后清流的下个实际 CNV 是新 E1。
+    //        滤波从 E3 收原码，旁路从 E2 收上一 CNV 的完成码。
     // [归属] 一个已接齐的原码块只等待一个真实数值结果，下一 CNV 消费数值。
     //        SINC5 以第 5 组为完整历史，真实字再延 3 CNV 对齐 p.69 的公布拍。
+    //        PF1 取第 35 个真实字，按 D=2N 解读 p.69 的 2+35D+10，再延 9 CNV。
+    //        组末原码至下一 CNV 需留出校正、CIC、FIR 和采纳建立时间。当前
+    //        PF1 流水至少需 10 个完整核心间隔。缺数直接结束本批。
     //        公布后下一 CNV 给原 FIFO。晚到和重复的数值不能冒作本批 RDY。
     // [退场] 停 CNV 时保留相位，不新增比较、公布或写。允许在完整块边界停止供码，
-    //        已完整的末字仍按后续两个 CNV 公布及写入。新采集需要新批。
+    //        已完整的末字等待原定公布及写入拍。新采集需要新批。
     generate if (P_CNV_TIMING_BOUND) begin : g_cnv
-        logic accepting_q, bypass_start_q, skip_edge_q, seen_raw_q, drained_q;
+        logic accepting_q, auto_start_q, skip_edge_q, seen_raw_q, drained_q;
         logic sync_prev_q, sync_tick_seen_q, fault_q;
         logic [10:0] raw_left_q;                  // 当前块尚需的真实原码数。
         logic due_q, pending_num_q, store_pending_q, direct_valid_q, rdy_n_q, stored_event_q;
         logic [IN_W-1:0] pending_word_q, released_word_q;
-        // SINC5 数据通过一次固定的小暂存。含空位的 CNV 延迟不改变真实字顺序。
-        logic [2:0] sinc5_warm_groups_q, sinc5_delay_valid_q;
-        logic [IN_W-1:0] sinc5_delay_word_q [0:2];
+        // 共用一条带空位的 CNV 延迟。SINC5 用前三槽，PF1 用九槽。
+        logic [5:0] filter_warm_groups_q;
+        logic [8:0] filter_delay_valid_q;
+        logic [IN_W-1:0] filter_delay_word_q [0:8];
 
-        wire sinc5_on = filter_sel == 2'd2;
-        wire [3:0] max_dec = sinc5_on ? 4'd7 : 4'd9;
+        wire pf1_on = filter_sel == 2'd3;
+        wire filter_delay_on = filter_sel[1];
+        wire [3:0] max_dec = filter_delay_on ? 4'd7 : 4'd9;
         wire [3:0] capped_dec = dec_sel > max_dec ? max_dec : dec_sel;
-        wire [10:0] group_size = (filter_sel != 2'd0) ? (11'd2 << capped_dec) : 11'd1;
+        wire [10:0] base_rate = (11'd2 << capped_dec);
+        wire [10:0] group_size = pf1_on ? (base_rate << 1) :
+                                (filter_sel != 2'd0 ? base_rate : 11'd1);
+        wire [5:0] warm_group_limit = pf1_on ? 6'd34 : 6'd4;
         wire fifo_new_arm = (arm | fifo_arm) && !capture_active && fifo_mode != 0;
         wire restart = fsync_pulse || fifo_clear_request || fifo_new_arm;
+        // 只有直读允许写 0x29 自己重启滤波。FIFO 模式改变导致的重启不替 GPIO 建批。
+        wire direct_filter_start = fsync_pulse && fifo_mode == 0 && !captured;
         wire raw_slot = cnv_tick_i && accepting_q && !skip_edge_q;
         wire drained_now = raw_slot && !valid_in && seen_raw_q && raw_left_q == group_size;
         wire raw_fault = (valid_in && !raw_slot) || (raw_slot && !valid_in && !drained_now);
@@ -151,9 +173,11 @@ module ad4080_top #(
         wire fault_now = !pin_sync && !restart && !fault_q && (raw_fault || numeric_fault || physical_fault);
         wire run_edge = cnv_tick_i && !pin_sync && !restart && !fault_q && !fault_now;
         wire take_number = run_edge && due_q;
-        wire publish = run_edge && (sinc5_on ? sinc5_delay_valid_q[2] : due_q);
+        wire delay_ready = pf1_on ? filter_delay_valid_q[8] : filter_delay_valid_q[2];
+        wire delay_ready_next = pf1_on ? filter_delay_valid_q[7] : filter_delay_valid_q[1];
+        wire publish = run_edge && (filter_delay_on ? delay_ready : due_q);
         wire [IN_W-1:0] cutoff_word = pending_num_q ? pending_word_q : chain_data;
-        wire last_word_drained = drained_q && !due_q && !store_pending_q && !(|sinc5_delay_valid_q);
+        wire last_word_drained = drained_q && !due_q && !store_pending_q && !(|filter_delay_valid_q);
         wire raw_take = raw_slot && valid_in && !pin_sync && !restart && !fault_q && !fault_now;
         wire interrupted_capture = (pin_sync && !sync_prev_q && seen_raw_q) ||
                                    (pin_sync && cnv_tick_i && sync_tick_seen_q) ||
@@ -164,14 +188,15 @@ module ad4080_top #(
         assign timing_abort_capture = capture_incomplete && interrupted_capture;
         assign cnv_data_timing_error_o = fault_q;
         assign event_sample_valid = publish;
-        assign event_sample = sinc5_on ? sinc5_delay_word_q[2] : cutoff_word;
+        assign event_sample = pf1_on ? filter_delay_word_q[8] :
+                              (filter_delay_on ? filter_delay_word_q[2] : cutoff_word);
         assign fifo_sample_valid = run_edge && store_pending_q;
         assign fifo_sample = released_word_q;
         // 比较器脉冲由公布沿发出。等同字下一 CNV 的写沿再告诉原 FIFO，
         // 保持模式 10 排除触发字，模式 11 将同沿的触发字记在前史。
         assign internal_fifo_event = fifo_sample_valid && (stored_event_q || threshold_pulse);
-        assign filter_rdy_n = rdy_n_q;
-        assign direct_sample_valid = direct_valid_q;
+        assign filter_rdy_n = rdy_n_q || pin_sync || restart || fault_q;
+        assign direct_sample_valid = direct_valid_q && !pin_sync && !restart && !fault_q;
         assign direct_sample = released_word_q;
 
         // ---------------------------------------------------------------------
@@ -183,7 +208,7 @@ module ad4080_top #(
         always_ff @(posedge clk or negedge rst_n) begin
             if (!rst_n) begin
                 accepting_q <= 1'b0;
-                bypass_start_q <= 1'b1;
+                auto_start_q <= 1'b1;
                 skip_edge_q <= 1'b0;
                 seen_raw_q <= 1'b0;
                 drained_q <= 1'b0;
@@ -197,9 +222,9 @@ module ad4080_top #(
                 direct_valid_q <= 1'b0;
                 rdy_n_q <= 1'b1;
                 stored_event_q <= 1'b0;
-                sinc5_warm_groups_q <= '0;
-                sinc5_delay_valid_q <= '0;
-                for (int stage=0; stage<3; stage++) sinc5_delay_word_q[stage] <= '0;
+                filter_warm_groups_q <= '0;
+                filter_delay_valid_q <= '0;
+                for (int stage=0; stage<9; stage++) filter_delay_word_q[stage] <= '0;
                 pending_word_q <= '0;
                 released_word_q <= '0;
             end else begin
@@ -212,8 +237,8 @@ module ad4080_top #(
                     store_pending_q <= 1'b0;
                     rdy_n_q <= 1'b1;
                     stored_event_q <= 1'b0;
-                    sinc5_warm_groups_q <= '0;
-                    sinc5_delay_valid_q <= '0;
+                    filter_warm_groups_q <= '0;
+                    filter_delay_valid_q <= '0;
                     if (!pin_sync || !sync_prev_q || cnv_tick_i) begin
                         seen_raw_q <= 1'b0;
                         drained_q <= 1'b0;
@@ -223,10 +248,10 @@ module ad4080_top #(
                     end
                     if (pin_sync && cnv_tick_i) begin
                         sync_tick_seen_q <= 1'b1;
-                        bypass_start_q <= 1'b0;
+                        auto_start_q <= 1'b0;
                         fault_q <= sync_tick_seen_q;
                     end else if (!pin_sync) begin
-                        bypass_start_q <= !fault_now && (filter_sel == 2'd0);
+                        auto_start_q <= !fault_now && (filter_sel == 2'd0 || direct_filter_start);
                         fault_q <= fault_now;
                     end
                 end else if (run_edge) begin
@@ -234,19 +259,24 @@ module ad4080_top #(
                     stored_event_q <= 1'b0;
                     due_q <= raw_take && raw_left_q == 11'd1;
                     pending_num_q <= 1'b0;
-                    if (sinc5_on) begin
-                        sinc5_delay_valid_q <= {sinc5_delay_valid_q[1:0], take_number && sinc5_warm_groups_q == 3'd4};
-                        sinc5_delay_word_q[2] <= sinc5_delay_word_q[1];
-                        sinc5_delay_word_q[1] <= sinc5_delay_word_q[0];
+                    if (filter_delay_on) begin
+                        // 按真实截止采纳计数。前史字被实际消费，未到第 5/35 字不进入公布管线。
+                        filter_delay_valid_q[0] <= take_number && filter_warm_groups_q == warm_group_limit;
+                        for (int stage=1; stage<9; stage++) begin
+                            filter_delay_valid_q[stage] <= (pf1_on || stage<3) && filter_delay_valid_q[stage-1];
+                            if ((pf1_on || stage<3) && filter_delay_valid_q[stage-1])
+                                filter_delay_word_q[stage] <= filter_delay_word_q[stage-1];
+                        end
                         if (take_number) begin
-                            sinc5_delay_word_q[0] <= cutoff_word;
-                            if (sinc5_warm_groups_q != 3'd4) sinc5_warm_groups_q <= sinc5_warm_groups_q + 1'b1;
+                            filter_delay_word_q[0] <= cutoff_word;
+                            if (filter_warm_groups_q != warm_group_limit)
+                                filter_warm_groups_q <= filter_warm_groups_q + 1'b1;
                         end
                     end
-                    if (bypass_start_q && filter_sel == 2'd0) begin
+                    if (auto_start_q) begin
                         accepting_q <= 1'b1;
-                        skip_edge_q <= 1'b0;
-                        bypass_start_q <= 1'b0;
+                        skip_edge_q <= filter_sel != 2'd0;
+                        auto_start_q <= 1'b0;
                     end else if (skip_edge_q && accepting_q) begin
                         skip_edge_q <= 1'b0;
                     end
@@ -260,7 +290,7 @@ module ad4080_top #(
                     if (publish) begin
                         released_word_q <= event_sample;
                         rdy_n_q <= (filter_sel == 2'd0);
-                    end else if (sinc5_on ? (sinc5_delay_valid_q[1] || (!accepting_q && !(|sinc5_delay_valid_q))) :
+                    end else if (filter_delay_on ? (delay_ready_next || (!accepting_q && !(|filter_delay_valid_q))) :
                                  (!accepting_q || (raw_take && raw_left_q == 11'd1))) begin
                         rdy_n_q <= 1'b1;
                     end
@@ -292,10 +322,21 @@ module ad4080_top #(
     // =========================================================================
     // 2. 寄存器、唯一数值链及状态输出
     // =========================================================================
+    // 软件复位一经排队就屏蔽下一笔 SPI，直到 core 实际收到 AON 结果。
+    // 即使 core 停钟使远端的 300 µs 等待先结束，也不能从旧 bank 读回。
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) pwr_reset_wait_q <= 1'b0;
+        else if (P_AON_CFG_BOUND && pwr_rsp_valid_i && pwr_rsp_op_i == 2'd1) pwr_reset_wait_q <= 1'b0;
+        else if (P_AON_CFG_BOUND && pwr_cmd_valid_o && pwr_cmd_ready_i && pwr_cmd_op_o == 2'd1)
+            pwr_reset_wait_q <= 1'b1;
+    end
+    assign reset_poll_only = P_AON_CFG_BOUND && (pwr_cfg_poll_allow_i === 1'b1) && !pwr_reset_wait_q;
+    assign sdo_oe = spi_sdo_oe && (!P_AON_CFG_BOUND || pwr_cfg_full_allow_i || reset_poll_only);
 
     spi_slave #(.P_SHORT_ADDR_BITS(P_SHORT_ADDR_BITS),.P_WRITE_SDO_DRIVE(P_WRITE_SDO_DRIVE)) u_spi (
-        .clk(clk),.rst_n(rst_n),.cs_n(cs_n),.sclk(sclk),.sdi(sdi),.sdo(sdo),.sdo_oe(sdo_oe),
-        .interface_ready(interface_ready),.crc_en(crc_en),.send_status(send_status),
+        .clk(clk),.rst_n(rst_n),.cs_n(cs_n),.sclk(sclk),.sdi(sdi),.sdo(sdo),.sdo_oe(spi_sdo_oe),
+        .interface_ready(interface_ready && !pwr_reset_wait_q),.reset_poll_only_i(reset_poll_only),
+        .crc_en(crc_en),.send_status(send_status),
         .single_inst(single_inst),.short_instr(short_instr),.addr_asc(addr_asc),.strict_access(strict_access),
         .status_long(status_long),.status_short(status_short),.addr(addr),.wdata(wdata),
         .write_bytes(write_bytes),.we(we),.rdata(rdata),.entity_bytes(entity_bytes),
@@ -309,17 +350,21 @@ module ad4080_top #(
         .P_MULTIBYTE_ORDER(P_MULTIBYTE_ORDER),.P_OFFSET_LSB_ADDR(P_OFFSET_LSB_ADDR),
         .P_PRODUCT_ID_L(P_PRODUCT_ID_L),.P_SHORT_ADDR_BITS(P_SHORT_ADDR_BITS),
         .P_GAIN_MAP_VALID(P_GAIN_MAP_VALID),.P_GAIN_CODE0_SUPPORTED(P_GAIN_CODE0_SUPPORTED),
-        .P_COMP_COEFF_VALID(P_COMP_COEFF_VALID), .P_CNV_TIMING_BOUND(P_CNV_TIMING_BOUND),
-        .P_CNV_ERROR_BOUND(P_CNV_ERROR_BOUND), .P_POR_ANA_EVENT_ENABLE(P_POR_ANA_EVENT_ENABLE)) u_regs (
+        .P_CNV_TIMING_BOUND(P_CNV_TIMING_BOUND),
+        .P_CNV_ERROR_BOUND(P_CNV_ERROR_BOUND), .P_POR_ANA_EVENT_ENABLE(P_POR_ANA_EVENT_ENABLE),
+        .P_AON_CFG_BOUND(P_AON_CFG_BOUND), .P_ROM_CRC_ERROR_BOUND(P_ROM_CRC_ERROR_BOUND)) u_regs (
         .clk(clk),.rst_n(rst_n),.addr(addr),.wdata(wdata),.write_bytes(write_bytes),.we(we),
         .rdata(rdata),.entity_bytes(entity_bytes),.address_valid(address_valid),.read_only(read_only),
         .access_supported(access_supported),.access_reject_reason(access_reject_reason),
-        .data_config_ready_i, .data_intf_config_a_o, .data_intf_config_b_o,
+        .data_config_ready_i, .data_intf_config_a_o, .data_intf_config_b_o, .data_intf_config_c_o,
         .adc_idle(adc_idle),.gpio_levels(gpio_levels),.capture_active(capture_active),
         .capture_incomplete(capture_incomplete),.capture_io_active(capture_io_active),
         .st_fifo_full(csr_full_view),.st_fifo_read_done(csr_done_view),
         .st_hi_flag(hi_flag&hi_route),.st_lo_flag(lo_flag&lo_route),
-        .conversion_timing_error_i,.cnv_error_alert_o(cnv_error_alert),.por_ana_event_i,
+        .conversion_timing_error_i,.cnv_error_alert_o(cnv_error_alert),.por_ana_event_i,.rom_crc_error_i,
+        .pwr_cfg_full_allow_i,.pwr_init_poll_i(reset_poll_only),
+        .pwr_cmd_ready_i,.pwr_cmd_valid_o,.pwr_cmd_op_o,.pwr_cmd_value_o,
+        .pwr_rsp_valid_i,.pwr_rsp_accept_i,.pwr_rsp_op_i,.pwr_mode_i,.pwr_ldo_pd_i,
         .crc_err_pulse(crc_error),.clk_cnt_err_pulse(clock_error),.partial_err_pulse(partial_error),
         .addr_err_pulse(address_error),.readonly_err_pulse(readonly_error),.not_ready_err_pulse(notready_error),
         .hi_clr(hi_clr),.lo_clr(lo_clr),.offset_code(offset_code),.gain_code(gain_code),
@@ -335,8 +380,7 @@ module ad4080_top #(
         .cfg_reject(bank_reject),.cfg_reject_reason(bank_reason)
     );
     ad4080_dsp_chain #(.IN_W(IN_W),.P_GAIN_MAP_VALID(P_GAIN_MAP_VALID),.K_GAIN(K_GAIN),.SHIFT(SHIFT),
-        .P_GAIN_CODE0_SUPPORTED(P_GAIN_CODE0_SUPPORTED),.P_COMP_COEFF_VALID(P_COMP_COEFF_VALID),
-        .C0(C0),.C1(C1),.C2(C2)) u_chain (
+        .P_GAIN_CODE0_SUPPORTED(P_GAIN_CODE0_SUPPORTED)) u_chain (
         .clk(clk),.rst_n(rst_n),.valid_in(chain_input_valid),.x(x),.offset_code(offset_code),.gain_code(gain_code),
         .filter_sel(filter_sel),.dec_sel(dec_sel),.filter_sync(fsync_all),
         .y(chain_data),.valid_out(chain_valid),.clip_low(clip_low),.clip_high(clip_high),
@@ -373,24 +417,37 @@ module ad4080_top #(
     assign gpio_levels=(gpio_o&gpio_oe)|(gpio_sync&~gpio_oe);
     // 连续 LVDS 的时隙在 I/O 域选择。这里提交“数值实际完成”的原码结果，
     // 事件比较和 FIFO 的外部公布沿另由 CNV 时基决定，不能用后者延迟替代可发送时刻。
-    assign continuous_bypass_o = P_CONTINUOUS_LVDS_BOUND && fifo_mode == 0 && filter_sel == 0 && !captured;
-    assign continuous_word_o = chain_data;
-    assign continuous_word_valid_o = continuous_bypass_o && chain_valid && !fsync_all;
+    assign continuous_enable_o = P_CONTINUOUS_LVDS_BOUND && fifo_mode == 0 && !captured;
+    assign continuous_bypass_o = continuous_enable_o && filter_sel == 0;
+    assign filter_config_o = {1'b0, dec_sel, 1'b0, filter_sel};
+    assign continuous_word_o = filter_sel == 0 ? chain_data : direct_sample;
+    assign continuous_word_valid_o = continuous_enable_o && !fsync_all &&
+                                     (filter_sel == 0 ? chain_valid : direct_sample_valid);
     generate if (P_CONTINUOUS_LVDS_BOUND) begin : g_stream_tag
-        logic [31:0] tag_s1, tag_s2;
-        // 图96修正流水在受理沿后的第2个核心沿发布。标签与相同输入同沿采纳；
-        // 空拍继续移动，valid 由真正的数值出口给出。复位或取消同时退休未交付标签。
+        logic [31:0] tag_s1, tag_s2, tag_s3, filter_sequence_q;
+        // 图96的原码标签随校正流水。滤波字由多笔转换产生，标为本次 SYNC 后的输出序号。
+        // 两种 tag 的含义由已提交的滤波配置区分；每次重新同步时在目的域作废旧保持字。
+        assign continuous_word_tag_o = filter_sel == 0 ? tag_s3 : filter_sequence_q;
         always_ff @(posedge clk or negedge rst_n) begin
-            if (!rst_n) begin tag_s1<='0; tag_s2<='0; continuous_word_tag_o<='0; end
-            else if (fsync_all) begin tag_s1<='0; tag_s2<='0; continuous_word_tag_o<='0; end
-            else begin
-                if (chain_input_valid) tag_s1<=sample_tag_i;
-                tag_s2<=tag_s1;
-                continuous_word_tag_o<=tag_s2;
+            if (!rst_n) begin
+                tag_s1<='0; tag_s2<='0; tag_s3<='0; filter_sequence_q<='0; continuous_flush_o<=1'b1;
+            end else begin
+                // 注册清除请求再交给两个时钟域的复位同步器，可在 DCLK 停止时立即撤销旧会话。
+                continuous_flush_o <= fsync_all;
+                if (fsync_all) begin
+                    tag_s1<='0; tag_s2<='0; tag_s3<='0; filter_sequence_q<='0;
+                end else begin
+                    if (chain_input_valid) tag_s1<=sample_tag_i;
+                    tag_s2<=tag_s1;
+                    tag_s3<=tag_s2;
+                    if (continuous_enable_o && filter_sel != 0 && direct_sample_valid)
+                        filter_sequence_q<=filter_sequence_q+1'b1;
+                end
             end
         end
     end else begin : g_no_stream_tag
         assign continuous_word_tag_o = '0;
+        assign continuous_flush_o = 1'b0;
     end endgenerate
     // 软件复位可将 FIFO_MODE 改为 00；已完成的记录仍须继续从捕获读口输出。
     assign dout=captured ? fifo_data : direct_sample;

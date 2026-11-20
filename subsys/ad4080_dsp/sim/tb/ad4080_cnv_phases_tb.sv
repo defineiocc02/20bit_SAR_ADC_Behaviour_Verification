@@ -39,6 +39,11 @@ module ad4080_cnv_phases_tb;
         .FIFO_DEPTH(16), .P_OFFSET_LSB_ADDR(37), .P_MULTIBYTE_ORDER(0), .P_WRITE_SDO_DRIVE(0),
         .P_CNV_TIMING_BOUND(1'b1), .P_CNV_ERROR_BOUND(1'b1)
     ) dut (
+    // 独立数值或协议配置没有 AON 响应；真实功耗命令在产品台架验证。
+    .pwr_cfg_full_allow_i(1'b1), .pwr_cmd_ready_i(1'b0), .pwr_rsp_valid_i(1'b0),
+    .pwr_rsp_accept_i(1'b0), .pwr_rsp_op_i(2'b00), .pwr_mode_i(2'b00),
+    .pwr_ldo_pd_i(2'b00), .rom_crc_error_i(1'b0),
+
         .clk, .rst_n, .cs_n, .sclk, .sdi, .sdo, .sdo_oe,
         .interface_ready(1'b1), .adc_idle(1'b1), .valid_in(input_valid && (!pin_mode || pin_tick)), .x,
         .filter_sync(1'b0), .ext_event(1'b0), .arm(1'b0), .rd_en, .gpio_i, .gpio_o, .gpio_oe,
@@ -47,8 +52,9 @@ module ad4080_cnv_phases_tb;
         .phy_fifo_full_i(1'b0), .phy_fifo_read_done_i(1'b0),
         .csr_fifo_full_i(1'b0), .csr_fifo_read_done_i(1'b0),
         .data_config_ready_i(1'b0), .sample_tag_i(32'd0), .por_ana_event_i(1'b0),
-        .data_intf_config_a_o(), .data_intf_config_b_o(),
-        .continuous_bypass_o(), .continuous_word_valid_o(), .continuous_word_o(), .continuous_word_tag_o(),
+        .data_intf_config_a_o(), .data_intf_config_b_o(), .data_intf_config_c_o(),
+        .continuous_bypass_o(), .continuous_enable_o(), .continuous_flush_o(), .filter_config_o(), .continuous_word_valid_o(), .continuous_word_o(), .continuous_word_tag_o(),
+        .pwr_cmd_valid_o(), .pwr_cmd_op_o(), .pwr_cmd_value_o(),
         .cnv_data_timing_error_o,.processing_reject()
     );
 
@@ -223,6 +229,21 @@ module ad4080_cnv_phases_tb;
         check(!gpio_o[0] && dout_valid && $signed(dout)==20'sd52,"Fig97 E11 second real word");
         @(negedge clk); cnv_tick_i=0;
         $display("PASS FIG97 D4 GPIO RDY low=E7,E8,E9 high=E10 next=E11 pause holds actual word");
+
+        // p.67 Direct LVDS 允许同值写 0x29 单独重新起批。上一批真字保持，
+        // 但 RDY 和数值有效撤回。这里 GPIO1 一直为高，不提供第二次 GPIO SYNC。
+        write_csr(15'h0029,1,16'h0009);
+        check(gpio_i[1] && gpio_o[0] && !dout_valid && dout==20'd52 && direct_words==2,
+              "same-value direct 0x29 clears old validity while retaining previous data");
+        drive_tick(0,0,6); drive_tick(0,0,6);  // 0x29 已提交后的 E1、E2。
+        for (int k=0; k<4; k++) begin
+            drive_tick(1,80+8*k,6);
+            check(gpio_o[0] && dout==20'd52 && direct_words==2,"no stale output in new D4 window");
+        end
+        drive_tick(0,0,6);
+        check(!gpio_o[0] && dout==20'd92 && direct_words==3 && !cnv_data_timing_error_o,
+              "direct write-only restart publishes new D4 data at its own E7");
+        $display("PASS FIG97 same 0x29 direct restart without GPIO, retained=52 next_E7=92");
     endtask
 
     task automatic run_fig83;
@@ -317,24 +338,37 @@ module ad4080_cnv_phases_tb;
         drive_tick(0,0,6); drive_tick(1,6,6); drive_tick(1,10,6); drive_tick(0,0,6);
         check(!cnv_data_timing_error_o && !gpio_o[0] && dout==20'd8,"new sync recovers exact pair");
         write_csr(15'h0029,1,16'h000b);
-        check(rejects==1 && reason==2 && dut.filter_sel==1,"unsupported pin-timed COMP fails closed");
-        $display("PASS early/missing/late raw, late number, sync restart and unsupported profile");
+        check(rejects==0 && dut.filter_sel==3,"PF1 selects without any caller coefficient parameters");
+        filtered_start(); drive_tick(0,0,6); drive_tick(0,0,6);
+        check(cnv_data_timing_error_o && gpio_o[0],"PF1 missing initial raw fails closed");
+        $display("PASS early/missing/late raw, late number, sync restart and PF1 missing first input");
     endtask
 
-    task automatic run_sinc_rate(input bit sinc5, input int code, input int decimation);
-        int first_due, second_due, first_group, order, seen;
-        first_group=sinc5 ? 5 : 1;
-        order=sinc5 ? 5 : 1;
-        first_due=first_group*decimation+(sinc5 ? 6 : 3); second_due=first_due+decimation; seen=0;
-        reset_top(); cfg_filter(8'((code<<3)|(sinc5 ? 2 : 1))); filtered_start(); drive_tick(0,0,10);
+    task automatic run_sinc_rate(input int mode, input int code, input int decimation);
+        int first_due, second_due, first_group, order, seen, out_rate, delay2;
+        first_group=(mode==3) ? 35 : (mode==2 ? 5 : 1);
+        order=(mode==1) ? 1 : 5;
+        out_rate=(mode==3) ? 2*decimation : decimation;
+        first_due=first_group*out_rate+(mode==3 ? 12 : (mode==2 ? 6 : 3));
+        second_due=first_due+out_rate;
+        seen=0;
+        reset_top(); cfg_filter(8'((code<<3)|mode)); filtered_start(); drive_tick(0,0,10);
         // 斜坡 x[j]=800+2j。秩为 m 的 N 点矩形归一卷积均值位置后移
         // m(N−1)/2 个输入位置，因此第 k 组末码为 800+2kN−m(N−1)。
-        // SINC1 从第一组、SINC5 从第五组开始，避免用常值掩盖早晚误配的标签。
+        // PF1 再平移 (TAPS−1)/2 个 CIC 字。对称单位 DC 增益不改变斜坡的斜率。
+        // 非恒定输入可检出误将前一组或后一组伪作 p.69 指定公布拍。
+        delay2=order*(decimation-1);
+        if (mode==3) delay2=delay2+(dut.u_chain.u_comp.PMODE_COMP_TAPS-1)*decimation;
         for (int e=3; e<=second_due; e++) begin
             drive_tick(1,800+2*(e-2),10);
+            if (mode==3 && e==first_due-1) begin
+                // 手册的计数只限定公布拍，核心空拍不能补做缺失的 CNV。
+                repeat (30) @(negedge clk);
+                check(direct_words==0 && gpio_o[0],"PF1 staged true word cannot publish while CNV paused");
+            end
             if (e==first_due || e==second_due) begin
                 seen++;
-                check($signed(dout)==20'(800+2*(seen+first_group-1)*decimation-order*(decimation-1)),
+                check($signed(dout)==20'(800+2*(seen+first_group-1)*out_rate-delay2),
                       "real selected group matches complete ramp window");
             end
             // 输出保持、RDY 引脚以及数值有效计数分别检查。单靠 data 相等
@@ -342,20 +376,82 @@ module ad4080_cnv_phases_tb;
             check(!cnv_data_timing_error_o && direct_words==seen &&
                   gpio_o[0]==(e<first_due || e==second_due-1),"no early RDY and exact recurring window");
         end
-        $display("PASS SINC%0d CNV code=%0d N=%0d actual group%0d/%0d RDY E%0d/E%0d",
-                 order,code,decimation,first_group,first_group+1,first_due,second_due);
+        $display("PASS filter mode=%0d CNV code=%0d N=%0d actual group%0d/%0d RDY E%0d/E%0d",
+                 mode,code,decimation,first_group,first_group+1,first_due,second_due);
+    endtask
+
+    task automatic run_pf1_record;
+        // 使用原 FIFO 写口验证 p.69 之外的后一拍提交。不把内部直接读
+        // 公布当成存储完成，且要求尾部空原码期间不生成伪输入。
+        reset_top(); cfg_filter(8'h03);
+        write_csr(15'h001e,2,16'd1); write_csr(15'h001c,1,16'd1);
+        filtered_start(); drive_tick(0,0,10);
+        for (int j=1; j<=140; j++) drive_tick(1,900+2*j,10);
+        // 末组 SINC5 k70 已喂完。再无新增原码，只允许真实待提交的完整字
+        // 经 p.69 定相公布 E152，再于下一 CNV E153 经原 capture 实写。
+        for (int e=143; e<=151; e++) begin
+            drive_tick(0,0,10);
+            check(gpio_o[0] && writes==0,"PF1 record cannot consume any startup code");
+        end
+        drive_tick(0,0,10);
+        check(!gpio_o[0] && writes==0,"PF1 E152 true ready before storage");
+        drive_tick(0,0,10);
+        check(writes==1 && status[7] && gpio_o[2] && !cnv_data_timing_error_o,"PF1 E153 true word and FULL");
+        read_sample(900+2*140-5-(dut.u_chain.u_comp.PMODE_COMP_TAPS-1)*2);
+        $display("PASS PF1 N2 W1 actual final stored true word RDY=E152 WRITE/FULL=E153");
+    endtask
+
+    task automatic run_pf1_switch;
+        reset_top(); cfg_filter(8'h03); filtered_start(); drive_tick(0,0,10);
+        // N=2 的第 35 个补偿字进入延迟槽，但还未到 E152。暂停并换档必须
+        // 清除该真字及其标签，不能因其已计算而在旧公布沿出现。
+        for (int j=1; j<=140; j++) drive_tick(1,900+2*j,10);
+        drive_tick(0,0,10);  // E143 截止采纳旧字。
+        repeat (30) @(negedge clk);
+        check(direct_words==0 && gpio_o[0],"PF1 staged old word not yet published");
+        write_csr(15'h0029,1,16'h000b);  // Direct PF1 N=4，新一组系数和历史。
+        drive_tick(0,0,10); drive_tick(0,0,10); // 写后第一真实 CNV 为 E1，不用 GPIO。
+        for (int j=1; j<=280; j++) begin
+            drive_tick(1,-2000+2*j,10);
+            check(gpio_o[0] && direct_words==0,"PF1 old staged result did not survive rate write");
+        end
+        for (int e=283; e<292; e++) begin
+            drive_tick(0,0,10);
+            check(direct_words==0 && gpio_o[0],"new rate cannot publish before its own p69 boundary");
+        end
+        drive_tick(0,0,10);
+        check(direct_words==1 && !gpio_o[0] &&
+              $signed(dout)==20'(-2000+2*280-15-(dut.u_chain.u_comp.PMODE_COMP_TAPS-1)*4),
+              "PF1 resync publishes only the new fully formed word");
+        $display("PASS PF1 paused old token flushed, direct 0x29 restart publishes first true word E292");
+    endtask
+
+    task automatic run_fifo_needs_sync;
+        reset_top(); cfg_filter(8'h03);
+        write_csr(15'h001e,2,16'd1); write_csr(15'h001c,1,16'd1);
+        // 0x29 先提供了直读重启资格，随后启用 FIFO 应清除此资格。没有实际
+        // GPIO SYNC 的 CNV 不能被误作滤波捕获的 E1。
+        drive_tick(0,0,6); drive_tick(0,0,6); drive_tick(1,64,6);
+        check(cnv_data_timing_error_o && writes==0 && gpio_o[0] && !status[7],
+              "PF1 FIFO rearm requires physical FILTER_SYNC");
+        $display("PASS PF1 FIFO write-only restart rejected, real FILTER_SYNC still required");
     endtask
 
     initial begin
         run_fig99(15ns,5ns); run_fig99(20ns,10ns); run_fig97(); run_fig83();
         run_event_capture(); run_clock_error(); run_bad_timing();
-        for (int code=0; code<10; code++) run_sinc_rate(0,code,2<<code);
-        run_sinc_rate(0,15,1024);
-        for (int code=0; code<8; code++) run_sinc_rate(1,code,2<<code);
-        run_sinc_rate(1,15,256);
+        for (int code=0; code<10; code++) run_sinc_rate(1,code,2<<code);
+        run_sinc_rate(1,15,1024);
+        for (int code=0; code<8; code++) begin
+            run_sinc_rate(2,code,2<<code);
+            run_sinc_rate(3,code,2<<code);
+        end
+        run_sinc_rate(2,15,256);
+        run_sinc_rate(3,15,256);
+        run_pf1_record(); run_pf1_switch(); run_fifo_needs_sync();
         $display("AD4080_CNV_PHASES_COMPLETE checks=%0d",checks);
         $finish;
     end
-    initial begin #4000000; $fatal(1,"CNV phase watchdog"); end
+    initial begin #15000000; $fatal(1,"CNV phase watchdog"); end
 endmodule
 `default_nettype wire

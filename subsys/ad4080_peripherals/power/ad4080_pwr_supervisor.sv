@@ -66,7 +66,8 @@ module ad4080_pwr_supervisor #(
     // --- 物理边界的控制请求 ---
     output logic       isolate_io_o,                     // 高有效；需由活电域的专用隔离/钳位单元执行
     output logic       iovdd_ldo_en_o,                  // 内供 IOVDD LDO 的高有效工作请求
-    output logic       ref_cmo_en_o                      // 参考及 CMO 缓冲器的工作请求
+    output logic       ref_cmo_en_o,                     // 参考及 CMO 缓冲器的工作请求
+    input  logic [1:0] cfg_ldo_pd_aon_i = 2'b00          // 已受理的内供关断位，外供忽略
 );
     // =========================================================================
     // 2. 公共时序常量与状态
@@ -103,6 +104,7 @@ module ad4080_pwr_supervisor #(
     logic io_live_aon;
     logic core_release_ni;
     logic io_release_ni;
+    logic core_pd_aon, io_pd_aon; // 已受理的独立控制，PG 输入仍来自真实监测器
     logic wake_power_ok;
     logic ref_fault_hold_no; // 异步捕获，跨 AON 时钟边沿延长短故障
     (* ASYNC_REG = "TRUE" *) logic [1:0] ref_fault_sync_q;
@@ -156,8 +158,10 @@ module ad4080_pwr_supervisor #(
 
     // [局部释放] 软件初始化可重启数据路径；低功耗时外供 IOVDD 仍可使用。
     // 核心和 I/O 各自释放。许可返回 AON 需再次同步，不能借用另一域的释放沿。
-    assign core_release_ni = cfg_hw_reset_no && init_done_q;
-    assign io_release_ni = core_release_ni && (external_io_i || analog_run_req_q)
+    assign core_pd_aon = !external_io_i && cfg_ldo_pd_aon_i[1];
+    assign io_pd_aon = !external_io_i && (cfg_ldo_pd_aon_i[0] || core_pd_aon);
+    assign core_release_ni = cfg_hw_reset_no && init_done_q && !core_pd_aon;
+    assign io_release_ni = core_release_ni && (external_io_i || (analog_run_req_q && !io_pd_aon))
                          && iovdd_ok_async_i;
 
     ad4080_pwr_reset_sync u_core_reset (
@@ -229,7 +233,7 @@ module ad4080_pwr_supervisor #(
     always_comb begin
         mode_req_accept_aon_o = 1'b0;
         if (mode_req_valid_aon_i && cfg_control_write_allow_aon_o
-            && clients_idle_aon_i && !sw_reset_accept_aon_o) begin
+            && clients_idle_aon_i && !sw_reset_accept_aon_o && !core_pd_aon) begin
             case (mode_q)
                 RUN_NORMAL:
                     mode_req_accept_aon_o = (mode_req_aon_i != 2'b01);
@@ -318,7 +322,7 @@ module ad4080_pwr_supervisor #(
     always_ff @(posedge clk_aon_i or negedge cfg_hw_reset_no) begin
         if (!cfg_hw_reset_no) begin
             ldo_io_en_q <= 1'b1;
-        end else if (analog_run_req_q) begin
+        end else if (analog_run_req_q && !io_pd_aon) begin
             ldo_io_en_q <= 1'b1;
         end else if (isolate_io_o) begin
             ldo_io_en_q <= 1'b0;

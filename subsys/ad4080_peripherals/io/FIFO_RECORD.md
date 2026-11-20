@@ -32,18 +32,36 @@ CRC 服务在 `start_accept_o` 同沿建立新会话，获取模式、长度和�
 
 ### 状态与故障
 
-1. 空闲接受命令后进入同步头。头末 beat 同沿给现有 transport 首字准入，随后接 `payload_pair_*`。任一 LVDS 字启动后要接满十个 pair，字末允许同沿装后续字，已到第 N 字则关闭新字准入。SPI 预取一字，旧字最后 beat 同沿可接受后续字，其 `sample_last_i` 必须和剩余计数吻合。
-2. 需要 CRC 时，最后 payload beat 可同沿接受完整尾。若服务延迟则去 `WAIT_CRC`，期间不会发有效 beat。SPI 前缀在末样本末 beat 完成。尾最后 beat 或 SPI 前缀末 beat 只有与 `beat_ready_i` 握手才退役。`beat_first_o` 是记录首头，`beat_last_o` 是该 profile 唯一的成功结束标记。
-3. 可背压头、SPI 载荷与尾。现有单 LVDS transport 启动后连续输出一字，`payload_start_allow_o` 仅禁止新字，已在途 pair 遇到下游拒收或中途缺拍会废弃本记录。字间可等待尚未到的源字。固定不中断的 Pad 波形要求上游按确定时钟与缓冲预算越过这些等候条件，并使 CRC 及时可用。整字上游断供由会话控制器超时后 `abort_i`，本模块没有猜测或填零补帧。
+1. 空闲接受命令后进入预取。只有至少 `min(N,2)` 字已经到达发射域且 `beat_ready_i=1`，才开始同步头。LVDS 的预取数来自 transport 已同步的写指针。SPI 两字缓存由实际 `sample_valid/ready` 接受填充，`sample_last_i` 与固定字数一致。预取期间 AA、发射字装载和完成标志都保持无效，调用方可用 `abort_i` 明确撤销缺少初始供数的会话。
+2. 首组 AA 至最后一组数据/SPI 前缀末位或 CRC 尾之间，在自由运行的 `clk_i` 上每拍一个实际输出 beat。已起发时撤销 `beat_ready_i` 报错 6。载荷期任一原始拍缺失数据立即报错 7，包括两字之间。两字预取只保障起发，上游仍须按接口时钟持续供给所有后续字。SPI 满缓存可在当前字最后一拍同时退役、前移和补位。
+3. 需 CRC 的记录只在最终载荷 beat 实际交付当沿接受尾字。服务可预计算并持稳，或把当前最后一对位并入余数后同沿提供。CRC 缺失、失败或迟到均报错 4，事件到来后发射结束。成功记录的 CRC 下一拍开始，紧接载荷。默认 SPI 最后载荷 beat 退休即完成。`beat_last_o` 标定 profile 的最后 beat，`done_o` 从该 beat 实际接受沿寄存。
 4. 掉电、复位与显式中止先切断有效输出、样本和启动握手。运行时 `power_good_i` 的撤销要保持到 IO 域有一沿可清状态，或由常开管理域直接置 `rst_ni`。故障中断不发 `done_o`，需要 CRC 的会话收到 `crc_cancel_o` 并清除响应。读回 owner 须同步作废对应 transport epoch 和已读暂存。`crc_service_ready_i` 重新置位前确认上一会话已排清。
 
 | `error_code_o` | 条件 |
 | --- | --- |
 | 1 | 保留模式，或样本数不在合法域 |
 | 2 | 产品格式未绑定、所需 CRC 服务不就绪、残留 CRC 响应或 LVDS 上轮 pair 仍有效 |
-| 3 | SPI 源 `last` 与固定字数冲突，或 LVDS pair 标记、字内连续性与超量出线不符合合同 |
-| 4 | CRC 服务有效响应同时报告错误 |
+| 3 | SPI 源 `last` 与固定字数冲突，或 LVDS pair 标记、超量出线不符合合同 |
+| 4 | 末载荷沿未收到有效 CRC，或 CRC 服务有效响应同时报告错误 |
 | 5 | 会话内掉电，IO 有时钟记账 |
-| 6 | 主机/上游中止，或在发 LVDS pair 遭到不允许的反压 |
+| 6 | 主机/上游中止，或同步头已开始后撤销 PHY 准入 |
+| 7 | 载荷期在任一原始时钟上无有效字，记录不能用后续 valid 将其压缩 |
+
+### 首末样本装载事件
+
+`ad4080_fifo_lvds_record_link` 对外提供 `first_payload_word_load_io_o` 和 `last_payload_word_load_io_o`。两者以 transport 的 `frame_q` 真正装载资格为源，在 IO 域上升沿采纳。首样本与 AA 最后一对同沿装入，下一沿交付首载荷 pair。后续字在前一字的末 pair 同沿装入。N=1 时首末事件同沿。SRAM 请求和回答仅是预取。末样本装载还早于该样本的末位和整条记录 CRC 退休。
+
+图 87–89 在首、末结果的移入接口边界标记 FIFO 状态。图 89 中 `FIFO_READ_DONE` 位于最后样本 D19 一带，随后的低位和 CRC 仍需发出。表 25 关于 `FIFO_READ_DONE` 的清除措辞与图示存在出入，具体 GPIO 翻转相位及同步后的软件可见时间需要厂商澄清或板上测量。首末装载信号供上层状态逻辑关联 `FIFO_FULL/READ_DONE`，并保留独立记录完成事件。[Rev. B 第 53、56、59–60 页](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=53)
 
 实际目标 RX/TX、ODDR、DCS/DCLK 包脚时序及局部供电复位根据 [IO_PLAN.md](IO_PLAN.md) 的冻结条件走。连续 ADC raw lane 的已有映射继续见 [SPEC.md](SPEC.md)。
+
+## 产品结果 SPI 的实际引脚接缝
+
+`ad4080_fifo_lvds_record_link` 的 `SPI_RESULT_BOUND=1` 接入 [ad4080_result_spi_pins](ad4080_result_spi_pins.sv)。产品 `DATA_INTF_MODE=1` 时，同一读回实例和同一个运输 FIFO 直接交并行 20 位队首给原组帧器。两字前置寄存器、单个位组邮箱和一个引脚发射寄存器在原异步 FIFO 下游。四银行结果存储、队列指针和 24 位符号扩展/四线排列均沿用唯一逻辑。
+
+- 主机只观察实际最后 SRAM 写入发布的 FIFO_FULL。它降 DCS 后第一个真实 DCLK 下降沿可开始同步头，允许读授权同步以及 SRAM 预取发生在随后的头部八个下降沿期间。`result_spi_selected_async_o` 只由合法首个 DCLK 实际发头后置位。FIFO 原样数据在核心两级看到后才取得读授权。未满时已经发生无效首拍的旧 DCS 窗口即使跨过真 FULL，也须先收片选再另选。内部 `result_spi_ready_io_o` 是载荷邮箱的诊断，软件无需观察。
+- `result_dclk_i` 空闲高，原始每个下降沿锁存新 SDO，下一上升沿供主机采样。固定 `AA` 来自 framer 同一头定义。头末之后缺第一个或后续有效邮箱位组即中止，无法以补 bit 或延长报文成功。已入选后停 DCLK 可保留待发位组，提前抬 DCS 明确失败，部分读过的旧记录由上层作废。DCLK 令牌和位组稳定直到真实下降沿的回执，首个/最终数据字的第一物理组实际装入 SDO 后才跨回 I/O 并报装载事件，尾完成独立。
+- 输出 `[3:0]` 为 A/B/C/D。单线仅 `SDOB`。四线在 DCS inactive 时仍让 `SDOD` 驱动，值保持最后锁存或复位值，属于该实现的未选输出值。其它线未选撤销 OE，失去 IOVDD 资格全部关断。Rev. B 表 6 仅给出 SDOD 的高阻例外。引脚电压、驱动强度、tDEN 以及板级采样时序须以真实宏和板测闭合。[Rev. B 第 10–11 页表 6](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=10)
+- 表 2 的 DCLK 周期至少 20 ns，DCLK 高低分别至少 0.45 周期，`tDDSDO` 最长 9.6 ns。400 MHz 的理想服务时钟可在两个 50 MHz 的 DCLK 下降沿之间返回回执并补发一组。部署需要约束服务域回执、多位邮箱到 DCLK 首/下一个下降沿的建立时间、首位所依赖的 FULL/DCS 稳定路径，以及 DCLK→SDO 宏的传播时延。预取够第一位及持续的单口服务是有效帧资格。在给定核心时基、仲裁和 LP 状态下首字若不足，数字引脚报告欠载，待确定的是该实现与真实外部时序的裕量。[Rev. B 第 7–8 页表 2](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=7)
+
+第 51 页描述每条 FIFO 数据记录附 24 位 CRC，第 59 页图 87/88 和 ADI 固件操作到 `AA + 24N` 的实际前缀为止。默认产品只闭合前缀，因此合法末组后的 DCS release 有独立成功回执。延长时钟的 silicon 数据仍未绑定。显式约定外部余数及其物理线序、让主机继续落时钟时，`SPI_CRC_TAIL_BOUND=1` 生成 24 个 SDOB 位或 6 组四线、总共 24 位的工程尾。[引脚引擎测试](run_result_spi_pins.sh)

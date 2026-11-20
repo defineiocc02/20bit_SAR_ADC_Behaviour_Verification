@@ -52,6 +52,12 @@ module ad4080_result_readback_link #(
 
     // --- I/O 域无反压 DDR pair 输出 ---
     output logic        io_online_o,                   // 两个域完成共同会话的释放握手
+    output logic [1:0]  io_prefetch_words_o,           // 同步可读槽，2 代表至少两字
+    output logic        io_word_load_o,                // 本沿真实锁存并行发射字，不包括 SRAM 读
+    input  logic        io_parallel_mode_i,            // SPI 直接在相同跨域队列消费并行样本
+    input  logic        io_parallel_ready_i,           // 本沿确认样本能被组帧器接收
+    output logic        io_parallel_valid_o,           // 队首有效且静止，无须额外复制记录
+    output logic [19:0] io_parallel_word_o,            // 出队前保持原样二补码样本
     output logic        io_pair_valid_o,               // 当前上升沿交付一个双沿 pair
     output logic        io_first_o,                    // 当前帧第一槽
     output logic        io_last_o,                     // 当前帧最后一槽
@@ -131,7 +137,9 @@ module ad4080_result_readback_link #(
         .core_online_o(link_online_core_o), .core_full_o(link_full_core_o),
         .core_accept_o(transport_accept), .core_drop_o(transport_drop_core_o),
         .core_overflow_o(transport_overflow_core_o), .core_drained_o(transport_drained),
-        .io_start_allow_i, .io_online_o, .io_pair_valid_o, .io_first_o, .io_last_o,
+        .io_start_allow_i, .io_online_o, .io_prefetch_words_o, .io_word_load_o,
+        .io_parallel_mode_i, .io_parallel_ready_i, .io_parallel_valid_o, .io_parallel_word_o,
+        .io_pair_valid_o, .io_first_o, .io_last_o,
         .io_dual_lane_o, .io_intf_check_o, .io_da_fall_o, .io_da_rise_o, .io_db_fall_o, .io_db_rise_o
     );
 endmodule

@@ -1,10 +1,10 @@
-Strict record RTL lint
-- V e r i l a t i o n   R e p o r t:  rev UNKNOWN.REV
-- Verilator: Built from 0.558 MB sources in 13 modules, into 0.232 MB in 5 C++ files needing 0.000 MB
-- Verilator: Walltime 0.990 s (elab=0.023, cvt=0.114, bld=0.000); cpu 0.902 s on 1 threads
-Readback RTL lint PASS
+AD4080 raw-clock SRAM to single-LVDS record. Verilator 5.30 and 2.5 ns free-running I/O clock in scored cases.
+run_linked.sh exit 0. The CSV samples before each active edge. Late CRC error is visible at raw=24. Underrun error 7 is registered from raw=24, so that CSV row shows the previous error state.
+Independently checked all 112 t_ps rows, wire bits, and first/last load indices. Fixture CRC uses 0x864CFB/0xB704CE with GF(2) long-division check. Silicon CRC24 remains unbound.
+TB comment audit, old/new/code: (97, 116, 520). Stripped code equal for comment supplementation, with later optional POR pin connection and ps-time capture recorded separately.
+Latest replay vs independent check: the single invalid underrun row carries kind=0. Its timing and valid qualifier, and all other fields and rows, match.
 
-Verilator SRAM to CDC to DDR payload and full-record regression
+Readback RTL lint PASS
 PASS FIFO dual-lane and INTF_CHECK commands rejected without SRAM acceptance
 PAIR reconstructed frame 0 word 95e2b slots 10
 PAIR reconstructed frame 1 word 80001 slots 10
@@ -16,42 +16,64 @@ PAIR reconstructed frame 5 word 3bc71 slots 10
 PASS IOVDD flush invalidated partial and queued frames, fresh first word 3bc71
 PASS unbound record format or CRC service rejected before header and payload
 PASS record abort flushed active old payload before the next epoch
+PASS first word alone held AA and launch during 12 raw I/O clocks
+TRACE RECORD case=1 raw=0 t_ps=304405000 kind=0 pair=10 first_load=0 last_load=0 crc_ready=0
+TRACE RECORD case=1 raw=3 t_ps=304412500 kind=0 pair=10 first_load=1 last_load=0 crc_ready=0
+TRACE RECORD case=1 raw=4 t_ps=304415000 kind=1 pair=10 first_load=0 last_load=0 crc_ready=0
+TRACE RECORD case=1 raw=13 t_ps=304437500 kind=1 pair=11 first_load=0 last_load=1 crc_ready=0
+TRACE RECORD case=1 raw=23 t_ps=304462500 kind=1 pair=01 first_load=0 last_load=0 crc_ready=1
+TRACE RECORD case=1 raw=24 t_ps=304465000 kind=2 pair=10 first_load=0 last_load=0 crc_ready=0
+TRACE RECORD case=1 raw=35 t_ps=304492500 kind=2 pair=00 first_load=0 last_load=0 crc_ready=0
 RECORD_LVDS_GOLDEN PASS
-PASS real SRAM full record aa95e2b8000181a4d4, 36 pairs, 2 data words
+RECORD_RAW_N2 PASS
+PASS real SRAM full record aa95e2b8000181a4d4 on 36 consecutive raw clocks (2.5 ns), load first=3 last=13
+TRACE RECORD case=2 raw=0 t_ps=304642500 kind=0 pair=10 first_load=0 last_load=0 crc_ready=0
+TRACE RECORD case=2 raw=3 t_ps=304650000 kind=0 pair=10 first_load=1 last_load=0 crc_ready=0
+TRACE RECORD case=2 raw=4 t_ps=304652500 kind=1 pair=10 first_load=0 last_load=0 crc_ready=0
+TRACE RECORD case=2 raw=13 t_ps=304675000 kind=1 pair=11 first_load=0 last_load=1 crc_ready=0
+TRACE RECORD case=2 raw=23 t_ps=304700000 kind=1 pair=01 first_load=0 last_load=0 crc_ready=1
+TRACE RECORD MISSING case=2 raw=24 valid=0 t_ps=304702500
+PASS late CRC: 24 consecutive header/data clocks, error=4, no tail and no done
+RECORD_LATE_CRC PASS
+TRACE RECORD case=3 raw=0 t_ps=304922500 kind=0 pair=10 first_load=0 last_load=0 crc_ready=0
+TRACE RECORD case=3 raw=3 t_ps=304930000 kind=0 pair=10 first_load=1 last_load=0 crc_ready=0
+TRACE RECORD case=3 raw=4 t_ps=304932500 kind=1 pair=10 first_load=0 last_load=0 crc_ready=0
+TRACE RECORD case=3 raw=23 t_ps=304980000 kind=1 pair=01 first_load=0 last_load=0 crc_ready=0
+TRACE RECORD MISSING case=3 raw=24 valid=0 t_ps=304982500
+PASS two-word prefill followed by withheld third: raw=24 invalid, error=7, no last load or done
+RECORD_PAYLOAD_UNDERRUN PASS
+TRACE RECORD case=4 raw=0 t_ps=305175000 kind=0 pair=10 first_load=0 last_load=0 crc_ready=0
+TRACE RECORD case=4 raw=3 t_ps=305182500 kind=0 pair=10 first_load=1 last_load=1 crc_ready=0
+TRACE RECORD case=4 raw=4 t_ps=305185000 kind=1 pair=10 first_load=0 last_load=0 crc_ready=0
+TRACE RECORD case=4 raw=13 t_ps=305207500 kind=1 pair=11 first_load=0 last_load=0 crc_ready=1
+TRACE RECORD case=4 raw=14 t_ps=305210000 kind=2 pair=01 first_load=0 last_load=0 crc_ready=0
+TRACE RECORD case=4 raw=25 t_ps=305237500 kind=2 pair=00 first_load=0 last_load=0 crc_ready=0
+PASS real SRAM one-word record on 26 consecutive raw clocks, first/last load both at raw=3
+RECORD_RAW_N1 PASS
 PASS transport quiescence held while BIST flushed the I/O session
 PASS missing response latched protocol error and blocked further reads
 PASS untracked response latched error before same-edge request could issue
 PERIPHERAL_READBACK_LINK PASS
-- integration/peripheral_readback_link_tb.sv:522: Verilog $finish
-- S i m u l a t i o n   R e p o r t: Verilator 5.30
-- Verilator: $finish at 308us; walltime 0.065 s; speed 4.916 ms/s
-- Verilator: cpu 0.063 s on 1 threads; alloced 0 MB
-
-Yosys structural JSON gate
-Yosys 0.69 (git sha1 9f75ca1f9, Release, Clang /workspace/YoWASP/yosys/wasi-sdk-33.0-x86_64-linux/share/cmake/../..//bin/clang++ 22.1.0)
-Checking module ad4080_fifo_lvds_record_link...
-Found and reported 0 problems.
 Verified Yosys JSON top ad4080_fifo_lvds_record_link, one 8 x 22 transport queue
-93f8fc7fafbe1082c0653e69fd2fecde46a6d79147b39a8185b536900c89a56a  /tmp/ad4080-readback-link.Vp3lSp/synthesized.json
+Readback generic structure PASS
 
-Source identity verified after all stages
-power/ad4080_pwr_reset_sync.sv: OK
-power/ad4080_pwr_supervisor.sv: OK
-otp/otp_shadow_loader.sv: OK
-memory/result_store_mbist.sv: OK
-rtl/result_store.sv: OK
-io/ad4080_ddr_edge_words.sv: OK
-integration/ad4080_peripheral_services.sv: OK
-transport/ad4080_result_transport.sv: OK
-io/ad4080_fifo_record_framer.sv: OK
-integration/ad4080_result_readback_link.sv: OK
-integration/ad4080_fifo_lvds_record_link.sv: OK
-integration/files.f: OK
-integration/readback_files.f: OK
-integration/lint.vlt: OK
-integration/check_tool_run.py: OK
-integration/run_linked.sh: OK
-integration/peripheral_readback_link_tb.sv: OK
-
-Bench comment-only audit: 83/419 -> 87/419 (20.76%). Noncomment lines byte-identical.
-Noncomment SHA-256 a3659f5d322d7b635c2da97b85de916baf167a9d20418df3a484db2255676449
+Actual input SHA-256:
+460dc21f9652683a2b30b608f2196249eb9ab6e9e22df2b416e7af1e418aa82e  power/ad4080_pwr_reset_sync.sv
+cc2c7cbeff4c32534d431d4bb36c2e60617dbc5e78deff8465a7e6e54eda32b4  power/ad4080_pwr_supervisor.sv
+176a6870a1aa3bb1f7bb6062b5049dd0e07549bf15536351be78a61afa17257f  power/ad4080_cfg_power_cdc.sv
+3ab1f0c6927f3c10d7c7e83efbf8c663565cc7d3d1416b3d89fcd60991f0659f  otp/otp_shadow_loader.sv
+40ab0e3965df8d437acece0c5d5547ffb2bf7f823ab674dae1d139e618f00773  memory/result_store_mbist.sv
+277c131ca1daf4b9b42d1a899091fee1fa4eae44c21acf3883d9140717d93699  rtl/result_store.sv
+5ce0894e7d921cdb582dd3e5984447c1f2f0a1a0443f1bd971745b41486b633c  io/ad4080_ddr_edge_words.sv
+10fcdc7b7046bf8c3b570f6abb5e05f50b0b89af6722fdba83667782189f035d  integration/ad4080_peripheral_services.sv
+4f088f4ed13a33e2387d2180d81c5e8647d884759b28d4ab59de4a83a0dad9e2  transport/ad4080_result_transport.sv
+5151ad964fce238cdc710258ece9cfbc61ebd0d0592a1bd8023306db6bee2829  io/ad4080_fifo_record_framer.sv
+0011b032dab317ce5376726f7a9a32a5c0587617386ea2782fe4ed67cae8f112  io/ad4080_result_spi_pins.sv
+d881d081f1b6ed9d73bda5eb35f329233ffa7aa53658a46fb3838778f29a9221  integration/ad4080_result_readback_link.sv
+0f48ebfe3ee9d08fdece83399c1d69e34f5aad3c46213e680c7cc12873e633a5  integration/ad4080_fifo_lvds_record_link.sv
+f646f8ae9abcd2fe4d56dc8d4b8ceea3b6c8878385b96f411af6f7e56676b010  integration/files.f
+8b3e13c2f3473578acd53a43414046a2f4d79aedf88621bd1ffee7d71bce6765  integration/readback_files.f
+08f5aa5ab2084e35fa1b8f352f073c8bb6c10941a3d2fd321b762d1416c54c9a  integration/lint.vlt
+b46e2abcb58cdd0a73cb03d2cb003148161b63ccacd2356a5f69d4f9b509ff81  integration/check_tool_run.py
+c59fee23b9418cea25fa1c728bead323f7a1938638c2264c5a4b98fd115deae3  integration/run_linked.sh
+1ba9eb33d8f6e080c025dfbf28b48cd45a9bfc5f0bf601a929ba3867140a0aa2  integration/peripheral_readback_link_tb.sv

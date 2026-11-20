@@ -18,22 +18,25 @@ import subprocess
 import tarfile
 from pathlib import Path
 
-REVISION = "7408edf8db9a41eebdd756378b69d2775f107dec"
+# 各入口共用同一已发布 DSP 源提交，防止台架与产品绑定读到不同的代码。
+REVISION = (Path(__file__).resolve().parents[2] / "evidence/dsp-revision.txt").read_text(encoding="ascii").strip()
 DSP_RTL = "subsys/ad4080_dsp/rtl"
 # 源码摘要覆盖临时绑定涉及的依赖，缺少一个叶子也不能代表原 DSP。
 SHA256 = {
-    "ad4080_top.sv": "de4e2e19d8dde47c96086dc473423a680eea5593819cca60cd753a0149e665c7",
-    "ad4080_regs.sv": "ca06793d5e2fd43b73b17d1a3c80bd7610b2c5b889af7d9ddb6d8ebfa9646ddc",
-    "ad4080_dsp_chain.sv": "5dcc535b926ef2f06d8abd66a51e1423c8fd78dc2c070be5d73d724572ac3356",
+    "sinc5_comp_coeff_lut.svh": "33022a5a33888f7f363e5e92ef305605085cf54cbace93c6a72c35d7ce9a1801",
+    "ad4080_top.sv": "0ddd925cddd34f89b2cd3c0d47c75baff8e83d3207f5be19bc9772616bf4999a",
+    "ad4080_regs.sv": "a7bf1dcd00fc732dd7d4b023a6c99a994328bb9024cbe54964f34489e3545178",
+    "ad4080_dsp_chain.sv": "bf8fdbdd7461fe8e566e9c1b142075edcbedf37bb1decc6a4aa805fe66633155",
+    "cnv_ctrl.sv": "b63015114f34494479974e9f1f1cacd793bdd18f8e3b0d8084ed356a16bc095a",
     "event_detect.sv": "6400b704e19f415af0090b422489ffd27a2e7bb811578e4e9f0980229d82030e",
     "fifo_capture.sv": "79d6b79833f778b8fe515a1aba7497e9697b39f5db86a1c1afe2b25d4f51bdf6",
-    "gpio_ctrl.sv": "28d91dd00e3ac175a20ba2a9e71a6031eca220d19f7b2e2e7d40b138517a0c47",
+    "gpio_ctrl.sv": "1ab1be85db05e792730194b49737a33f31252d47746a10d16476bbe996759255",
     "result_fifo.sv": "c9b4c275465bd31c4b817a2073bdcbe25485914b038e50f8ccbef4cabe1938b1",
     "sinc1_decim.sv": "936cb25b6bc6da9994213741e9a6d03e843eda8c6dbb258271b246510d9e9b79",
-    "sinc5_comp.sv": "d246d9cd14d4be3fe17887b78a0e8c1524af3a37b3f4948c4525a54fd953c155",
-    "sinc5_decim.sv": "d8c8c5138f807014d08319e7d19ccdfd69ee622d4d5a2fc7417fe9d317dd434b",
-    "spi_slave.sv": "37b3d9afeb1eaf21372ea2420bd7c92f465a90c8f81069144b38ff3ccb03a139",
-    "sys_error_corr.sv": "45e5022bab911e02a9d3b737b978ba29b1b0daacb7b97377792ae3748fdea3d3",
+    "sinc5_comp.sv": "5cf173051e275764beb02f5ca81b3ec30a4028220f6b5912d3468adb1e88fa0d",
+    "sinc5_decim.sv": "fe70cc10d4854be8339cdfc95a3377fabf0477393377a4db680de7042d4900e5",
+    "spi_slave.sv": "ba25e0416e220aa28ee88f0fb076d75caf1666722b7c025042ed50bc316ae4df",
+    "sys_error_corr.sv": "035c5c869c14b8e4555855f05251c673327685f8f447c487fb91b111fc3d3f80",
 }
 
 
@@ -112,16 +115,20 @@ def bind_capture(source: str) -> str:
 
 def bind_top(source: str) -> str:
     """只传递物理存储及记录接点，原配置、数值和触发实例保持原连接。"""
+    # 芯片事件、数值与配置均由来源提交定义。此步骤只外引真实存储和记录状态。
+    # 外部看 FULL 的上升和记录清除沿，不能从以后才送到串行器的尾部反推。
     source = replace_once(source, "    output logic processing_reject\n", """    output logic processing_reject,
     input logic clear_record_i, store_write_ready_i, store_read_valid_i,
     input logic [IN_W-1:0] store_read_data_i,
     output logic store_write_req_o,
     output logic [$clog2(FIFO_DEPTH)-1:0] store_write_addr_o, record_read_addr_o,
     output logic [IN_W-1:0] store_write_data_o,
-    output logic record_read_offer_o, capture_incomplete_o, fifo_empty_o, fifo_full_o,
+    output logic record_read_offer_o, capture_incomplete_o, capture_fifo_full_o, capture_metadata_clear_o, fifo_empty_o, fifo_full_o,
     output logic [14:0] record_read_count_o
 """)
     source = replace_once(source, "    logic unused_fifo_full,unused_fifo_empty,unused_fifo_overflow,unused_fifo_underflow;", """    logic unused_fifo_overflow,unused_fifo_underflow;
+    assign capture_metadata_clear_o = fifo_clear || clear_record_i;
+    assign capture_fifo_full_o = full_flag;
     assign capture_incomplete_o = capture_incomplete;""")
     source = replace_once(source, ".clear_capture(fifo_clear)", ".clear_capture(fifo_clear || clear_record_i)")
     source = replace_once(source, ".full(unused_fifo_full),.empty(unused_fifo_empty),", ".full(fifo_full_o),.empty(fifo_empty_o),")
@@ -148,6 +155,7 @@ def main() -> None:
     names = [f"{DSP_RTL}/{name}" for name in SHA256]
     snapshot = subprocess.check_output(["git", "-C", str(repo), "archive", REVISION, *names])
     bind = {"result_fifo.sv": bind_fifo, "fifo_capture.sv": bind_capture, "ad4080_top.sv": bind_top}
+    # 宏接口和数组的更换仅在这三处进行，系数头与数值叶逐字保留。
     generated = {}
     # 逐个读取已列名的成员，使提交中的其他归档路径不参与交付。
     with tarfile.open(fileobj=io.BytesIO(snapshot)) as archive:
@@ -159,9 +167,10 @@ def main() -> None:
             if hashlib.sha256(raw).hexdigest() != expected:
                 raise ValueError(f"upstream hash mismatch for {name}")
             generated[name] = bind[name](raw.decode()).encode() if name in bind else raw
-    # 只有十二个输入都与冻结摘要吻合才创建目录，失败时不会留下半套绑定。
+    # 仅当清单中的输入都与冻结摘要吻合时才创建目录，失败时不会留下半套绑定。
     out.mkdir()
     print(f"AD4080 DSP source revision {REVISION}")
+    # 同时记录绑定前后的摘要，便于区分寄存器原件与用于四银行的地址接缝。
     for name, contents in generated.items():
         (out / name).write_bytes(contents)
         print(f"{name} original={SHA256[name]} bound={hashlib.sha256(contents).hexdigest()}")

@@ -132,10 +132,12 @@ int run_noos_host_checks(void)
     VERIFY(ad4080_update_bits(dev, AD4080_REG_FILTER_CONFIG, AD4080_SINC_DECIMATION_MSK,
                               AD4080_SINC_DEC_16 << 3) == 0);
     VERIFY(ad4080_read(dev, AD4080_REG_FILTER_CONFIG, &value) == 0 && value == 0x19);
+    // 新 PF1 档公开为工程系数。这里只核读改写保留 N=16 的配置字段，
+    // 滤波输出才由独立 CNV/结果回归确认，不能从寄存器回读另推数值。
     VERIFY(ad4080_update_bits(dev, AD4080_REG_FILTER_CONFIG, AD4080_FILTER_SEL_MSK,
-                              AD4080_FILTER_SINC5_PLUS) == -EIO && sim_last_reject() == 1);
-    VERIFY(ad4080_read(dev, AD4080_REG_FILTER_CONFIG, &value) == 0 && value == 0x19);
-    printf("OBS noos_filter sinc1_D16=0x19 unbound_comp_preserved=1\n");
+                              AD4080_FILTER_SINC5_PLUS) == 0);
+    VERIFY(ad4080_read(dev, AD4080_REG_FILTER_CONFIG, &value) == 0 && value == 0x1b);
+    printf("OBS noos_filter sinc1_N16=0x19 sinc5plus_N16=0x1b\n");
 
     // 该 AD408x 通用枚举与本器件手册冲突。用原函数发出 0xA 并检查独立桥的拒绝。
     VERIFY(ad4080_set_gpio_output_func(dev, AD4080_GPIO_1, AD4080_GPIO_CNV_INHIBIT_INPUT)

@@ -9,6 +9,8 @@
 | ADI 数字接口的公开参考固件 | 参考固件的单线读长为 1 + 3N 字节，四线为 4 + 3N 字节。它在这个位置结束读取，不能据此推断继续送钟的输出或 LVDS 的 CRC 算法。 | [ADI 评估固件固定提交](https://github.com/analogdevicesinc/precision-converters-firmware/blob/6835d5c30d25d37499de5f210256828193d5c78e/projects/ad4080_iio/app/ad4080_iio.c#L1227) · [逐图裁定](../io/evidence/record-source-check.md) |
 | ADCToolbox、已有 DSP 与配置寄存器 | 固定版本的正弦最小二乘估幅和直流，结合两个已标定的参考量，再由已有 DSP 的整数链验证。产品寄存器码另用实测映射校核。 | [固定源码与取舍](../calibration/SOURCES.md) · [Rev. B 第 71 页](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=71) |
 | ADI no-OS 与 HDL | 未改的官方 C 驱动运行在我们的配置 SPI 上。固定 HDL 的接收、拼字和符号扩展接入本项目实时发送逻辑。采用理想采样原语。 | [配置实跑及版本](../interfaces/control_review/README.md) · [收端版本与实跑](../io/adi_receiver/README.md) |
+| 数字滤波器的幅频和配置 | 表 28 中的 −3.000 dB 按输入采样频率归一；按印刷值比较。图 105–107 只用可追溯的矢量读点，标明读图误差。补偿路径有一套按公开指标设计的 Q22 系数。 | [原文目标数据](../interfaces/dsp_review/manual_filter_targets.csv) · [手册带宽表](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=64) · [手册频响](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=70) |
+| 外围 DSP 源 | 安装与仿真入口统一读取同一个 Git 对象；记录用的 SRAM 绑定保留逐叶 SHA。 | [当前源码提交](dsp-revision.txt) · [外围产品](../integration/product/README.md) |
 | 功能 IP 只读 Git 快照 | 从顶层声明核对模数边界和启动要求；旧 28HPC+ 面积仅作不同基线的历史对照。当前 IP 无同版目标工艺物理面积回执。 | `7408edf8db9a41eebdd756378b69d2775f107dec`。[顶层源码](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/7408edf/rtl/v21/adc_digital_ip_v21.sv) · [面积证据归属说明](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/7408edf/docs/audit/ALL_13_MODULES_FINAL.md) |
 
 商业裸片的 SRAM/OTP 宏 LEF、bitcell 密度、OTP 镜像、标准单元库和网表未取得。面积门是给本项目团队的预算。可交付的实测是图像框选、工程几何回读和本包外围参考 RTL 测试。

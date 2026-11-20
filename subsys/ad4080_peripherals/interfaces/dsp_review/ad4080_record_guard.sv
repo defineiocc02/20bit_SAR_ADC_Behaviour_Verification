@@ -12,14 +12,14 @@
 //   * cnv_tick_i 源于同步后的物理 CNV 上升沿。epoch_start_i 表示本批已按
 //     时序执行的 FILTER_SYNC 或旁路开始，须与该沿同拍。profile_valid_i
 //     证明当前 CNV、处理入口和所选输出之间关系已绑定；输入 valid 不能反推 CNV。
-//   * 起录先过公开 CNV 数，再过该冻结 DSP 的选中数值历史。模式切换或节拍失效
-//     会清资格，未绑定 COMP 直接闭锁。qualified 仅用于起录权限，不外送器件 RDY。
+//   * 起录先过公开 CNV 数，再过实际 DSP 的选中数值历史。模式切换或节拍失效
+//     会清资格，未绑定相位直接闭锁。qualified 仅用于起录权限，不外送器件 RDY。
 //   * 起录受理后锁住 CSR/复位，直到上层证实记录读毕或安全取消；是否成功发送
 //     该 SPI 帧不推测成释放，即使在临界点失去 CNV 也不误开写权限。
 // -----------------------------------------------------------------------------
 // 变更记录
 // -----------------------------------------------------------------------------
-// 初始版本，暂无变更记录。
+// 2026-11-20 对已绑定 PF1 用 35 个真字及 35D+12 个 CNV 判定起录门槛。
 // =============================================================================
 module ad4080_record_guard #(
     parameter int MAX_CNV_GAP_CYCLES = 32  // 同步 clk 周期；正式上限由 CNV 最慢速及 CDC 延迟决定。
@@ -66,33 +66,36 @@ module ad4080_record_guard #(
     localparam int GAP_W = $clog2(MAX_CNV_GAP_CYCLES + 1);
     logic [3:0] clamped_dec;
     logic [15:0] n_cnv, manual_min_cnv, cnv_floor;
-    logic [3:0] result_floor;
+    logic [5:0] result_floor;
     logic profile_supported;
 
     // [依据] Rev. B Table 29/62 的 D 对 SINC1/SINC5 等于 N，COMP 总率 2N。
-    // [限制] 本冻结链路的 COMP 系数和逐 CNV 结果相位均须额外绑定，拒绝起录。
-    // SINC5 的 comb 跨五个抽取点；五个长度 N 的均值卷积支持长 5(N−1)+1，
-    // 第 ceil((5N−4)/N)+5 个数值脉冲起历史完整，N=2/4/≥8 对应 8/9/10。
+    // SINC5 的 comb 当前不跨抽取点增加额外延迟。五个长度 N 的均值卷积
+    // 支持长 5(N−1)+1，第五个完整抽取点对于全部合法 N 均有完整历史。
+    // PF1 数值路径按总倍率 2N 计 CNV。35 个实数是起录下界，profile_valid
+    // 仍须保证外部相位绑定，不能从这些计数直接推断器件 RDY。
     always_comb begin
         clamped_dec = dec_code_i;
         if (filter_mode_i == 2'd1 && dec_code_i > 4'd9) clamped_dec = 4'd9;
-        if (filter_mode_i == 2'd2 && dec_code_i > 4'd7) clamped_dec = 4'd7;
+        if (filter_mode_i >= 2'd2 && dec_code_i > 4'd7) clamped_dec = 4'd7;
         n_cnv = 16'd2 << clamped_dec;
         manual_min_cnv = 16'd1;
-        result_floor = 4'd1;
+        result_floor = 6'd1;
         case (filter_mode_i)
             2'd1: manual_min_cnv = n_cnv + 16'd3;
             2'd2: begin
                 manual_min_cnv = (n_cnv << 2) + n_cnv + 16'd6;
-                if (clamped_dec == 4'd0) result_floor = 4'd8;
-                else if (clamped_dec == 4'd1) result_floor = 4'd9;
-                else result_floor = 4'd10;
+                result_floor = 6'd5;
+            end
+            2'd3: begin
+                manual_min_cnv = 16'd70*n_cnv + 16'd12;
+                result_floor = 6'd35;
             end
             default: begin end
         endcase
         cnv_floor = manual_min_cnv > profile_min_cnv_i ? manual_min_cnv : profile_min_cnv_i;
     end
-    assign profile_supported = profile_valid_i && filter_mode_i != 2'd3;
+    assign profile_supported = profile_valid_i;
 
     // =========================================================================
     // 2. 同批资格与无 CNV 检测
@@ -100,7 +103,7 @@ module ad4080_record_guard #(
     logic [1:0] mode_q;
     logic [3:0] dec_q;
     logic [15:0] floor_q, actual_cnv_q;
-    logic [3:0] numeric_count_q;
+    logic [5:0] numeric_count_q;  // PF1 至少 35 字，且允许 CNV 先后造成再等若干字。
     logic [GAP_W-1:0] gap_q;
     logic epoch_q, settled_q, sync_was_high_q;
     logic frame_q, revoked_q, session_q, started_q;
@@ -149,7 +152,7 @@ module ad4080_record_guard #(
                 if (actual_cnv_q != 16'hffff) actual_cnv_q <= actual_cnv_q + 1'b1;
             end else gap_q <= gap_q + 1'b1;
             if (selected_valid_i && !session_q && !filter_sync_o) begin
-                if (numeric_count_q != 4'hf) numeric_count_q <= numeric_count_q + 1'b1;
+                if (numeric_count_q != 6'h3f) numeric_count_q <= numeric_count_q + 1'b1;
                 if (actual_cnv_q >= floor_q && numeric_count_q >= result_floor - 1'b1)
                     settled_q <= 1'b1;
             end

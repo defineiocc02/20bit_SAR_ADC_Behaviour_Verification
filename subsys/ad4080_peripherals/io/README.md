@@ -15,7 +15,7 @@
 - **Verilator 5.30**。`--timing -Wall` lint 和 Clang/C++20 `--binary` build 均退出 0。仿真通过 1109 次独立字重组、槽数和清零检查，另核对单双 lane 的两个手算固定码边沿向量。向量包括 80 条定向 walking-one/zero、1024 条可重复随机输入与正常/检查模式的组合，以及 5 条边界状态和检查退出关键字。[Verilator 日志](evidence/verilator.txt)
 - **YoWASP Yosys 0.69**。`synth -noabc` 得到 50 个通用组合门，20 个 AND、29 个 MUX、1 个 NOT，`check -assert` 无报错，结构选择确认无 ff、latch、SR 和 memory。对通用综合网表的独立解码性质完成 SAT 证明，22 个自由输入位的所有二态取值均由该性质覆盖。[Yosys 日志](evidence/yosys.txt)
 - **静态核对**。49 个参考封装球位按 Rev. B 图 2/表 6 核对。DIO、CLK、Pad 环和 IO_EAST 与目标分区坐标一致。包脚和草案组序在物理冻结前仍由封装/Pad 宏确定实际绑定。[坐标、包脚与注释率](evidence/static-audit.txt)
-- **FIFO 记录**。默认 profile 98,509 次 beat 断言及 15 个错误检查通过，含 16,384 字的完整四 SPI 前缀。显式绑定 SPI 外部 CRC 尾的 profile 通过 227 次 beat 和 15 个错误检查。两种通用综合分别为 964/950 个逻辑单元，各 76 个触发器、零锁存。独立参考另做 12 条正常线序和一条无 CRC 服务的拒绝检查。[Verilator 日志](evidence/fifo-record-verilator.txt) · [Yosys 日志](evidence/fifo-record-yosys.txt) · [独立核对](evidence/record-source-check.md)
+- **FIFO 记录**。原始时钟累计默认 profile 98,611 次位组检查，带约定 SPI 外部 CRC 尾 329 次，两种配置各完成 21 个故障检查。包含单/双字 LVDS 26/36 拍、单/四线 SPI 双字前缀 56/20 拍、16,384 字四线 SPI 连续 98,312 拍。同一记录的每个原始时钟沿均独立核对，载荷断供或晚尾不会报完成。两种通用 Yosys 综合为 1089/1064 个单元，各 97 个触发器、零锁存。[Verilator 日志](evidence/fifo-record-verilator.txt) · [Yosys 日志](evidence/fifo-record-yosys.txt) · [真实 SRAM 逐拍记录](../integration/evidence/raw_record.csv)
 
 组合映射可独立在 DIO 使用。FIFO framer 的样本、时序、CRC 绑定和错误边界见 [FIFO 记录合同](FIFO_RECORD.md)。目标宏绑定、串化、跨域、两沿 STA、控制器兼容、包板链路和全吞吐的物理门禁见 [IO_PLAN.md](IO_PLAN.md)。
 

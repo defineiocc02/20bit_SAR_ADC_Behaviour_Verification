@@ -37,6 +37,7 @@ module tb_ad4080_pwr_supervisor #(
     logic mode_req_valid_aon_i = 1'b0;       // 拒绝后撤掉，防止下一状态误消费同笔请求
     logic [1:0] mode_req_aon_i = 2'b00;
     logic wake_recover_done_aon_i = 1'b0; // 既送正常确认，也送过期确认检查重装联锁
+    wire [1:0] cfg_ldo_pd_aon_i = 2'b00; // 本台架保留旧模式许可，0x18 在产品 SPI 台架检查。
 
     logic cfg_hw_reset_no, core_reset_no, fifo_reset_no, io_reset_no, ana_reset_no;
     logic cfg_init_done_aon_o, cfg_control_write_allow_aon_o, cfg_full_access_allow_aon_o;

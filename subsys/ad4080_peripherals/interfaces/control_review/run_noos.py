@@ -85,6 +85,10 @@ def run_harness(args):
         "archive", BASELINE, f"{RTL}/spi_slave.sv", f"{RTL}/ad4080_regs.sv",
     ])
     subprocess.run(["tar", "-xf", "-"], input=archive, cwd=work, check=True)
+    if args.dsp_candidate_dir is not None:
+        # 联调候选与最终 pin 均给真实编译 SHA，厂商 C 始终按归档哈希验证。
+        for name in ("spi_slave.sv", "ad4080_regs.sv"):
+            shutil.copyfile(args.dsp_candidate_dir / name, work / RTL / name)
     here = Path(__file__).resolve().parent
     power = here.parents[1] / "power"
     local_inputs = (
@@ -131,6 +135,9 @@ def run_harness(args):
         raise RuntimeError(f"缺少定向结果，见 {sim_log}")
     version = subprocess.check_output([tool, "--version"], cwd=work, env=env, text=True).strip()
     print(f"baseline={BASELINE}\nadi_commit={ADI_COMMIT}\nrun={work}\ntool={version}")
+    print(f"dsp_candidate={args.dsp_candidate_dir is not None}")
+    for name in ("spi_slave.sv", "ad4080_regs.sv"):
+        print(f"dsp_sha256 {sha256((work / RTL / name).read_bytes()).hexdigest()} {name}")
     for relative, expected in ADI_FILES.items():
         print(f"adi_sha256 {expected} {relative}")
     print(transcript, end="")
@@ -143,6 +150,7 @@ def main():
     parser = argparse.ArgumentParser(description="复跑 ADI no-OS 真实配置 SPI 流程")
     parser.add_argument("--repo", required=True, type=Path)
     parser.add_argument("--adi-archive", required=True, type=Path)
+    parser.add_argument("--dsp-candidate-dir", type=Path)
     parser.add_argument("--scratch", required=True, type=Path)
     parser.add_argument("--verilator", default=os.environ.get("VERILATOR", "verilator"))
     try:

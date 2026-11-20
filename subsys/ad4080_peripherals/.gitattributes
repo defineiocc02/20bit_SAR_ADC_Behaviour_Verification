@@ -11,3 +11,8 @@ interfaces/v21_ports.csv -text whitespace=cr-at-eol
 io/evidence/fifo-record-yosys.txt whitespace=-blank-at-eol,-blank-at-eof
 io/evidence/verilator.txt whitespace=-blank-at-eol,-blank-at-eof
 io/evidence/yosys.txt whitespace=-blank-at-eol,-blank-at-eof
+
+# 扫频台架的 CSV 和绘图的 SVG 保留生成字节以供发布摘要复核。
+interfaces/dsp_review/evidence/*.csv -text whitespace=cr-at-eol
+figures/filter-response.svg -text whitespace=-blank-at-eol
+figures/signal-timing.svg -text whitespace=-blank-at-eol

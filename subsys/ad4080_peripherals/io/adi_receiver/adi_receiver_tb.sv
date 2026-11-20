@@ -71,7 +71,9 @@ module adi_receiver_tb #(
         .dual_lane_core_i(DUAL), .intf_check_core_i(check_pattern), .core_online_o(core_online),
         .core_full_o(core_full), .core_accept_o(core_accept), .core_drop_o(core_drop),
         .core_overflow_o(core_overflow), .core_drained_o(), .io_start_allow_i(allow_new_word),
-        .io_online_o(), .io_pair_valid_o(pair_valid), .io_first_o(pair_first), .io_last_o(pair_last),
+        .io_online_o(), .io_prefetch_words_o(), .io_word_load_o(),
+        .io_parallel_mode_i(1'b0), .io_parallel_ready_i(1'b0), .io_parallel_valid_o(), .io_parallel_word_o(),
+        .io_pair_valid_o(pair_valid), .io_first_o(pair_first), .io_last_o(pair_last),
         .io_dual_lane_o(tx_dual), .io_intf_check_o(tx_check), .io_da_fall_o(da_fall),
         .io_da_rise_o(da_rise), .io_db_fall_o(db_fall), .io_db_rise_o(db_rise)
     );

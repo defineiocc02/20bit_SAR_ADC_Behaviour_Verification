@@ -47,6 +47,10 @@ module tb_ad4080_result_transport;
 
     // --- IO 的物理装载替身，仅从这些端口重组帧 ---
     logic io_start_allow, io_online, io_valid, io_first, io_last, io_dual, io_test;
+    logic [1:0] io_prefetch_words;
+    logic io_word_load, previous_word_load = 1'b0;
+    logic parallel_valid;
+    logic [19:0] parallel_word;
     logic da_fall, da_rise, db_fall, db_rise;
     logic test_startup_attempt = 1'b0;  // 本域释放后故意在对侧未上线时送一笔
 
@@ -61,6 +65,9 @@ module tb_ad4080_result_transport;
         .core_drop_o(core_drop), .core_overflow_o(core_overflow), .core_drained_o(core_drained),
         // --- 采走有效双沿位，准入仅影响新字 ---
         .io_start_allow_i(io_start_allow), .io_online_o(io_online), .io_pair_valid_o(io_valid),
+        .io_prefetch_words_o(io_prefetch_words), .io_word_load_o(io_word_load),
+        .io_parallel_mode_i(1'b0), .io_parallel_ready_i(1'b0),
+        .io_parallel_valid_o(parallel_valid), .io_parallel_word_o(parallel_word),
         .io_first_o(io_first), .io_last_o(io_last), .io_dual_lane_o(io_dual),
         .io_intf_check_o(io_test), .io_da_fall_o(da_fall), .io_da_rise_o(da_rise),
         .io_db_fall_o(db_fall), .io_db_rise_o(db_rise)
@@ -85,6 +92,7 @@ module tb_ad4080_result_transport;
     // =========================================================================
     packet_t expected[$];  // 从核心端受理至 IO 末槽受理始终占一项
     int attempts, accepted, dropped, frames, contiguous_goal;
+    int nominal_raw_clocks;
     int rx_slots;
     logic [19:0] rx_word;
 
@@ -129,6 +137,14 @@ module tb_ad4080_result_transport;
         logic [19:0] expected_word;
         int pair_goal;
         @(posedge clk_io);
+        require_ok(!parallel_valid && parallel_word == 0, "LVDS session leaked into parallel SPI");
+        // [装载] frame_q 先在装载沿锁存。下一原始沿采到该字的第一个 pair。
+        // 名义帧段的时钟计数不以 valid 压缩，错少一拍既破坏字序也破坏跨度。
+        if (io_online) require_ok(io_first == previous_word_load, "first slot did not follow actual load edge");
+        if (io_word_load) require_ok(io_start_allow && io_prefetch_words != 0, "loaded without ring credit");
+        previous_word_load = io_online && io_word_load;
+        if (contiguous_goal != 0 && frames < contiguous_goal && (nominal_raw_clocks != 0 || io_first))
+            nominal_raw_clocks++;
         if (io_valid) begin
             require_ok(io_online && expected.size() > 0, "unaccepted or old-session frame leaked");
             wanted = expected[0];
@@ -179,6 +195,7 @@ module tb_ad4080_result_transport;
         rx_slots = 0;
         rx_word = '0;
         contiguous_goal = 0;
+        nominal_raw_clocks = 0;
     endtask
 
     task automatic wait_online;
@@ -337,14 +354,20 @@ module tb_ad4080_result_transport;
         drive_burst(NOMINAL_COUNT, 100, 1'b0, 1'b0);
         wait_drained(NOMINAL_COUNT);
         require_ok(attempts == NOMINAL_COUNT && dropped == 0 && !core_overflow, "single-lane throughput");
+        require_ok(nominal_raw_clocks == NOMINAL_COUNT*10, "single-lane raw clock count");
         $display("PASS single 40/400 MHz: %0d accepted and reassembled without bubbles", frames);
+        $display("PASS FIG74 RAW CLK lane=1 frames=%0d raw_clocks=%0d DDR_edges=%0d", frames, nominal_raw_clocks,
+                 2*nominal_raw_clocks);
 
         new_epoch(2500);
         contiguous_goal = NOMINAL_COUNT;
         drive_burst(NOMINAL_COUNT, 6000, 1'b1, 1'b0);
         wait_drained(NOMINAL_COUNT);
         require_ok(attempts == NOMINAL_COUNT && dropped == 0 && !core_overflow, "dual-lane throughput");
+        require_ok(nominal_raw_clocks == NOMINAL_COUNT*5, "dual-lane raw clock count");
         $display("PASS dual 40/200 MHz: %0d accepted and reassembled without bubbles", frames);
+        $display("PASS FIG75 RAW CLK lane=2 frames=%0d raw_clocks=%0d DDR_edges=%0d", frames, nominal_raw_clocks,
+                 2*nominal_raw_clocks);
 
         // [模式] 2.52 ns IO 周期使相位逐笔滑动。在两种帧长之间切换，
         // 期望允许帧间空拍，禁止帧中断槽。混合载荷保有足够服务带宽。

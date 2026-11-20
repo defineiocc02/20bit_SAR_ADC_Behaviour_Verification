@@ -23,9 +23,9 @@
   },
   "tested_tx_and_tb_sha256": {
     "io/ad4080_ddr_edge_words.sv": "5ce0894e7d921cdb582dd3e5984447c1f2f0a1a0443f1bd971745b41486b633c",
-    "transport/ad4080_result_transport.sv": "e33cae2a00b1868086f1fa17089f31a702fa8bee137ace60cafde55f551d940c",
+    "transport/ad4080_result_transport.sv": "4f088f4ed13a33e2387d2180d81c5e8647d884759b28d4ab59de4a83a0dad9e2",
     "io/adi_receiver/ideal_7series_io.sv": "962dd6d28112639558960431bb0099e66098391c559ca31079cd5e0083099a3b",
-    "io/adi_receiver/adi_receiver_tb.sv": "14c20c0c4e89ac08082ea225c5e75aa0fbde53e1e38a69608fbd3f280d356748"
+    "io/adi_receiver/adi_receiver_tb.sv": "96b33904d3f2eb7f6fe8168656025e56bc59265213fa9a358c28139c65301c53"
   },
   "gate": {
     "entry": "run_verify.sh",
@@ -52,7 +52,7 @@
         "DECLFILENAME": 1,
         "GENUNNAMED": 21,
         "IMPLICIT": 2,
-        "PINCONNECTEMPTY": 9,
+        "PINCONNECTEMPTY": 13,
         "REALCVT": 1,
         "SYNCASYNCNET": 2,
         "UNUSEDPARAM": 18,
@@ -74,7 +74,7 @@
         "DECLFILENAME": 1,
         "GENUNNAMED": 21,
         "IMPLICIT": 2,
-        "PINCONNECTEMPTY": 9,
+        "PINCONNECTEMPTY": 13,
         "REALCVT": 1,
         "SYNCASYNCNET": 2,
         "UNUSEDPARAM": 18,
@@ -96,7 +96,7 @@
         "DECLFILENAME": 1,
         "GENUNNAMED": 21,
         "IMPLICIT": 2,
-        "PINCONNECTEMPTY": 9,
+        "PINCONNECTEMPTY": 13,
         "REALCVT": 1,
         "SYNCASYNCNET": 2,
         "UNUSEDPARAM": 18,
@@ -118,7 +118,7 @@
         "DECLFILENAME": 1,
         "GENUNNAMED": 21,
         "IMPLICIT": 2,
-        "PINCONNECTEMPTY": 9,
+        "PINCONNECTEMPTY": 13,
         "REALCVT": 1,
         "SYNCASYNCNET": 2,
         "UNUSEDPARAM": 18,
@@ -134,7 +134,7 @@
       "comment_lines": 40
     },
     "adi_receiver_tb.sv": {
-      "code_lines": 144,
+      "code_lines": 145,
       "comment_lines": 38
     },
     "run_verify.sh": {
@@ -151,9 +151,9 @@
     "CHECKPOINT.md": "478dafccc6fccc5ae036455f0ee07ffa8738b91be4d7003b5c756b77def715f5",
     "README.md": "3037d6ee53ba61410e88cdab9fd2c118c2ed32b6b139af61a2836b91ba4c8a1c",
     "adi_board_review.sha256": "453b19d3492cc8e8e68ebe0159ee4d9bb73fe140029d260823fd67a8138f8b89",
-    "adi_receiver_tb.sv": "14c20c0c4e89ac08082ea225c5e75aa0fbde53e1e38a69608fbd3f280d356748",
+    "adi_receiver_tb.sv": "96b33904d3f2eb7f6fe8168656025e56bc59265213fa9a358c28139c65301c53",
     "adi_upstream.sha256": "7690dfa6f002a059d181af4bceb51850ef1e96911fe7b35db2ab2ab15d31f275",
-    "evidence.txt": "17cf7a9e402d5dd4350710a63e9136b7a0195ae55dd8a610fbc8407a8bb587a1",
+    "evidence.txt": "95a9a093de37cad7f180542bbd953baf4296b3ecff9b6dd4da5dccdc946650d2",
     "ideal_7series_io.sv": "962dd6d28112639558960431bb0099e66098391c559ca31079cd5e0083099a3b",
     "run_verify.sh": "903f0a4ed1b3d7d02bf6c795e0dff59498321e7d4cf39e4de51bad6b8d8ab76c"
   }

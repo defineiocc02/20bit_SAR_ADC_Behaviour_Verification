@@ -25,8 +25,6 @@ const REVIEWS = ['interfaces/control_review/ad4080_csr_power_bridge.sv',
 const CAL = ['system_cal.py', 'characterize_registers.py', 'verify_rtl.py'];
 // 状态是手册可支持的强度，和本项目仿真 PASS 属两个判断轴。
 const DEVICE_STATES = ['可认可', '部分认可', '不认可', '工程自定'];
-const DSP_BLOB = '/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/' +
-  '7408edf8db9a41eebdd756378b69d2775f107dec/subsys/ad4080_dsp/rtl/';
 const ADI_PDF = '/media/en/technical-documentation/data-sheets/ad4080.pdf';
 // URL 会随供应商修订而更换内容。题注解析只认已核验的固定版二进制身份。
 const ADI_REV_B_SHA256 = 'f08f2586dc82d5f583b42071b3570c06f1fe736d3053e15a559a47ed2841cbc1';
@@ -246,6 +244,8 @@ function labelCaptions(label) {
   return results;
 }
 
+// 题注检查使用原 PDF 布局位置，正文引述的同名图号不能冒充题注。
+// 页码保留手册印刷坐标，解析结果与 Git 中的中文审阅分开。
 function auditPdf(documentLines, captions, errors) {
   // 一条图表在多个模块中引用很常见。报告按页、种类、编号去重，错误仍给出逐行来源。
   const unique = new Set();
@@ -302,20 +302,25 @@ function checkedLocal(target, manual, checkout) {
   return path;
 }
 
-function checkedSource(target, manual, checkout, dsp) {
+// 固定 DSP 源码锚点必须指向本次冻结提交。
+// 本地链接需要位于可交付树，防止报告寄希望于构建临时目录。
+function checkedSource(target, manual, checkout, dsp, dspBlob) {
   const raw = unbracket(target);
   if (!/^[A-Za-z][\w+.-]*:/.test(raw)) return checkedLocal(raw, manual, checkout);
   const url = new URL(raw);
   // 原 DSP 的可点击发布链接固定在审过的 commit。这里只验证对应本地声明，无网络读取。
   if (url.origin !== 'https://github.com' || url.username || url.password || url.search ||
-      !url.pathname.startsWith(DSP_BLOB)) throw new Error(`源码链接须为本地或固定的原 DSP GitHub blob ${target}`);
-  const file = sourceFile(resolve(dsp, decodeURIComponent(url.pathname.slice(DSP_BLOB.length))), dsp);
+      !url.pathname.startsWith(dspBlob)) throw new Error(`源码链接须为本地或固定的原 DSP GitHub blob ${target}`);
+  const file = sourceFile(resolve(dsp, decodeURIComponent(url.pathname.slice(dspBlob.length))), dsp);
   checkedLine(file, url.hash.slice(1));
   return file;
 }
 
 function audit(root, inventory, checkLocal, captions) {
   const manual = resolve(root, 'evidence/MANUAL_TRACE.md');
+  const revision = read(resolve(root, 'evidence/dsp-revision.txt')).trim();
+  if (!/^[0-9a-f]{40}$/.test(revision)) throw new Error('DSP 来源必须为完整的 Git 提交号');
+  const dspBlob = '/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/' + revision + '/subsys/ad4080_dsp/rtl/';
   const checkout = dirname(root).endsWith(`${sep}subsys`) ? resolve(root, '../..') : dirname(root);
   const errors = [], seen = new Set(), validation = new Set();
   const counts = Object.fromEntries(DEVICE_STATES.map((state) => [state, 0]));
@@ -352,7 +357,7 @@ function audit(root, inventory, checkLocal, captions) {
     const places = inventory.required.get(name);
     if (!places) errors.push(`${where} 未列入设计和校准范围 ${name}`);
     try {
-      const path = checkedSource(target, manual, checkout, inventory.dsp);
+      const path = checkedSource(target, manual, checkout, inventory.dsp, dspBlob);
       // 模块名与真实来源成对匹配。已有同名的其它工程文件不能替代当前声明。
       if (places && !places.some((place) => place.path === path)) errors.push(`${where} 源码文件与 ${name} 的声明不符`);
     } catch (error) { errors.push(`${where} ${name} ${error.message}`); }

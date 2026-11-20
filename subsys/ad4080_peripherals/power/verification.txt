@@ -61,3 +61,25 @@ tb_ad4080_pwr_supervisor.sv 62/285 (21.8%) → 93/435 (21.4%)
 
 核对用 AD4080 Rev. B PDF SHA-256
 f08f2586dc82d5f583b42071b3570c06f1fe736d3053e15a559a47ed2841cbc1
+
+当前交付工作树复跑
+入口 verify/run_peripheral_audit.py 的 power、power_zero、power_fraction、power_max。
+四次实际展开均通过 Verilator 5.30 的定向检查。
+PASS 01 cold sequencing, separate POR and 300 us guard
+PASS 02 6 ns REFIN capture while AON stopped, W1C re-set and retained state
+PASS 03 internal standby, power sequencing and illegal requests
+PASS 04 standby 100 us and fresh recovery handshake
+PASS 05 external sleep, FIFO read with analog rail absent, 180 us guard
+PASS 06 software reset priority and retained FIFO and address bit
+PASS 07 IO/core brownout with stopped destination clocks
+PASS 08 software wake from sleep and in-flight restart
+PASS ad4080 power supervisor directed 8/8
+ZERO_BOUND cfg_init=0 cfg_write=0 conv=0 iso=1
+PASS PARAM 0 Hz protected clients held
+PASS PARAM 10000001 Hz INIT=3001 STBY=1001 SLEEP=1801
+PASS PARAM 4294967295 Hz INIT=1288491 STBY=429497 SLEEP=773095
+
+本次台架及 RTL 输入 SHA-256
+460dc21f9652683a2b30b608f2196249eb9ab6e9e22df2b416e7af1e418aa82e  ad4080_pwr_reset_sync.sv
+cc2c7cbeff4c32534d431d4bb36c2e60617dbc5e78deff8465a7e6e54eda32b4  ad4080_pwr_supervisor.sv
+1a21a2ad10ef39c5658e04776be05bd116a2a893358a05244475f21256d63e2c  tb_ad4080_pwr_supervisor.sv

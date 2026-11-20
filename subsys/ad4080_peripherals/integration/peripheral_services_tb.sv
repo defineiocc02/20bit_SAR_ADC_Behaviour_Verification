@@ -27,6 +27,7 @@ module peripheral_services_tb;
     // --- 电源与命令 ---
     logic clk_aon_i = 1'b0, clk_core_i = 1'b0, clk_io_i = 1'b0;
     logic run_core = 1'b1;               // 测试往返互锁时可在低相保持核心停钟
+    logic run_io = 1'b1;                 // 独立停钟以确认 I/O 恢复须等待目的时钟
     logic por_d_ok_async_i = 1'b0, vdd33_ok_async_i = 1'b0, ref_ok_async_i = 1'b0;
     logic iovdd_ok_async_i = 1'b0, ana_ready_async_i = 1'b0;
     logic sw_reset_req_aon_i = 1'b0, sw_reset_accept_aon_o;
@@ -35,9 +36,21 @@ module peripheral_services_tb;
     logic [1:0] mode_req_aon_i = 2'b00, operating_mode_aon_o;
     logic wake_recover_done_aon_i = 1'b0, wake_busy_aon_o, wake_recover_req_aon_o;
     logic por_ana_event_aon_o;
+    logic por_ana_event_core_o;
     int por_event_count = 0;
+    int por_core_consumed = 0;            // 按 CSR 消费沿计数，停钟不等于事件清除
+    // 以观察到的 AON 上升沿编号量参考故障交付，不从模拟阈值推周期。
+    int aon_edge_count = 0;
+    int last_por_event_edge;
+    realtime last_por_event_at_ns;
+    realtime mode_accept_at_ns;
     logic cfg_hw_reset_no, core_reset_no, fifo_reset_no, io_reset_no, cfg_init_done_aon_o;
     logic conversion_allow_aon_o, conversion_allow_core_o;
+    // 只检查服务真实 AON 消费和回执保持；SPI 实体由独立产品台架生成。
+    logic pwr_cmd_valid_core_i = 1'b0, pwr_cmd_ready_core_o, pwr_rsp_valid_core_o, pwr_rsp_accept_core_o;
+    logic pwr_cmd_evaluate_aon_i;         // 模拟最后数据位已到、CS 仍未完成退场
+    logic [1:0] pwr_cmd_op_core_i = 2'b00, pwr_cmd_value_core_i = 2'b00;
+    logic [1:0] pwr_rsp_op_core_o, pwr_mode_core_o;
 
     // --- OTP 待回应事务 ---
     logic otp_power_good_aon_i = 1'b1;  // 台架单独控制，与模拟参考互不依赖
@@ -73,7 +86,7 @@ module peripheral_services_tb;
 
     always #50ns clk_aon_i = ~clk_aon_i;
     always #7ns  clk_core_i = run_core && !clk_core_i;
-    always #9ns  clk_io_i = ~clk_io_i;
+    always #9ns  clk_io_i = run_io && !clk_io_i;
 
     ad4080_peripheral_services #(
         .AON_MAX_CLK_HZ(10_000_000), .OTP_IMAGE_WORDS(3), .OTP_WORD_WIDTH(8), .OTP_TIMEOUT_CYCLES(24)
@@ -86,7 +99,12 @@ module peripheral_services_tb;
         .cfg_init_done_aon_o, .cfg_control_write_allow_aon_o(), .cfg_full_access_allow_aon_o(),
         .operating_mode_aon_o, .wake_busy_aon_o, .wake_recover_req_aon_o,
         .mode_req_accept_aon_o, .sw_reset_accept_aon_o, .isolate_io_o(), .iovdd_ldo_en_o(), .ref_cmo_en_o(),
-        .por_ana_event_aon_o,
+        .por_ana_event_aon_o, .por_ana_event_core_o,
+        .pwr_cmd_valid_core_i, .pwr_cmd_op_core_i, .pwr_cmd_value_core_i,
+        .pwr_cmd_evaluate_aon_i,
+        .pwr_cmd_ready_core_o, .pwr_rsp_valid_core_o, .pwr_rsp_accept_core_o,
+        .pwr_rsp_op_core_o, .pwr_mode_core_o, .pwr_ldo_pd_core_o(), .vdd11_ldo_en_o(),
+        .fifo_record_allow_io_o(), .cfg_poll_allow_aon_o(),
         .conversion_allow_aon_o, .conversion_allow_core_o,
         .otp_power_good_aon_i, .otp_adapters_quiescent_aon_i, .otp_adapters_cancel_aon_o,
         .otp_req_valid_aon_o, .otp_req_ready_aon_i, .otp_req_addr_aon_o,
@@ -111,11 +129,22 @@ module peripheral_services_tb;
     // [拒绝发布] 任何 AON 上升沿后的未提交状态都必须遮住镜像、两域转换
     // 和 I/O 字。监控覆盖 OTP 字间、校验等待和各轮冷复位。
     always @(posedge clk_aon_i) begin
+        // #1ps 置于寄存器更新之后，读到的是该沿实际发布到 CSR 的事件。
         #1ps;
-        if (por_ana_event_aon_o) por_event_count++;
+        aon_edge_count++;
+        if (por_ana_event_aon_o) begin
+            por_event_count++;
+            last_por_event_edge = aon_edge_count;
+            last_por_event_at_ns = $realtime;
+        end
         if (!otp_shadow_valid_aon_o && (otp_shadow_image_aon_o != '0 || conversion_allow_aon_o ||
                                        conversion_allow_core_o || io_word_ready_o))
             $fatal(1, "Uncommitted OTP enabled a publisher");
+    end
+
+    // 与实际 CSR 同样在核心沿采样。不能等 NBA 后再数，否则读到的是确认后的电平。
+    always @(posedge clk_core_i) begin
+        if (fifo_reset_no && por_ana_event_core_o) por_core_consumed++;
     end
 
     // [冲刷] 这些 ready 由台架逐拍确认。请求从逻辑字 0 开始，给后续响应
@@ -212,15 +241,194 @@ module peripheral_services_tb;
         mode_req_valid_aon_i = 1'b1;
         @(posedge clk_aon_i);
         if (mode_req_accept_aon_o != accepted) $fatal(1, "Unexpected AON mode acceptance");
+        // 从接受命令的沿起算，不能从后续撤回 valid 的负沿量唤醒守卫。
+        if (mode_req_accept_aon_o) mode_accept_at_ns = $realtime;
         @(negedge clk_aon_i);
         mode_req_valid_aon_i = 1'b0;
     endtask
 
+    // [模式] 始终送同一固定字请求。低功耗要同时封新转换和 LVDS，退出
+    // 后须经历完整守卫和本轮附加恢复。done 的刻意延迟只是台架激励。
+    task automatic check_pattern_wake(input logic [1:0] low_mode, input int guard_cycles);
+        realtime start_at_ns, recover_request_at_ns;
+        request_mode(low_mode, 1'b1);
+        if (io_word_ready_o || io_edge_words_valid_o || conversion_allow_aon_o)
+            $fatal(1, "Low-power mode %b left conversion or fixed word enabled", low_mode);
+        request_mode(2'b00, 1'b1);
+        start_at_ns = mode_accept_at_ns;
+        // 扫完整守卫窗口，连结束沿一起检查。只比首末两点会漏掉中间短放行。
+        // AON 的恢复请求要先看见一次低 done，守卫结束沿仍不应产生请求。
+        repeat (guard_cycles) begin
+            @(posedge clk_aon_i);
+            #2ps;
+            if (wake_recover_req_aon_o || conversion_allow_aon_o || io_edge_words_valid_o)
+                $fatal(1, "Mode %b released before wake guard and recovery handshake", low_mode);
+        end
+        @(posedge clk_aon_i);
+        #2ps;
+        if (!wake_recover_req_aon_o || conversion_allow_aon_o || io_edge_words_valid_o)
+            $fatal(1, "Mode %b did not request additional recovery on guard+1", low_mode);
+        recover_request_at_ns = $realtime;
+        // 故意让外部握手停顿，验证 t_wake-up 用完后也不会自行发字。
+        // 下一个负沿再给 done，便于与目的域恢复延迟分开读数。
+        repeat (3) @(negedge clk_aon_i);
+        if (!wake_busy_aon_o || conversion_allow_aon_o || io_edge_words_valid_o)
+            $fatal(1, "Mode %b emitted conversion or fixed word while waiting for fresh done", low_mode);
+        wake_recover_done_aon_i = 1'b1;
+        wait (conversion_allow_core_o && io_edge_words_valid_o);
+        $display("PASS REFIN_WAKE mode=%b recover_req_AON=%0d dt=%0.3f ns test_and_conversion_release_dt=%0.3f ns",
+                 low_mode, guard_cycles+1, recover_request_at_ns-start_at_ns, $realtime-start_at_ns);
+        @(negedge clk_aon_i);
+        wake_recover_done_aon_i = 1'b0;
+    endtask
+
+    // [状态交付] 短失效完全在 AON 两沿之间，仍由真实参考监视链捕获。
+    // 再保持一次低压直到核心恢复，覆盖在途请求及次级待发位。
+    task automatic check_por_stop_and_restart();
+        int aon_before, core_before;
+        repeat (6) @(negedge clk_aon_i); // 隔开前序场景的确认返回延迟。
+        @(negedge clk_core_i);
+        run_core = 1'b0;
+        // I/O 掉电可关 Pad/读回，但核心及 AON 还由 VDD11 供电，事件交付应独立。
+        iovdd_ok_async_i = 1'b0;
+        aon_before = por_event_count;
+        core_before = por_core_consumed;
+        @(negedge clk_aon_i);
+        #1ns;
+        ref_ok_async_i = 1'b0;
+        #6ns;
+        ref_ok_async_i = 1'b1;
+        wait (por_event_count == aon_before + 1);
+        repeat (5) @(negedge clk_aon_i);
+        #1ns;
+        ref_ok_async_i = 1'b0;
+        wait (por_event_count == aon_before + 2);
+        repeat (7) @(negedge clk_aon_i);
+        if (por_core_consumed != core_before || por_ana_event_core_o ||
+            por_event_count != aon_before + 2)
+            $fatal(1, "POR delivery escaped stopped core or duplicated a continuous monitor fault");
+
+        // 两级请求同步后，第三沿才由实际接收方取走本笔。随后返回的确认
+        // 再释放第二笔，不依赖对端采到某个指定的原始脉冲宽度。
+        run_core = 1'b1;
+        repeat (2) begin
+            @(posedge clk_core_i);
+            #2ps;
+            if (por_core_consumed != core_before) $fatal(1, "POR consumed before request synchronizer settled");
+        end
+        @(posedge clk_core_i);
+        #2ps;
+        if (por_core_consumed != core_before + 1) $fatal(1, "Stopped core lost first POR event");
+        wait (por_core_consumed == core_before + 2);
+        repeat (6) @(negedge clk_aon_i);
+        // 两笔交付时 Pad 仍关闭，而且参考持续低。恢复前不能出现第三笔。
+        if (por_core_consumed != core_before + 2 || por_event_count != aon_before + 2 || io_reset_no)
+            $fatal(1, "Unexpected POR repeat or I/O still live without IOVDD");
+        $display("PASS POR_ANA_CDC stopped core and IOVDD off, 6 ns pulse plus continuous fault, first on core edge 3 and two arrivals");
+        iovdd_ok_async_i = 1'b1;
+        ref_ok_async_i = 1'b1;
+        repeat (6) @(negedge clk_aon_i);
+
+        // [换代] 硬 POR 取消尚未交付的旧事件。等待已存在的 AON 事件完成登记
+        // 再复位，确保不是一个尚未被监视器看到的空试验。
+        @(negedge clk_core_i);
+        run_core = 1'b0;
+        aon_before = por_event_count;
+        core_before = por_core_consumed;
+        @(negedge clk_aon_i);
+        #1ns;
+        ref_ok_async_i = 1'b0;
+        #6ns;
+        ref_ok_async_i = 1'b1;
+        wait (por_event_count == aon_before + 1);
+        repeat (3) @(negedge clk_aon_i);
+        por_d_ok_async_i = 1'b0;
+        #2ps;
+        if (fifo_reset_no || por_ana_event_core_o) $fatal(1, "Hard POR did not revoke pending delivery");
+        repeat (2) @(negedge clk_aon_i);
+        por_d_ok_async_i = 1'b1;
+        run_core = 1'b1;
+        // 留足两端释放和新的同步沿，重启后比对的是一次完整的新复位会话。
+        repeat (8) @(negedge clk_aon_i);
+        if (!fifo_reset_no || por_core_consumed != core_before || por_event_count != aon_before + 1)
+            $fatal(1, "Old POR check event leaked into the next digital reset epoch");
+        $display("PASS POR_ANA_CDC hard POR discarded a queued old event without a phantom event on restart");
+    endtask
+
+    // 请求先于 CS 退场到达 AON。即便停核心，CS 退场前保留请求，退场后
+    // 只裁决一次。核心重新运行前，读取的仍是上次已收到的 AON 状态。
+    task automatic check_power_reply_stopped_core();
+        wait (pwr_cmd_ready_core_o);
+        @(negedge clk_aon_i);
+        pwr_cmd_evaluate_aon_i = 1'b0;
+        @(negedge clk_core_i);
+        pwr_cmd_value_core_i = 2'b10;
+        pwr_cmd_valid_core_i = 1'b1;
+        @(negedge clk_core_i);
+        pwr_cmd_valid_core_i = 1'b0;
+        run_core = 1'b0;
+        // 等五个 AON 沿覆盖请求同步及任何误响应。若第一笔在退场前被
+        // 弹出，即使核心停钟，主管仍会先进入待机并触发下面的模式比较。
+        repeat (5) @(negedge clk_aon_i);
+        if (operating_mode_aon_o != 2'b00 || pwr_cmd_ready_core_o)
+            $fatal(1, "AON consumed a pending power command before CS release");
+        pwr_cmd_evaluate_aon_i = 1'b1;
+        wait (operating_mode_aon_o == 2'b10);
+        // 主管已经执行，但核心仍停钟。此时比较旧读回可捕获误用 AON
+        // 组合状态的写法，和启动后丢失一次回执是不同错误。
+        repeat (5) @(negedge clk_aon_i);
+        if (pwr_cmd_ready_core_o || pwr_rsp_valid_core_o || pwr_mode_core_o != 2'b00)
+            $fatal(1, "Stopped core did not hold the in-flight power readback");
+        run_core = 1'b1;
+        wait (pwr_rsp_valid_core_o);
+        if (!pwr_rsp_accept_core_o || pwr_rsp_op_core_o != 2'b00 || pwr_mode_core_o != 2'b10)
+            $fatal(1, "Lost AON reply on core restart");
+        $display("PASS AON_CFG_CDC true standby, retained response and coherent readback with core stopped");
+
+        // 恢复正常再进入后续参考故障场景，避免无意改变它的供电前提。
+        wait (pwr_cmd_ready_core_o);
+        @(negedge clk_core_i);
+        pwr_cmd_value_core_i = 2'b00;
+        pwr_cmd_valid_core_i = 1'b1;
+        @(negedge clk_core_i);
+        pwr_cmd_valid_core_i = 1'b0;
+        wait (pwr_rsp_valid_core_o);
+        if (!pwr_rsp_accept_core_o || pwr_mode_core_o != 2'b00) $fatal(1, "AON wake response mismatch");
+        wait (wake_recover_req_aon_o);
+        @(negedge clk_aon_i);
+        wake_recover_done_aon_i = 1'b1;
+        wait (conversion_allow_core_o);
+        @(negedge clk_aon_i);
+        wake_recover_done_aon_i = 1'b0;
+
+        // CS 完成只打开裁决沿。客户仍忙的候选应收到拒绝，客户后来空闲
+        // 不得重放该旧命令，也不能出现迟到的第二次应答。
+        clients_idle_aon_i = 1'b0;
+        wait (pwr_cmd_ready_core_o);
+        @(negedge clk_core_i);
+        pwr_cmd_value_core_i = 2'b10;
+        pwr_cmd_valid_core_i = 1'b1;
+        @(negedge clk_core_i);
+        pwr_cmd_valid_core_i = 1'b0;
+        wait (pwr_rsp_valid_core_o);
+        // 允许裁决仍须返回终态。单看模式未变，无法分辨明确拒绝和卡住。
+        if (pwr_rsp_accept_core_o || pwr_mode_core_o != 2'b00)
+            $fatal(1, "CS completion waived AON client-idle qualification");
+        @(negedge clk_aon_i);
+        clients_idle_aon_i = 1'b1;
+        repeat (5) @(negedge clk_aon_i);
+        if (operating_mode_aon_o != 2'b00 || !pwr_cmd_ready_core_o)
+            $fatal(1, "Rejected AON command was replayed after clients became idle");
+        $display("PASS AON_CFG_CDC CS release defers evaluation, busy rejects without replay");
+    endtask
+
     initial begin
-        int por_events_before_reference;
+        int por_events_before_reference, aon_edge_before_reference;
+        realtime ref_lost_at_ns, first_ref_at_ns, io_qualified_at_ns;
         // [冷启动] 验证 OTP 启动独立于模拟参考和 IO。随后让模拟与核心合格，
         // 特意将通过判决留到供电许可之后，明确是谁封住转换。
         @(negedge clk_aon_i);
+        pwr_cmd_evaluate_aon_i = 1'b1;
         por_d_ok_async_i = 1'b1;
         load_to_verifier();
         if (conversion_allow_aon_o || io_reset_no) $fatal(1, "Rails unexpectedly ready in OTP-only startup");
@@ -315,19 +523,38 @@ module peripheral_services_tb;
         $display("PASS soft reset preserves OTP and retained SRAM result");
 
         // [参考失效] 异步撤销新写事务。已提交 OTP 和外供 IOVDD 保持，
-        // 已存结果按独立读许可可取出。
+        // 已存结果按独立读许可可取出；同一上电会话已确认过参考，固定字继续有效。
+        @(negedge clk_io_i);
+        io_word_valid_i = 1'b1;
+        io_intf_check_i = 1'b1;
+        io_dual_lane_i = 1'b1;
         @(negedge clk_core_i);
+        #2ns; // 选两域时钟之间的时刻，直接观察撤销，无需等 AON 上升沿。
         por_events_before_reference = por_event_count;
+        aon_edge_before_reference = aon_edge_count;
         result_write_core_i = 1'b1;
+        ref_lost_at_ns = $realtime;
         ref_ok_async_i = 1'b0;
-        #1ns;
+        // 只施加参考监视结果，不改变 OTP、IOVDD、模拟电路模型或字输入。
+        #2ps;
         if (conversion_allow_aon_o || conversion_allow_core_o || result_req_ready_core_o || !otp_shadow_valid_aon_o)
             $fatal(1, "Reference collapse failed to contain result writes");
+        if (!io_word_ready_o || !io_edge_words_valid_o ||
+            {io_da_fall_o, io_da_rise_o, io_db_fall_o, io_db_rise_o} != {10'h00B, 10'h011, 10'h01E, 10'h00C})
+            $fatal(1, "Qualified REFIN collapsed but fixed word was lost");
+        $display("PASS REFIN_LOSS t=%0.3f ns ref=0 new_conversion=0 test_valid=1 DA=%h/%h DB=%h/%h",
+                 ref_lost_at_ns, io_da_fall_o, io_da_rise_o, io_db_fall_o, io_db_rise_o);
         access_result(1'b0, SAMPLE_ADDR, SAMPLE);
+        @(negedge clk_io_i);
+        io_word_valid_i = 1'b0;
         ref_ok_async_i = 1'b1;
         wait (conversion_allow_core_o);
         repeat (5) @(negedge clk_aon_i);
-        if (por_event_count != por_events_before_reference+1) $fatal(1, "Expected one AON reference fault event");
+        // 即使低脉冲已结束，已捕获的参考事件仍要在第 3 个 AON 沿送达一次。
+        if (por_event_count != por_events_before_reference+1 || last_por_event_edge != aon_edge_before_reference+3)
+            $fatal(1, "Expected one reference fault event on the third subsequent AON rising edge");
+        $display("PASS POR_ANA_EVENT AON+%0d dt=%0.3f ns", last_por_event_edge-aon_edge_before_reference,
+                 last_por_event_at_ns-ref_lost_at_ns);
         $display("PASS REFIN loss freezes new writes and retains prior readable result");
 
         // [I/O 失效] 模拟与核心电源保持。外供 IOVDD 被撤销后，仍可按许可
@@ -493,6 +720,91 @@ module peripheral_services_tb;
             conversion_allow_aon_o || conversion_allow_core_o || result_req_ready_core_o || io_word_ready_o)
             $fatal(1, "Rejected OTP image enabled a publisher");
         $display("PASS checker-rejected OTP result stays quarantined, error %0d", otp_error_code_aon_o);
+
+        // [Rev. B p.24] 新的硬 POR 会话用正常的 OTP 接口提交，VDD33/IOVDD
+        // 和 I/O 目的时钟均正常；唯一缺少的启动条件是真实监视器没确认过参考。
+        @(negedge clk_aon_i);
+        por_d_ok_async_i = 1'b0;
+        ref_ok_async_i = 1'b0;
+        ana_ready_async_i = 1'b0;
+        otp_adapters_quiescent_aon_i = 1'b0;
+        @(negedge clk_aon_i);
+        por_d_ok_async_i = 1'b1;
+        load_to_verifier();
+        checker_verdict(1'b1);
+        wait (io_reset_no);
+        repeat (4) @(negedge clk_io_i);
+        // 让其余 I/O 许可有充足释放时间，排除冷启只因普通同步器未完成的假通过。
+        io_word_valid_i = 1'b1;
+        io_intf_check_i = 1'b1;
+        io_dual_lane_i = 1'b1;
+        #1ps;
+        if (!otp_shadow_valid_aon_o || !io_reset_no || conversion_allow_core_o)
+            $fatal(1, "Cold reference negative setup did not isolate the reference condition");
+        if (io_word_ready_o || io_edge_words_valid_o)
+            $fatal(1, "Cold REFIN never qualified produced test word at %0.3f ns, ready=%b valid=%b DA=%h/%h DB=%h/%h",
+                   $realtime, io_word_ready_o, io_edge_words_valid_o, io_da_fall_o, io_da_rise_o, io_db_fall_o, io_db_rise_o);
+        $display("PASS REFIN_COLD ref=0 OTP_valid=1 IO_reset_released=1 ready=0 valid=0 t=%0.3f ns", $realtime);
+
+        // [首次资格] 参考监控高在非时钟沿输入；经过两个同步沿及第三个
+        // AON 历史登记沿，再观察 I/O 两拍放行。此时模拟 ready 仍未提供。
+        @(negedge clk_aon_i);
+        #1ns;
+        first_ref_at_ns = $realtime;
+        ref_ok_async_i = 1'b1;
+        repeat (3) begin
+            @(posedge clk_aon_i);
+            #2ps;
+            // AON 最后一拍更新历史时，字许可仍受 I/O 目的同步链约束。
+            if (io_word_ready_o || io_edge_words_valid_o || conversion_allow_core_o)
+                $fatal(1, "First REFIN qualification bypassed AON/IO releases");
+        end
+        for (int edge_index = 1; edge_index <= 2; edge_index++) begin
+            @(posedge clk_io_i);
+            #2ps;
+            // 第一拍早放行和第二拍未释放都属于错误，完整字同步有效位也需同行。
+            if (io_word_ready_o != (edge_index == 2) || io_edge_words_valid_o != (edge_index == 2))
+                $fatal(1, "First REFIN test eligibility did not release on I/O edge 2");
+        end
+        if ({io_da_fall_o, io_da_rise_o, io_db_fall_o, io_db_rise_o} != {10'h00B, 10'h011, 10'h01E, 10'h00C})
+            $fatal(1, "First reference qualification released incorrect fixed word");
+        $display("PASS REFIN_FIRST AON=3 IO=2 dt=%0.3f ns test_valid=1 analog_ready=0", $realtime-first_ref_at_ns);
+        ana_ready_async_i = 1'b1;
+        wait (conversion_allow_core_o);
+
+        // [停钟] IOVDD 掉压时已接受的固定字资格立即撤销。重供不能在
+        // 目的时钟停住时交付，复钟后从实际许可请求起观察 I/O 两拍。
+        @(negedge clk_io_i);
+        run_io = 1'b0;
+        #1ns;
+        iovdd_ok_async_i = 1'b0;
+        #2ps;
+        if (io_word_ready_o || io_edge_words_valid_o || io_reset_no || !conversion_allow_core_o)
+            $fatal(1, "Clock-stopped IOVDD withdrawal escaped the fixed-word gate");
+        @(negedge clk_aon_i);
+        iovdd_ok_async_i = 1'b1;
+        // AON 连续运行，I/O 已停。重供后等待多个常供周期也不能替代目的时钟沿。
+        repeat (3) @(negedge clk_aon_i);
+        if (io_word_ready_o || io_edge_words_valid_o || io_reset_no)
+            $fatal(1, "IOVDD restoration released fixed word with no IO clocks");
+        run_io = 1'b1;
+        // 第一层 I/O 复位释放和 AON 返回资格都有自己的同步链。从实际字许可
+        // 请求进入 I/O 同步器的时刻算两拍，避免把全部重供路径误只记成两拍。
+        wait (dut.io_word_release_ni);
+        io_qualified_at_ns = $realtime;
+        for (int edge_index = 1; edge_index <= 2; edge_index++) begin
+            @(posedge clk_io_i);
+            #2ps;
+            if (io_word_ready_o != (edge_index == 2) || io_edge_words_valid_o != (edge_index == 2))
+                $fatal(1, "Restored IOVDD fixed word released on wrong IO edge");
+        end
+        $display("PASS REFIN_IO_STOP restore_valid=1 IO=2 dt=%0.3f ns from permission request", $realtime-io_qualified_at_ns);
+        check_pattern_wake(2'b10, 1000);
+        check_pattern_wake(2'b11, 1800);
+        io_word_valid_i = 1'b0;
+        io_intf_check_i = 1'b0;
+        check_power_reply_stopped_core();
+        check_por_stop_and_restart();
         $display("PERIPHERAL_SERVICES PASS");
         $finish;
     end

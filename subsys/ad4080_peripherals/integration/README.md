@@ -32,6 +32,30 @@
 
 外部搬运器在 `clk_io_i` 域驱动 `io_sample_i[19:0]`、`io_dual_lane_i`、`io_intf_check_i` 和 `io_word_valid_i`，保持整笔至 `io_word_ready_o`。`io_edge_words_valid_o` 高的该周期，同域消费者一次采纳四组 10 位边沿向量和 `io_slot_count_o`。向量 bit 0 对应最早槽，同一槽先下降沿再上升沿。当前连接约定每个打开许可的 I/O 周期可采纳一个完整字，若消费者正在移出上一帧，搬运器应推迟交付。
 
+### REFIN 与固定接口检查字
+
+Rev. B 第 24 页区分本次冷启动从未有 REFIN 和曾提供参考后移除两种情况。服务壳采纳 VDD33 与 REFIN 的外部合格信号，以两个 AON 沿确认后在第三个沿登记本次硬 POR 会话的参考历史。固定字许可再经 I/O 域两级释放。硬 POR 清历史。软复位、低功耗和后续参考掉落可以保留历史，仍分别受初始化、正常模式和 I/O/OTP/BIST 条件约束。第 84 页表 48 的固定字为 `0xAC5D6`。新转换和新写事务走主管的当前参考资格，参考掉落时撤销。已经交给 I/O 域的普通字和保持供电下的 FIFO 读口继续按各自会话许可工作。[Rev. B 第 24、26–28、83–84 页](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=24)
+
+三域台架直接通过服务壳与原边沿字映射器核对 `DA_FALL/DA_RISE/DB_FALL/DB_RISE`。本次证据止于完整字 ready/valid 和逻辑边沿向量。产品读回装配的固定字输入绑为 0，并使用普通 I/O 字许可作为 FIFO 会话资格，实时 LVDS 和物理引脚由产品集成负责。[实际台架回执](evidence/regression.txt)
+
+### POR_ANA 故障交付
+
+Rev. B 第 24 页和第 83 页表 47 将参考故障状态映射为 `DEVICE_STATUS(0x14)[3]`，该位默认置 1、写 1 清除。服务壳使用主管的真实 `por_ana_event_aon_o`。AON 改变请求位后等核心域确认，在途时新事件合并为一笔待交付。核心停钟后保留请求，在恢复后的接收沿把 `por_ana_event_core_o` 交给 `ad4080_top.por_ana_event_i`。产品开启 `P_POR_ANA_EVENT_ENABLE`，核心 bank 的 bit3 为唯一粘滞位，同沿新事件优先于 W1C。既有无绑定用户默认关闭该能力。
+
+交付两端共用 VDD11 硬 POR，分别在 AON 和核心时钟同步释放。硬 POR 取消旧待发事件并将 CSR 回到复位默认。IOVDD、软件初始化和功耗模式转换不取消已捕获的事件。参考持续低压只产生一次发生沿。一笔在途和一笔待发之外的新故障合并，故障状态可保证置位，次数或原始脉宽由别处记录。真实最短可捕获脉宽、跨域恢复和 MTBF 由物理实现验收。独立的 `ROM_CRC_ERR` 保持来源待接。
+
+可从本目录复跑 `run_verify.sh` 验证监视器到核心交付，并用真实寄存器接收端单独重现同沿 W1C。
+
+```sh
+por_csr_obj=$(mktemp -d /tmp/ad4080-por-csr.XXXXXX)
+"${VERILATOR:-verilator}" --binary --timing --assert --output-split 0 --compiler clang \
+  -CFLAGS '-std=c++20' -j 2 -Wno-PINMISSING --top-module por_ana_csr_tb --Mdir "$por_csr_obj" \
+  ../ad4080_dsp/rtl/ad4080_regs.sv integration/por_ana_csr_tb.sv
+"$por_csr_obj/Vpor_ana_csr_tb"
+```
+
+此台架只观察已提交 CSR 事务，故省略无关的寄存器输出端。实测开启和默认关闭两种配置、首次和重复置位、同沿优先、后续清除、软硬复位及长指令状态位。产品串行 `0x14` 读回由产品顶层台架验收。[回执与源哈希](evidence/regression.txt)
+
 实时转换结果可使用独立的 `transport/ad4080_result_transport.sv` 完成整字 CDC、边沿映射和槽推进。实时来源按同一个核心沿交付 `result_valid_core_i`、`result_core_i`、`dual_lane_core_i` 和 `intf_check_core_i`。双 lane 与固定接口检查字由这个实时/接口测试入口提供。其发端在上层定义的无反压合同下工作，满字丢弃有独立诊断。
 
 ### 采后 FIFO 的单 lane 载荷读回
@@ -72,7 +96,7 @@ YOSYS=yosys bash integration/run_linked.sh
 
 脚本在独立 ASCII `/tmp` 目录产生 lint、编译、仿真及可选 Yosys 日志。每次检查实际仿真完成行，检查本轮 Yosys 日志和生成 JSON 的目标顶层。服务层 JSON 须有四个 4096×20 存储实例，完整记录装配叶子 JSON 只有一个默认 8×22 搬运队列。运行前后校验源文件和入口脚本的 SHA-256。严格 `-Wall` 唯一抑制为既有 SRAM 银行叶子的文件命名提示。OTP 默认 1 字 × 1 位与 1 周期预算为占位，集成须指定来自实际宏与镜像格式的参数。
 
-Verilator 5.30 以 10 MHz AON 及周期分别为 14 ns、18 ns 的两域时钟完成十三组场景。试验镜像为 3 字 × 8 位，实读银行 3 地址 `0x3002` 的 `0x95E2B`，单双 lane 及固定接口检查字分别比对。
+Verilator 5.30 使用 10 MHz AON、14 ns 核心周期和 18 ns I/O 周期。试验镜像为 3 字 × 8 位，实读银行 3 地址 `0x3002` 的 `0x95E2B`，单双 lane 及固定接口检查字分别比对。
 
 | 场景 | 仿真观察 |
 | --- | --- |
@@ -82,6 +106,8 @@ Verilator 5.30 以 10 MHz AON 及周期分别为 14 ns、18 ns 的两域时钟�
 | 保留与供电故障 | 软件复位保留影子和 SRAM 结果。REFIN 掉落禁止新写且保留旧读。IOVDD 掉落关闭读和边沿字，转换资格仍有效。 |
 | BIST 进入与退出 | 保持阶段提前 start 无破坏性操作。核心停钟时短申请保留，功能读响应遮罩通过。测试启动和重建恢复都拒绝 held valid，实际中止报原因 3。 |
 | OTP 故障三组 | 宏供电失效撤销发布并锁存原因 1。校验通过返回窗口内硬 POR 阻止提交。独立的拒绝判决锁存原因 3，影子和转换资格均无效。 |
+| REFIN 冷启与再次掉落 | 其余电源和 OTP 已好时，冷启从未合格的参考使固定字 ready/valid 为 0。首次参考合格经 AON 三沿、I/O 两沿开放固定字。参考已合格后掉落，新转换和写许可异步撤销。固定字保持有效，参考故障事件在第三个随后 AON 沿送达。 |
+| I/O 停钟及低功耗恢复 | IOVDD 掉压即撤固定字，即使 I/O 已停钟。重供复钟后，从目的许可请求起第二个 I/O 沿恢复。待机、睡眠退出的附加恢复请求分别出现在命令受理后第 1001、1801 个 AON 沿。台架暂不给 done 时保持关闭，收到本轮完成才恢复。该延迟来自仿真激励，手册图 44 的实物 `t_recover` 留给模拟与系统验收。 |
 
 源哈希及运行片段见 [sources.sha256](evidence/sources.sha256) 和 [regression.log](evidence/regression.txt)。旧包复现、修正和剩余绑定详见 [审查记录](REVIEW.md)。
 

@@ -142,7 +142,7 @@ class CalibrationTests(unittest.TestCase):
         plan = quantize_registers(estimate, k_gain=1, shift=15)
         self.assertIsNotNone(plan)
         self.assertEqual((plan.offset_code, plan.gain_code), (-80, 349))
-        self.assertLess(float(np.max(np.abs(plan.applied_gain * raw + plan.offset_code
+        self.assertLess(float(np.max(np.abs(plan.applied_gain * (raw + plan.offset_code)
                                           - ideal_codes))), 1.2)
 
     def test_invalid_code_fields_and_rails(self) -> None:
@@ -207,10 +207,10 @@ class CalibrationTests(unittest.TestCase):
         self.assertEqual(table_plan.applied_gain, 0.995)
         self.assertIsNone(table_plan.k_gain)
 
-        # [重算] 粗步距与较大零偏会让先舍 OFFSET 的做法差一码。
+        # [顺序] 即使增益步距较粗，800 码偏置也在乘前直接抵消。
         biased = fit_dc(*_dc_capture(800), vref_v=VREF_V)
         coarse = quantize_registers(biased, k_gain=1, shift=8)
-        self.assertEqual((coarse.gain_code, coarse.offset_code), (511, -797))
+        self.assertEqual((coarse.gain_code, coarse.offset_code), (511, -800))
         self.assertNotEqual(coarse.offset_code, round(biased.correction_offset_codes))
 
         for options in ({"k_gain": 1}, {"k_gain": 0, "shift": 15},
@@ -227,28 +227,29 @@ class CalibrationTests(unittest.TestCase):
                 with self.assertRaisesRegex(CalibrationError, "OFFSET"):
                     quantize_registers(overflow, k_gain=1, shift=15)
 
-    def test_gain_table_applies_offset_before_gain(self) -> None:
-        # [区分顺序] 约 9.16 mV 的零偏仍在可调范围。训练电平远离轨端，
-        # 同一增益档下两种顺序会差八码，不能由舍入或饱和掩盖。
-        injected_bias = 1600.0
-        estimate = fit_dc(*_dc_capture(injected_bias), vref_v=VREF_V)
-        rtl = quantize_registers(estimate, k_gain=1, shift=15)
-        assert rtl is not None
-        # 同一增益倍率作为实测表的合成夹具。邻近低一码确保涵盖实际目标，
-        # 令两个分支的选定倍率一致，便能单独对照 OFFSET 选号。
-        measured = quantize_registers(estimate, gain_table={
-            rtl.gain_code - 1: rtl.applied_gain - 2**-15,
-            rtl.gain_code: rtl.applied_gain,
-            512: 1.0,
-        })
-        assert measured is not None
-        self.assertEqual((rtl.gain_code, rtl.applied_gain),
-                         (measured.gain_code, measured.applied_gain))
-        self.assertEqual((rtl.offset_code, measured.offset_code), (-1592, -1600))
-        # 零输入时原码为注入的零偏，各自只在对应节点上消除零偏。
-        self.assertLess(abs(rtl.applied_gain * injected_bias + rtl.offset_code), 0.5)
-        self.assertLess(abs(measured.applied_gain * (injected_bias + measured.offset_code)), 0.5)
-        self.assertGreater(abs(measured.applied_gain * (injected_bias + rtl.offset_code)), 7)
+    def test_gain_bindings_share_pre_gain_offset(self) -> None:
+        # [区分顺序] ±1600 码偏置仍可调整，若误把 g 乘入 OFFSET 会差 8 码。
+        # 同一采集按两种绑定求码，避免把采集差异误判为 OFFSET 规则差异。
+        # 正负各验一次，防止错误的补码符号或取绝对值在单方向被掩盖。
+        for injected_bias in (1600, -1600):
+            with self.subTest(bias=injected_bias):
+                estimate = fit_dc(*_dc_capture(injected_bias), vref_v=VREF_V)
+                rtl = quantize_registers(estimate, k_gain=1, shift=15)
+                assert rtl is not None
+                # 构造同一增益倍率的实测表夹具，解耦倍率选择与 OFFSET 计算。
+                measured = quantize_registers(estimate, gain_table={
+                    rtl.gain_code - 1: rtl.applied_gain - 2**-15,
+                    rtl.gain_code: rtl.applied_gain,
+                    512: 1.0,
+                })
+                assert measured is not None
+                self.assertEqual((rtl.gain_code, rtl.applied_gain),
+                                 (measured.gain_code, measured.applied_gain))
+                self.assertEqual((rtl.offset_code, measured.offset_code),
+                                 (-injected_bias, -injected_bias))
+                # 零输入时实读就是偏置，乘前抵消后应落在半个码以内。
+                for plan in (rtl, measured):
+                    self.assertLess(abs(plan.applied_gain * (injected_bias + plan.offset_code)), 0.5)
 
 
 # =============================================================================

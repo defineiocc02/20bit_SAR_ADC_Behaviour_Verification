@@ -22,7 +22,8 @@ import tempfile
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
-REV = "7408edf8db9a41eebdd756378b69d2775f107dec"
+# 各入口共用同一已发布 DSP 源提交，防止台架与产品绑定读到不同的代码。
+REV = (ROOT / "evidence/dsp-revision.txt").read_text(encoding="ascii").strip()
 
 
 def checked(command, cwd, env, log):
@@ -58,13 +59,14 @@ def executable(name):
 def sources():
     """只锁定参与编译、综合、判断或检查的输入，避免把运行中的输出算作输入。"""
     files = sorted(p for p in ROOT.rglob("*") if p.is_file()
-                   and p.suffix in {".sv", ".py", ".sh", ".ys", ".f", ".vlt", ".c", ".cpp", ".h"}
+                   and p.suffix in {".sv", ".svh", ".py", ".sh", ".ys", ".f", ".vlt", ".c", ".cpp", ".h"}
                    and not any(part.startswith(".") for part in p.relative_to(ROOT).parts))
     # 记录几何、责任表和未闭合项，否则换了面积或发布边界仍可能沿用相同回执。
     files.extend(ROOT / rel for rel in (
         "floorplan/plan.json", "floorplan/block_binding.csv", "interfaces/function_ownership.csv",
-        "io/package_pins.csv", "evidence/peripheral_open_items.csv",
+        "io/package_pins.csv", "evidence/peripheral_open_items.csv", "evidence/dsp-revision.txt",
         "calibration/requirements.txt", "calibration/example_dc.csv", "io/adi_receiver/adi_upstream.sha256",
+        "interfaces/dsp_review/manual_filter_targets.csv",
     ))
     return {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(set(files))}
 
@@ -113,7 +115,7 @@ def run_audit(args):
     yosys = executable(args.yosys) if need_logic else args.yosys
     geom_python = executable(args.geometry_python) if not requested or "layout" in requested else sys.executable
     cal_python = args.calibration_python
-    if not requested or requested & {"adctoolbox_host", "adctoolbox_rtl", "product_calibration"}:
+    if not requested or requested & {"adctoolbox_host", "adctoolbox_rtl", "product_calibration", "filter_response"}:
         cal_python = executable(cal_python)
     tools = work / "bin"
     tools.mkdir()
@@ -157,9 +159,14 @@ def run_audit(args):
                     target.write_bytes(subprocess.check_output([*git, "show", f"{REV}:{rel}"]))
                 else:
                     shutil.copyfile(ROOT / rel, target)
+            # PF1 的定点系数同属冻结 DSP。头文件只供 include，不作为单独 module 参与编译。
+            if any(Path(rel).name == "sinc5_comp.sv" for rel in paths):
+                header = "sinc5_comp_coeff_lut.svh"
+                blob = subprocess.check_output([*git, "show", f"{REV}:subsys/ad4080_dsp/rtl/{header}"])
+                (stage/header).write_bytes(blob)
             # 各 compile/runtime 独立保存。无 $finish 输出/黄金比对时不会放行。
             command = [vlt, "--binary", "--timing", "--assert", "--compiler", "clang",
-                       "-CFLAGS", "-std=c++20", "--output-split", "0", "-MAKEFLAGS", "VM_PARALLEL_BUILDS=0", "--top-module", top,
+                       "-CFLAGS", "-std=c++20", "--output-split", "0", "-MAKEFLAGS", "VM_PARALLEL_BUILDS=0 OPT_FAST=-O0 OPT_SLOW=-O0", "--top-module", top,
                        "--Mdir", "obj", *options, *(Path(p).name for p in paths)]
             checked(command, stage, env, stage / "build.log")
             log = checked([stage / "obj" / ("V" + top)], stage, env, stage / "run.log")
@@ -226,8 +233,37 @@ def run_audit(args):
           [dsp_path+"rtl/result_fifo.sv", dsp_path+"rtl/fifo_capture.sv", "verify/pinned_fifo_contract_tb.sv"],
           ("PINNED_FIFO_1RW_PASS depth=16384 queue_both=1 captured_writes=16384 captured_reads=16384",),
           ("-Wno-fatal",), frozen=True)
+    # 手册 CNV 及 GPIO 的系统观察必须从真实 SPI 配置进入，纯组件输入只用于另列的间隔监视器。
+    # CNV 间隔用三种已知 core 时钟分别验证，错误是相邻真实 tick 的比较结果。
+    bench("cnv_interval", "cnv_ctrl_contract_tb",
+          [dsp_path+"rtl/cnv_ctrl.sv", dsp_path+"sim/tb/cnv_ctrl_contract_tb.sv"],
+          ("CNV_TCONV_CASE_PASS core_hz=160000000 min_cycles=4", "CNV_TCONV_CASE_PASS core_hz=100000000 min_cycles=3",
+           "CNV_TCONV_CASE_PASS core_hz=40000000 min_cycles=1", "CNV_CTRL_CONTRACT_COMPLETE"), ("-Wall",), frozen=True)
+    dsp_leaves = [name.removeprefix("bound_dsp/") for name in (ROOT/"integration/product/rtl.f").read_text().splitlines()
+                  if name.startswith("bound_dsp/")]
+    bench("dsp_cnv_phases", "ad4080_cnv_phases_tb",
+          [*(dsp_path+"rtl/"+name for name in dsp_leaves), dsp_path+"sim/tb/ad4080_cnv_phases_tb.sv"],
+          ("AD4080_CNV_PHASES_COMPLETE", "PASS FIG99"), ("-Wno-fatal",), frozen=True)
+    bench("por_ana_csr", "por_ana_csr_tb",
+          [dsp_path+"rtl/ad4080_regs.sv", "integration/por_ana_csr_tb.sv"],
+          ("POR_ANA_CSR PASS",), ("-Wno-fatal",), frozen=True)
+    # 独立收端检查的是每个原始 DCLK，而不是仅在 valid 为高时拼接。
+    bench("continuous_lvds", "ad4080_continuous_lvds_tb",
+          ["io/ad4080_ddr_edge_words.sv", "io/ad4080_continuous_result_cdc.sv", "io/ad4080_continuous_lvds.sv",
+           "io/ad4080_continuous_lvds_tb.sv"], ("PASS continuous LVDS:", "PASS CDC deadline:", "PASS training lane="),
+          ("-Wall",))
+    bench("lvds_config_cdc", "ad4080_lvds_config_cdc_tb",
+          ["power/ad4080_pwr_reset_sync.sv","io/ad4080_lvds_config_cdc.sv","io/ad4080_lvds_config_cdc_tb.sv"],
+          ("AD4080 LVDS CONFIG CDC REGRESSION PASS",), ("-Wall",))
+    script("config_spi_pins", [sys.executable, "-B", ROOT/"interfaces/control_review/run_pin_edges.py",
+           "--repo", repo, "--revision", REV, "--verilator", vlt, "--scratch", work/"spi-edges",
+           "--lvds-profile", "--crc-stream", "--init-poll"],
+           ("CFG_SPI_PIN_EDGES_COMPLETE", "failures=0", "LVDS_CFG_SPI_COMPLETE",
+            "CFG_SPI_STREAM_CRC_COMPLETE", "CFG_SPI_RESET_POLL_COMPLETE"))
+    script("result_spi_pins", ["sh", ROOT/"io/run_result_spi_pins.sh"],
+           ("AD4080_RESULT_SPI_PIN_ENGINE PASS tail=0", "AD4080_RESULT_SPI_PIN_ENGINE PASS tail=1"))
     script("dsp_data", ["bash", ROOT/"interfaces/dsp_review/run.sh", repo],
-           ("PASS config SPI -> correction", "PASS result SPI SDOB:", "aa00075e0009e8fff30e",
+           ("PASS config SPI -> correction", "PASS result SPI SDOB:", "aa00075d0009e7fff30d",
             "AD4080_DSP_RATE_SCAN_COMPLETE legal=27 clamp=3 pause_switch=1", "AD4080_DSP_REVIEW_COMPLETE"))
     # 管理请求验证既有原始 SPI 路径，也验证独立 CSR 薄桥；仅测默认上电值不能替代这两项。
     script("dsp_control", [sys.executable, "-B", ROOT/"interfaces/control_review/run.py", "--repo", repo,
@@ -240,10 +276,11 @@ def run_audit(args):
     # BIST 的保持、破坏性授权、重建是不同阶段。服务壳需经故障回归才开放结果口。
     script("services", ["bash", ROOT/"integration/run_verify.sh"],
            ("BIST hold before grant is harmless", "incomplete-capture reset/mode/BIST blocked",
-            "PERIPHERAL_SERVICES PASS", "Generic synthesis structure PASS"))
+            "PASS AON_CFG_CDC CS release defers evaluation", "PERIPHERAL_SERVICES PASS", "Generic synthesis structure PASS"))
     # 工程 CRC 完整帧由另一侧按 36 个真实双沿采样复原。它不等价于验证器件 CRC 参数。
     script("record_link", ["bash", ROOT/"integration/run_linked.sh"],
-           ("RECORD_LVDS_GOLDEN PASS", "aa95e2b8000181a4d4, 36 pairs",
+           ("RECORD_LVDS_GOLDEN PASS", "aa95e2b8000181a4d4 on 36 consecutive raw clocks",
+            "RECORD_RAW_N2 PASS", "RECORD_RAW_N1 PASS", "RECORD_LATE_CRC PASS", "RECORD_PAYLOAD_UNDERRUN PASS",
             "PERIPHERAL_READBACK_LINK PASS", "Readback generic structure PASS"))
 
     # 厂商程序放在独立构建目录，只从固定 Git 对象或各自有摘要的官方源读取。
@@ -272,10 +309,28 @@ def run_audit(args):
     script("adctoolbox_host", [cal_python,"-B","-m","unittest","discover","-s",ROOT/"calibration",
            "-p","test_*.py"], ("Ran ","OK"))
     script("adctoolbox_rtl", [cal_python,"-B",ROOT/"calibration/verify_rtl.py","--repo",repo,
-           "--verilator",vlt,"--out",work/"system-calibration.json"], ("Verified 8234 RTL outputs against sys_corr",))
-    # 两个入口都展开同一 DSP。一个断言实际跨环读址，另一个使用主机实算寄存器。
-    script("product_binding", ["bash",ROOT/"integration/product/run_product.sh"],
-           ("AD4080_PRODUCT_BINDING PASS","PRODUCT_STRUCTURE PASS"))
+           "--verilator",vlt,"--out",work/"system-calibration.json","--require-manual-order"],
+           ("Verified 8234 RTL outputs against sys_corr", "Figure 96 order: MATCHED"))
+    script("filter_response", [cal_python, "-B", ROOT/"interfaces/dsp_review/verify_filter_response.py",
+           "--repo", repo, "--verilator", vlt, "--output", work/"filter-response"],
+           ("AD4080_FILTER_RESPONSE_COMPLETE rates=26 clamps=3",))
+    # 普通产品五个工况都运行同一编译产物；校准的工程移位单独验证。
+    def product_pin_trial(stage):
+        # 同一产品普通模式执行全量记录与新增引脚工况，避免用两个近似顶层分开给出通过结论。
+        run_log = stage/"run.log"
+        # 分开保存上电、滤波、结果 SPI 和长记录各次实际启动。图 83/89/99 的独立判据只读对应原始沿。
+        product_env = dict(env, AD4080_PRODUCT_WORK_PARENT=str(stage))
+        log = checked(["bash", ROOT/"integration/product/run_product.sh", "--all-pins"], ROOT, product_env, run_log)
+        observations = matched(log, ("AD4080_PRODUCT_ALL_PINS PASS", "AD4080_PRODUCT_PIN_EDGES PASS",
+            "AD4080_PRODUCT_FILTERS PASS", "AD4080_PRODUCT_RESULT_SPI PASS", "AD4080_PRODUCT_CONTROL_PINS PASS",
+            "AD4080_PRODUCT_FULL_RECORD PASS", "PRODUCT_STRUCTURE PASS"))
+        paths = [line.removeprefix("Build directory ") for line in log.splitlines() if line.startswith("Build directory ")]
+        if len(paths) != 1 or Path(paths[0]).resolve().parent != stage:
+            raise ValueError("产品逐沿记录缺少本次构建路径")
+        oracle = checked([sys.executable, "-B", ROOT/"verify/check_signal_edges.py",
+                          Path(paths[0])/"simulation.log"], ROOT, env, stage/"edges.log")
+        return observations + matched(oracle, ("AD4080_SIGNAL_EDGES PASS",))
+    steps.append(("product_binding", product_pin_trial))
     script("product_calibration", ["bash",ROOT/"integration/product/run_product.sh","--calibration"],
            ("AD4080_PRODUCT_CALIBRATION PASS","PRODUCT_STRUCTURE PASS"))
 

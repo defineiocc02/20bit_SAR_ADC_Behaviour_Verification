@@ -7,11 +7,12 @@
 # 设计说明   :
 #   * 两点和正弦的估算、寄存器量化均走 system_cal.py 的公开入口。
 #     独立留出样本不送入估算器。真值参考为量化后有符号 20 位 ADC 码。
-#   * DSP 从 --repo 给出的冻结源码读取。仿真副本及采集文件写入系统临时
+#   * DSP 源码从 --repo 读取并以摘要绑定。仿真副本及采集文件写入系统临时
 #     目录。对照同仓 sys_corr 的输出、拒绝和两个饱和标志，不另写校正公式。
 #   * 工程增益映射为 K=1、SHIFT=15，回执只用于此映射和可重复的合成仿真。
 #
-# 变更记录   : 2026-11-20 独立复核 Rev. B 图 96 的 OFFSET 和 GAIN 运算顺序。
+# 变更记录   : 2026-11-20 复核 Rev. B 图 96 的 OFFSET 和 GAIN 运算顺序，
+#              对修订前后均直接按 RTL 实测决定严格模式的退出状态。
 # =============================================================================
 """生成合成输入并复核工程增益映射下 DSP 的整数功能。"""
 
@@ -211,7 +212,7 @@ def exercise_cycles(cases, holdout):
 
 
 def replay_rtl(repo, directory, cycles, verilator):
-    """执行冻结 RTL。输出每拍有效位、两种码制、饱和及拒绝标志。"""
+    """执行所绑定的 RTL。输出每拍有效位、两种码制、饱和及拒绝标志。"""
     # SAR 生产接口是偏移二进制，OFFSET 端口对应无符号传输的 12 位寄存器字。
     with (directory / "stimulus.txt").open("w", encoding="utf-8") as file:
         for cycle in cycles:
@@ -332,6 +333,7 @@ def check_manual_order(vector, rows, first_cycle, reference):
         vector.sample, vector.offset, vector.gain, gain_numerator=MAP_K, gain_shift=MAP_SHIFT,
     )[0]
     expected = manual_result.numerator
+    # 严格模式最终使用 RTL 回读和图示比较，独立于系统校正软件参考是否匹配。
     return {
         "status": "MATCHED" if actual == expected else "OPEN_MISMATCH",
         "manual_reference": {
@@ -411,7 +413,7 @@ def main():
     """生成演示回执。源码与用户输入为只读，只有 --out 写出结果。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[3],
-                        help="仓库根目录，包含冻结 subsys/ad4080_dsp")
+                        help="仓库根目录，包含 subsys/ad4080_dsp")
     parser.add_argument("--out", type=Path, required=True, help="JSON 回执路径")
     parser.add_argument("--verilator", default="verilator", help="PATH 中的命令或 Verilator 路径")
     parser.add_argument("--require-manual-order", action="store_true",

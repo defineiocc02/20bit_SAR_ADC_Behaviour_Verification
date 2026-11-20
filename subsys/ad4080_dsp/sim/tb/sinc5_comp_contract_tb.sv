@@ -177,5 +177,6 @@ module sinc5_comp_contract_tb;
         #100000;
         $fatal(1,"COMP watchdog");
     end
+// 夹具的完成计数只统计经过原算术参考比较的输出，不用空 valid 掩盖缺字。
 endmodule
 `default_nettype wire

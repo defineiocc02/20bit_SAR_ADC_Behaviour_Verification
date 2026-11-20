@@ -144,3 +144,58 @@ python3 -B interfaces/control_review/run_noos.py \
 ```
 
 输出应含 `NOOS_HOST_COMPLETE` 和 `NOOS_SPI_RTL_COMPLETE`。各 `SPI R/W` 行记录发送字节、SDO 响应与实际拒绝原因。归档缺失、源文件不符、编译失败或少专项记录时退出非零。[本次编译与帧记录](noos_validation.txt)
+
+
+## 7. 配置 SPI GPIO0 引脚逐沿检查
+
+`cfg_spi_pin_edges_tb.sv` 用真实 `ad4080_top` 和实际 GPIO 复用。主机只驱动 CS、SCLK、SDI，并从默认选择的 **GPIO0 SDO/OE** 取样。P_WRITE_SDO_DRIVE=1（普通写数据相驱动零）、7 位地址能力、严格端序、OFFSET 与 ID 只在本台架按已知配置绑定。对应 Rev. B p33–35 Fig.53/54 和 p43–45 Fig.67–73。真实产品的参数、权限和 pad 逻辑由产品入口另行验收。[配置接口原件](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=34) · [读写引脚时序](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=43)
+
+### 模型与边界
+
+- Table 2 的配置接口 `tSCK=20 ns`，每个高/低相至少周期的 45%。夹具执行时钟 **2.5 ns**，测试周期 **20/24/32 ns**，低/高相分别为 **9/11、12/12、17.6/14.4 ns**。每种周期扫 5 个相位、各做一次写和一次读，代表有 `clk≥8×SCLK` 的数字过采样配置。
+- 每个已驱动的上一位在新降沿 **+0.7 ns** 核对保持。新一位在降沿 **+8 ns** 和随后的实际采样上升沿核对 GPIO0 SDO/OE。未驱动时 CSV 的 SDO 值应结合 OE 掩码读取。CS 为高时继续摆动 SCLK，核对 OE 释放，收帧后另在 CS↑ **+8 ns** 核对模型的数字退场。
+- Fig.67/70 的 `tCSSCK` 和 `tSCKCS` 箭头涉及首末采样上升沿。Table 2 给 0 ns 最小边界。测试分别执行 **CS↓同首采样↑**（关闭 SEND_STATUS）、**CS↑同末采样↑**，以及 **CS↓同首降沿**的附带状态读取。此 RTL 的 SDI 从原始输入采样，夹具保持 SDI 到下一降沿。Table 2 的真实 `tSSDI=1 ns`、`tHSDI=0 ns`、`tHSDO=0.7 ns`、`tDSDO=14.5 ns` 及 pad 三态传播要在目标实现上闭合。2.5 ns 内部时钟、数字同时推进和模拟相位扫描无法验双同步器的亚稳态，也不构成 50 MHz 外部 pad 的 AC 签核。[Rev. B Table 2](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=7)
+
+### 红绿结果
+
+| 定向场景 | 引脚或提交期望 | 冻结 `8294988` | 修复候选 |
+| --- | --- | --- | --- |
+| CS↑与末个 SCLK↑同拍，写 SCRATCH 0xC7 | 数据相 SDO 0，OE 持续；写受理，无原因脉冲，后读 C7 | 写相 OE 正常，但报钟数原因 7，回读仍 9D | 写受理，读回 **C7**，原因 0 |
+| CS↓与首个 SCLK↑同拍，写 SCRATCH 0x69 | 接收首指令位，8 个数据位 OE 有效，随后读 69 | 数据相 OE 掩码 7F（期望 FF），原因 7，读回旧 A5 | 8 位数据相 OE=FF，读回 **69**，原因 0 |
+| CS↓与首个 SCLK↓同拍，读取 SEND_STATUS | 16 位附带状态 00C0，再读 Scratch A5 | 状态 0000，仍读 A5 | 引脚输出 **00C0 A5** |
+| 普通字节发 4 位后结束 | 原 Scratch 保留，原因 7 | 9D 保留 | **9D**，原因 7 |
+| 严格双字节只发首字节后结束 | 原 OFFSET 保留，原因 5 | 0134 保留 | **0134**，原因 5 |
+| 启用 SEND_STATUS 与 CRC，长帧 | 写回 00C0/00/56，读回 00C0/C6/5D。错误校验只报 CRC | 已通过 | 同样通过。错 CRC 原因 6，读回仍 **C6** |
+| 短地址、连续多实体、同 CS 下一条单指令 | GPIO0 逐位回读等于目标，普通写数据相为 0 | 已通过 | 同样通过。短流读 **00 0200 0134**，单指令多命令读 **9D 07** |
+
+该轮边沿修复位于 `spi_slave.sv`。末位 SCLK↑ 与 CS↑ 来自同一采样拍时先采样并释放 OE，下一拍按更新后的状态收帧或记错。首位 SCLK↑ 与 CS↓ 同拍时收首指令位并推进初始 CRC。首降沿与 CS↓ 同拍时预装附带状态。最终冻结提交另通过配置 CRC 首实体和后续流实体、写中止重试及短指令回绕，以及软初始化 0x11 状态读。初始化忙态从 0x80 回到 0x00，非法访问维持粘滞，初始化完成后可用 W1C 清除。
+
+### 复跑与证据
+
+从外围子系统目录执行。命令按 `evidence/dsp-revision.txt` 从 Git 对象提取冻结 DSP，输出每个实际编译输入的摘要。复查历史时可用 `--revision` 指定完整提交，`--spi-candidate` 可覆盖该实验的单个 SPI 叶子。
+
+```sh
+python3 -B interfaces/control_review/run_pin_edges.py \
+  --repo /path/to/peripherals-worktree --scratch /path/to/external/scratch \
+  --lvds-profile --crc-stream --init-poll \
+  --verilator /path/to/verilator
+```
+
+最终冻结提交的联合回归通过 **156 帧、16,509 次检查、零失败**。逐帧 CSV 中的 `353f745_frozen_combined` 是完整的最终结果，`fall_*` 与 `rise_*` 按先到的位在高位打包。`expect_oe` 为逐位有效掩码，CS 收尾释放的目标 OE=0。采用同一冻结提交的真 SPI/AON 薄桥及原版 no-OS C 回执已复跑。[逐帧 CSV](pin_edges_validation.csv) · [配置引脚回执](pin_edges_validation.txt) · [控制面回执](validation.txt) · [原版 no-OS 回执](noos_validation.txt)
+
+
+### 连续 LVDS 配置的引脚回读
+
+同一台架使用 `--lvds-profile` 启用新版 DSP 的 `P_CONTINUOUS_LVDS_BOUND`。该组额外 **25 帧**仍只由 GPIO0 配置 SPI 对拍。夹具用可控 `data_config_ready_i` 验证在途配置守卫及已受理 A/B。实际 LVDS 时钟、lane 对齐和 Pad 电气由产品台架及后端验收。
+
+| 事务 | 期望及实测 |
+| --- | --- |
+| 单 lane 写测试码和 self | 0x15/0x16 回读 **0x50/0x58**。0x16 高字段为码 5，Table 20 单 lane 的时钟序号 8 |
+| 切 lane 与非法码 | 码 5 时直接切双 lane 拒绝（原因 9）。单 lane 码 9 合法，码 0xA 拒绝。双 lane 档的码 5 也拒绝，原 B 保留 |
+| 先设合法公用档后切双 lane | 0x15/0x16 回读及真实配置端口为 **0x54/0x28**。0x16 高字段码 2 是双 lane 时钟序号 5 |
+| 保留位 | 0x15 缺 bit6 或请求未绑定的数据 SPI、0x16 请求未绑定 Manchester，均报原因 2，A/B 保持 |
+| `data_config_ready_i=0` | 试图改变 A 或 B 均报原因 8，A/B 仍为 **0x54/0x28** |
+
+跑新版统一提交时传入 `--revision <新完整 SHA> --lvds-profile`。工作树联调期间可改用 `--dsp-candidate-dir <DSP RTL 目录> --lvds-profile`，同一 scratch 一次性复制全部 DUT 叶子并列出真实编译摘要。[Rev. B p49 Table 20](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=49) · [寄存器表 48/49](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=84)
+
+新版 bank 对 GPIO 0xA 自身在两个地址、两个 nibble 均原子拒绝。原 `ad4080_regs_rejection_tb` 通过 48 项检查。控制台架真实 SPI 对 **0xA7／0x7A** 均得到原因 2，0x1B 完整读回 **0x86**，桥的 24 个独立负例仍通过。[控制回执](validation.txt)

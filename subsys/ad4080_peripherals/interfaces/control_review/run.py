@@ -23,7 +23,8 @@ import tempfile
 from pathlib import Path
 
 
-BASELINE = "7408edf8db9a41eebdd756378b69d2775f107dec"
+# 各入口共用同一已发布 DSP 源提交，防止台架与产品绑定读到不同的代码。
+BASELINE = (Path(__file__).resolve().parents[2] / "evidence/dsp-revision.txt").read_text(encoding="ascii").strip()
 RTL = "subsys/ad4080_dsp/rtl"
 SOURCES = (
     "ad4080_top", "spi_slave", "ad4080_regs", "ad4080_dsp_chain", "sys_error_corr",
@@ -103,7 +104,7 @@ def run(args):
         compile_command = [
             tool, "--binary", "--timing", "--assert", "--compiler", "clang", "-CFLAGS", "-std=c++20",
             "-j", str(args.jobs), "-Wno-fatal", "-MAKEFLAGS", "VM_PARALLEL_BUILDS=0 OPT_FAST=-O0",
-            "--Mdir", str(obj), "--top-module", top, *files,
+            "--Mdir", str(obj), "-I"+str(source/RTL), "--top-module", top, *files,
             *(str(source / RTL / f"{name}.sv") for name in rtl),
         ]
         command_to_log(compile_command, work, env, work / f"{suite}.compile.log")

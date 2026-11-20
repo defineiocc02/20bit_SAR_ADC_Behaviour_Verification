@@ -39,7 +39,20 @@ module control_review_tb;
     always #5 clk = ~clk;
 
     ad4080_top dut_default (
+        // 独立数值或协议配置没有 AON 响应；真实功耗命令在产品台架验证。
+        .pwr_cfg_full_allow_i(1'b1), .pwr_cmd_ready_i(1'b0), .pwr_cmd_valid_o(),
+        .pwr_cmd_op_o(), .pwr_cmd_value_o(), .pwr_rsp_valid_i(1'b0),
+        .pwr_rsp_accept_i(1'b0), .pwr_rsp_op_i(2'b00), .pwr_mode_i(2'b00),
+        .pwr_ldo_pd_i(2'b00), .rom_crc_error_i(1'b0), .por_ana_event_i(1'b0),
+
         .clk(clk), .rst_n(rst_n), .cs_n(cs_n), .sclk(sclk), .sdi(sdi),
+        // 此套基线只验证配置契约。器件 CNV 与 PHY 时序能力均保持未绑定。
+        .cnv_tick_i(1'b0),.conversion_timing_error_i(1'b0),
+        .phy_fifo_full_i(1'b0),.phy_fifo_read_done_i(1'b0),
+        .csr_fifo_full_i(1'b0),.csr_fifo_read_done_i(1'b0),.cnv_data_timing_error_o(),
+        .data_config_ready_i(1'b1),.sample_tag_i(32'd0),
+        .data_intf_config_a_o(),.data_intf_config_b_o(), .data_intf_config_c_o(),
+        .continuous_bypass_o(), .continuous_enable_o(), .continuous_flush_o(), .filter_config_o(),.continuous_word_valid_o(),.continuous_word_o(),.continuous_word_tag_o(),
         .sdo(sdo[0]), .sdo_oe(sdo_oe[0]), .interface_ready(interface_ready), .adc_idle(adc_idle),
         .valid_in(valid_in), .x(x), .filter_sync(1'b0), .ext_event(1'b0), .arm(1'b0), .rd_en(1'b0),
         .gpio_i(gpio_i), .gpio_o(gpio_o[0]), .gpio_oe(gpio_oe[0]), .status(status[0]),
@@ -55,6 +68,13 @@ module control_review_tb;
         .P_WRITE_SDO_DRIVE(1)               // Rev. B 第 35 页，写数据段驱动零
     ) dut_bound (
         .clk(clk), .rst_n(rst_n), .cs_n(cs_n), .sclk(sclk), .sdi(sdi),
+        // 此套基线只验证配置契约。器件 CNV 与 PHY 时序能力均保持未绑定。
+        .cnv_tick_i(1'b0),.conversion_timing_error_i(1'b0),
+        .phy_fifo_full_i(1'b0),.phy_fifo_read_done_i(1'b0),
+        .csr_fifo_full_i(1'b0),.csr_fifo_read_done_i(1'b0),.cnv_data_timing_error_o(),
+        .data_config_ready_i(1'b1),.sample_tag_i(32'd0),
+        .data_intf_config_a_o(),.data_intf_config_b_o(), .data_intf_config_c_o(),
+        .continuous_bypass_o(), .continuous_enable_o(), .continuous_flush_o(), .filter_config_o(),.continuous_word_valid_o(),.continuous_word_o(),.continuous_word_tag_o(),
         .sdo(sdo[1]), .sdo_oe(sdo_oe[1]), .interface_ready(interface_ready), .adc_idle(adc_idle),
         .valid_in(valid_in), .x(x), .filter_sync(1'b0), .ext_event(1'b0), .arm(1'b0), .rd_en(1'b0),
         .gpio_i(gpio_i), .gpio_o(gpio_o[1]), .gpio_oe(gpio_oe[1]), .status(status[1]),
@@ -360,7 +380,7 @@ module control_review_tb;
         drive_sample(0);
         check(gpio_o[1][3:1] == 3'b010, "known baseline HI_DTCT returns low after hysteresis");
         read_bound(15'h14, 1, 16'h2000);
-        $display("COUNTEREXAMPLE fig83 hi_dtct_after_return=0 alert_n=1 HI_STATUS=1 before_W1C");
+        $display("OBS event_without_CNV_timing hi_dtct_at_return=0 alert_n=1 HI_STATUS=1");
         drive_sample(-18);
         check(gpio_o[1][3:1] == 3'b100, "GPIO low detection, ALERT low");
         read_bound(15'h14, 1, 16'h3000);
@@ -390,12 +410,18 @@ module control_review_tb;
         #80;
         check(!dut_bound.gpio_fsync, "release FSYNC");
         $display("OBS GPIO FILTER_RDY reject=2 unchanged_select=0x40 FILTER_SYNC=low_level");
-        // 表 54 指定 1010 勿用。基线把它当静默高阻值写入，没有报配置失败。
+        // 表 54 指定 1010 勿用。再搭配另一个有效变化验证整字节原子拒绝。
         before_bound = rejected[1];
-        write8(15'h1b, 8'ha6);
-        read_bound(15'h1b, 1, 16'ha600);
-        check(!gpio_oe[1][3] && rejected[1] == before_bound, "reserved GPIO A retained without rejection");
-        $display("COUNTEREXAMPLE gpio_sel_reserved code=0xa accepted readback=0xa6 OE=0");
+        write8(15'h1b, 8'ha7);
+        check_reject(1, before_bound, 2);
+        read_bound(15'h1b, 1, 16'h8600);
+        check(!gpio_oe[1][3], "GPIO3 retains FILTER_SYNC input after rejected write");
+        before_bound = rejected[1];
+        write8(15'h1b, 8'h7a);
+        check_reject(1, before_bound, 2);
+        read_bound(15'h1b, 1, 16'h8600);
+        // 0x86 同时保留 GPIO2 的 ALERT 和 GPIO3 的 FILTER_SYNC，确认未提交同字节的合法替换。
+        $display("OBS gpio_sel_reserved code=0xa reject=2 both_nibbles_readback=0x86");
 
         // [复位] 两次写分别要求 ADC 已空闲。拒绝第二步不会清 Scratch 或补 POR。
         before_bound = rejected[1];

@@ -1,6 +1,6 @@
 # 用 ADCToolbox 估计系统 OFFSET 和 GAIN
 
-**主机估计系数，已有 DSP 在片上逐样本修正。** 要校准的是传感器、驱动和 ADC 组成的整个测量通道。输入为转换 IP 已经重构好的 20 位结果。ADCToolbox 的 `fit_sine_4param` 从实测序列拟合基波峰值和直流分量；将它们与独立标定的输入幅度、直流中心比较，即可求出绝对增益和零偏。也可按 AD4080 手册用两个已知直流电平求解。[ADCToolbox 源码](https://github.com/Arcadia-1/ADCToolbox/blob/8d62fb1863e38ffe5c6cc3ac48fa9c24d9df1ae9/python/src/adctoolbox/fundamentals/fit_sine_4param.py#L49) · [手册第 71 页](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=71) · [现有 DSP 修正 RTL](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/7408edf8db9a41eebdd756378b69d2775f107dec/subsys/ad4080_dsp/rtl/sys_error_corr.sv)
+**主机估计系数，现有 DSP 在片上逐样本修正。** 要校准的是传感器、驱动和 ADC 组成的整个测量通道。输入为转换 IP 已经重构好的 20 位结果。ADCToolbox 的 `fit_sine_4param` 从实测序列拟合基波峰值和直流分量。把它们与独立标定的输入幅度、直流中心比较，可求绝对增益和零偏。也可按 AD4080 手册用两个已知直流电平求解。 [ADCToolbox 源码](https://github.com/Arcadia-1/ADCToolbox/blob/8d62fb1863e38ffe5c6cc3ac48fa9c24d9df1ae9/python/src/adctoolbox/fundamentals/fit_sine_4param.py#L49) · [手册第 71 页](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=71) · [DSP 修正 RTL](../../ad4080_dsp/rtl/sys_error_corr.sv)
 
 ## 快速运行
 
@@ -32,11 +32,11 @@ python "$cal/system_cal.py" sine --csv sine.csv --vref-v 3 --fs-hz 40000000 \
 
 ## 怎样得到可写的寄存器码
 
-**本项目 RTL。** `--k-gain/--shift` 对应冻结 `sys_error_corr` 的乘后加法。脚本在 `m(k)=1+(k−512)·K_GAIN/2^SHIFT` 中选最接近 `1/a` 的增益码，再用量化后倍率计算 `OFFSET=⌊−m(k)·b+0.5⌋`，抵消物理零输入处的误差。OFFSET 用 12 位补码，GAIN 用 10 位直码。主机选号与 RTL 逐样本舍入分开验证。`K_GAIN=1, SHIFT=15` 是可复现的工程绑定。[位真软件参考](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/7408edf8db9a41eebdd756378b69d2775f107dec/subsys/ad4080_dsp/model/ad4080_cal_model.py) · [校准程序](system_cal.py)
+**本项目 RTL。** `--k-gain/--shift` 给出工程倍率 `m(k)=1+(k−512)·K_GAIN/2^SHIFT`，选最接近 `1/a` 的增益码。OFFSET 位于乘法前，取 `⌊−b+0.5⌋`，与实测表路径用同一规则。RTL 先以 21 位补码求 `t=x+OFFSET`，再计算 `t+⌊t·(GAIN−512)·K_GAIN/2^SHIFT+0.5⌋`，最后饱和到 20 位。OFFSET 用 12 位补码，GAIN 用 10 位直码。`K_GAIN=1, SHIFT=15` 是可复现的工程绑定。 [位真软件参考](../../ad4080_dsp/model/ad4080_cal_model.py) · [校准程序](system_cal.py)
 
 **实际器件。** 手册图 96 在滤波或旁路选择前画出先加 OFFSET、再乘 GAIN。第 71 页 `y=mx+c` 是外部仿射形式，乘前偏置为 `d` 时，外部截距 `c=m·d`。`--gain-table` 用实测倍率选择增益档，以名义输入码步给出 `OFFSET≈−b` 的初值。手册列出单位码与端点，精确中间码映射、内部位宽、逐样本舍入和 `GAIN=0x000` 的行为仍缺失。最终 OFFSET 由所选 GAIN 档下的灵敏度测量确定。[图 96](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=64) · [第 71 页公式](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=71) · [GAIN 表 61](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=93)
 
-JSON 的 `estimate.correction_offset_codes` 是连续仿射式中的外部截距 `c`。`registers.offset_code` 是所选 `mapping` 对应加法节点的整数码。
+JSON 的 `estimate.correction_offset_codes` 是连续仿射式中的外部截距 `c`。`registers.offset_code` 是乘前加法节点的整数码。
 
 1. 在同一颗器件、OFFSET=0 下，每个已回读的 GAIN 测两个已知直流电平，各取多笔，必须含单位码 `0x200`。保存 `gain_code,vin_diff_v,code` 到 `scan.csv`。每档用自己的两点斜率除以单位档斜率，得到可识别的实际代码增益。
 2. 用这张表对中性设置下的训练记录选择覆盖目标的已测档。先以 `OFFSET=0` 写入并读回所选 GAIN，供下一步量测。若表步距太宽，在目标附近增测相邻码。
@@ -50,22 +50,23 @@ python "$cal/characterize_registers.py" offset-trim --csv trim.csv --vref-v 3
 
 上例第二步演示参数格式，实物运行时换成**该器件在中性寄存器下的实测记录**。变更 GAIN 后按相应时序重验 CNV 到首位的设置。表 2 的 `tMSB` 上限在增益校正旁路时为 18 ns，开启时为 22.4 ns。手册的 40 MS/s 单 lane 示例首位相位分别为 46.25 ns 和 51.25 ns，时钟计数转成寄存器字段须查表 20。[实测档位处理代码](characterize_registers.py) · [表 2](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=7) · [首位相位](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=48) · [表 20](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=49)
 
-**手册次序的定向检查。** 图 96 把 OFFSET 加在 GAIN 前面。在项目增益 129/128、原码 0、OFFSET=1024 下，按图得到 1032，实际 DSP 得到 1024。复跑下方 `verify_rtl.py` 时加 `--require-manual-order`，该差异会返回退出码 2。以下留出结果反映工程算术。[逐模块裁定](../evidence/MANUAL_TRACE.md) · [机器可读回执](rtl_verification.json)
+**手册次序的定向检查。** 在项目增益 129/128、原码 0、OFFSET=1024 下，按图 96 得到精确整数 1032。修订前的反例输出 1024，修订后的 RTL 和位真模型均输出 1032。`--require-manual-order` 本次退出 0，今后实测有差异时退出 2，并仍写出回执。 [图 96](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=64) · [机器可读回执](rtl_verification.json)
 
 ## 已跑过的对照
 
-在合成通道 `x ≈ 1.005t + 80` 上分别训练，在另一批 1,024 个未参与拟合的电平上验证。表中误差来自冻结 Verilog 模块输出，单位为 LSB20；物理器件性能需另行测量。
+在合成通道 `x ≈ 1.005t + 80` 上分别训练，在另一批 1,024 个未参与拟合的电平上验证。表中误差来自现有 Verilog 模块输出，单位为 LSB20。物理器件性能需另行测量。
 
 | 方法 | OFFSET / GAIN | 留出 RMS，修正前 → 后 | 留出平均误差，修正前 → 后 | 修正后最大绝对误差 |
 | --- | --- | ---: | ---: | ---: |
-| 手册两点 DC | −79 / `0x15D` | 1348.1522 → 0.7718 | +22.6738 → +0.5957 | 1 |
-| ADCToolbox 已知正弦 | −80 / `0x15D` | 1348.1522 → 0.6358 | +22.6738 → −0.4043 | 1 |
+| 手册两点 DC | −80 / `0x15D` | 1348.1522 → 0.4038 | +22.6738 → −0.0166 | 1 |
+| ADCToolbox 已知正弦 | −80 / `0x15D` | 1348.1522 → 0.4038 | +22.6738 → −0.0166 | 1 |
 
-两组有不同训练输入，原始码取整噪声使最终 OFFSET 相差一个寄存器步。对实际 `sys_error_corr` 的 8,234 个有效输出（含两种设置、训练、留出和边界）逐字与原项目独立整数参考一致，另核了取消、复位和饱和标志。两点文件 `example_dc.csv` 是方便阅读的另一组对称 DC 激励。[Verilator 回执](rtl_verification.json) · [独立复跑代码](verify_rtl.py) · [源码与手册的对应关系](SOURCES.md)
+两组得到相同的量化寄存器码，因此共享留出结果。对实际 `sys_error_corr` 的 8,234 个工程有效输出逐字与整数模型一致，另有一笔独立图 96 对照。回归同时核对取消、复位和两侧饱和。`example_dc.csv` 提供另一组对称 DC 激励。 [Verilator 回执](rtl_verification.json) · [独立复跑代码](verify_rtl.py) · [源码与手册的对应关系](SOURCES.md)
 
 ```sh
 python -B -m unittest discover -s "$cal" -p 'test_*.py'
-python -B "$cal/verify_rtl.py" --repo . --verilator verilator --out /tmp/ad4080-system-cal.json
+python -B "$cal/verify_rtl.py" --repo . --verilator verilator \
+  --out /tmp/ad4080-system-cal.json --require-manual-order
 ```
 
-集成测试还将这套正弦估计的四个字节真正写进配置 SPI 并读回。同一份 16K×20 结果 SRAM 分别记录校正前后的三个独立样本。参考码为 `−300000、0、250000`，中性设置读出 `−301420、80、251330`，校准后读出 `−300001、0、250000`。两次均从完整的 46 对逻辑双沿记录解码。[SPI 和 SRAM 回读证据](../integration/product/evidence/calibration.txt) · [复跑命令](../integration/product/README.md#产品级-offsetgain-验证)
+产品集成另用实际配置 SPI 写入并读回正弦估计的四个字节，并观察同一份 16K×20 结果 SRAM 的前后记录。中性样本为 `−301420、80、251330`，本版整数数学的校准后三笔期望为 `−300000、0、250000`。实际帧与 CRC 见产品级回执。 [SPI 和 SRAM 回读证据](../integration/product/evidence/calibration.txt) · [复跑命令](../integration/product/README.md#产品级-offsetgain-验证)

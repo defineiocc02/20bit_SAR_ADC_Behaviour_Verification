@@ -9,13 +9,12 @@
 #     捕获应使用中性 OFFSET=0、GAIN=512 和未经其他用户校正的 20 位结果。
 #   * LSB = 2 * VREF / 2^20，以 V/code 表示。输入 VREF、差分峰值与直流
 #     均为实测伏特，拟合与偏置以 ADC 码为单位。
-#   * 正弦拟合调用现有 ADCToolbox；数字修正仍由现有 sys_error_corr 执行。
-#     实测表按手册图 96 的乘前加法节点给出 OFFSET 初值。工程映射使用冻结
-#     RTL 的乘后加法约定；增益绑定由调用者给定，结果只输出至 stdout。
+#   * 正弦拟合调用现有 ADCToolbox。工程映射和实测表均按图 96 把
+#     OFFSET 放在增益前，数字修正由同一 sys_error_corr 执行。
 # -----------------------------------------------------------------------------
 # 变更记录
 # -----------------------------------------------------------------------------
-# 明确分离 Rev. B 图 96 的实测表路径和工程 RTL 的偏置顺序。
+# 2026-11-20 各增益绑定共用 Rev. B 图 96 的乘前 OFFSET 约定。
 # =============================================================================
 
 from __future__ import annotations
@@ -173,7 +172,8 @@ def _estimate(
 ) -> CalibrationEstimate:
     if not math.isfinite(gain) or gain <= 0:
         raise CalibrationError("通道增益必须可辨识且为正")
-    # [反解] 原始零输入输出为 b，因此实际修正偏置是 -b/a。
+    # [反解] 浮点仿射式 y=g*raw+c 的截距为 -b/a。乘前寄存器 OFFSET
+    # 则由零输入原码直接给出，不使用这个浮点截距。
     inverse_gain = _finite(1.0 / gain, "逆增益")
     correction_offset = _finite(-bias * inverse_gain, "逆偏置")
     # [单位] 统计的是正向模型相对于训练原码的残差，还未应用拟合的逆映射，
@@ -336,8 +336,8 @@ def quantize_registers(
 
     返回 0x25～0x28 的低/高字节，不访问总线。未提供映射时返回 None。
     最近增益按实测或显式算术表选择，平局优先靠近单位码；超出可写域报错。
-    工程 RTL 的偏置按已量化增益重算；实测表按图 96 的乘前节点给初值，
-    假定每寄存器步为一输入 ADC 码。器件最终 OFFSET 另经选定档的灵敏度复测。
+    两种增益绑定的 OFFSET 都以图 96 的乘前节点为准，取 -b 的邻近整数。
+    实物 OFFSET 初值假定每寄存器步为一输入 ADC 码，选定档的灵敏度另行复测。
     """
     if gain_table is not None:
         if k_gain is not None or shift is not None:
@@ -359,7 +359,7 @@ def quantize_registers(
         k_gain = _bounded_int(k_gain, 1, 1023, "K_GAIN")
         shift = _bounded_int(shift, 1, 30, "SHIFT")
         mapping = "rtl_k_gain_shift"
-        # [数值合同] 原 RTL 对增益增量做定点舍入；这里选系数，不再实现样本处理。
+        # [数值合同] RTL 按偏置后样本进行整数舍入，此处只选择系数。
         gains = {
             code: 1.0 + (code - GAIN_UNITY) * k_gain / (1 << shift)
             for code in range(1, GAIN_MAX + 1)
@@ -374,10 +374,8 @@ def quantize_registers(
         key=lambda code: (abs(gains[code] - target), abs(code - GAIN_UNITY), code),
     )
     applied_gain = gains[gain_code]
-    # [顺序] 冻结 RTL 是 y=g*x+O，乘后 O 抵消 g*b；Rev. B 图 96 画出
-    # y=g*(x+d)，乘前 d 直接抵消 b。实测增益表只覆盖 g，d 仍是名义初值。
-    bias_scale = 1.0 if gain_table is not None else applied_gain
-    offset = _finite(-bias_scale * estimate.forward_offset_codes, "所需 OFFSET")
+    # [顺序] y=g*(raw+O)，零输入原码 b 在乘前由 O 抵消，与所选增益无关。
+    offset = _finite(-estimate.forward_offset_codes, "所需 OFFSET")
     # [范围] 真实目标超出端点时拒绝，即使数学舍入碰巧会落回边界码。
     if not OFFSET_MIN <= offset <= OFFSET_MAX:
         raise CalibrationError(f"所需 OFFSET 超出有符号 12 位范围 {OFFSET_MIN}…{OFFSET_MAX}")

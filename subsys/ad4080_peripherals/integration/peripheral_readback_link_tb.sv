@@ -1,4 +1,4 @@
-`timescale 1ns/1ps
+`timescale 1ps/1ps
 `default_nettype none
 
 // =============================================================================
@@ -35,9 +35,14 @@ module peripheral_readback_link_tb;
     // 独立整串 GF(2) 长除法所得余数 81A4D4，覆盖 AA 与两个实读字。
     // 测试多项式与种子仅绑定此台架，与产品 CRC 工程合同分开。
     localparam logic [71:0] RECORD_GOLDEN = 72'hAA_95E2B_80001_81A4D4;
+    localparam logic [51:0] ONE_WORD_GOLDEN = 52'hAA_95E2B_413150;
+    // 成功帧和故障帧共享同一组前两字。这样错误分段也必须先发对已承接的位，
+    // 比只检查最终错误码更容易找出晚 CRC 前篡改载荷的回归。
+    typedef enum logic [2:0] {SCORE_OFF, SCORE_FULL, SCORE_LATE_CRC, SCORE_UNDERRUN, SCORE_ONE_WORD} score_t;
 
     // --- 供电、时钟与 OTP 两个适配器 ---
     logic clk_aon_i = 1'b0, clk_core_i = 1'b0, clk_io_i = 1'b0;
+    time io_half = 11000ps;             // 静默窗口切换。整记录按 2.5 ns 原始 CLK 逐拍接收
     logic por_good = 1'b0, iovdd_good = 1'b1;
     logic fifo_reset_n, io_reset_n, io_session_allow, conversion_allow_core;
     logic otp_cancel, otp_req_valid, otp_rsp_ready, verify_req_valid, verify_rsp_ready;
@@ -74,10 +79,17 @@ module peripheral_readback_link_tb;
     logic record_done, record_error, record_abort = 1'b0, record_idle, record_read_fault;
     logic [2:0] record_error_code;
     logic record_beat_valid, record_beat_first, record_beat_last;
+    // 装载在本沿，首位对在下一沿。两项都比较才能排除把 SRAM 回复或首位
+    // 的对外交付当成 FIFO 状态事件。末装载不等整记录成功，尾仍可能出错。
+    logic record_first_load, record_last_load;
     logic [1:0] record_beat;
     logic [1:0] record_beat_kind;
-    logic record_crc_valid = 1'b0, record_crc_ready, record_crc_cancel;
-    logic [23:0] record_crc;
+    logic record_crc_valid, record_crc_ready, record_crc_cancel;
+    logic [23:0] record_crc, record_crc_acc;
+    logic [14:0] record_count = 15'd2;    // 负例可宣告三字，实际只提交两笔真读
+    score_t score_case = SCORE_OFF;
+    logic record_trace_active = 1'b0;    // 自 AA 起逐原始 CLK，失败场景也保留缺拍
+    longint signed first_record_ps;      // 保留 1 ps 精度，不能用以 ns 取整的 $time
     logic [71:0] record_word;
     int record_pair_count;
     logic raw_read_ready, raw_req, record_read_ready, record_req;
@@ -86,7 +98,9 @@ module peripheral_readback_link_tb;
 
     always #50ns clk_aon_i = ~clk_aon_i;
     always #7ns clk_core_i = ~clk_core_i;
-    always #11ns clk_io_i = ~clk_io_i;
+    // 只有接收器静默时程序改 io_half。记录发出后没有单拍停钟手段，故连续
+    // 性断言和 2.5 ns 的实际时间戳都能揭露基于 valid 的边沿压缩。
+    initial forever #(io_half) clk_io_i = ~clk_io_i;
 
     // =========================================================================
     // 2. 生产 RTL 实例与台架宏端点
@@ -101,7 +115,10 @@ module peripheral_readback_link_tb;
         .cfg_init_done_aon_o(), .cfg_control_write_allow_aon_o(), .cfg_full_access_allow_aon_o(),
         .operating_mode_aon_o(), .wake_busy_aon_o(), .wake_recover_req_aon_o(),
         .mode_req_accept_aon_o(), .sw_reset_accept_aon_o(), .isolate_io_o(), .iovdd_ldo_en_o(), .ref_cmo_en_o(),
-        .por_ana_event_aon_o(),
+        .por_ana_event_aon_o(), .por_ana_event_core_o(),
+        .pwr_cmd_evaluate_aon_i(1'b1), .pwr_cmd_ready_core_o(), .pwr_rsp_valid_core_o(), .pwr_rsp_accept_core_o(),
+        .pwr_rsp_op_core_o(), .pwr_mode_core_o(), .pwr_ldo_pd_core_o(), .vdd11_ldo_en_o(),
+        .fifo_record_allow_io_o(), .cfg_poll_allow_aon_o(),
         .conversion_allow_aon_o(), .conversion_allow_core_o(conversion_allow_core),
         .otp_power_good_aon_i(1'b1), .otp_adapters_quiescent_aon_i(otp_cancel && !otp_rsp_valid && !verify_rsp_valid),
         .otp_adapters_cancel_aon_o(otp_cancel), .otp_req_valid_aon_o(otp_req_valid),
@@ -144,6 +161,8 @@ module peripheral_readback_link_tb;
         .read_mode_error_core_o(mode_error),
         .read_protocol_error_core_o(read_error), .transport_drop_core_o(transport_drop),
         .transport_overflow_core_o(transport_overflow), .io_online_o(io_online), .io_pair_valid_o(pair_valid),
+        .io_prefetch_words_o(), .io_word_load_o(),
+        .io_parallel_mode_i(1'b0), .io_parallel_ready_i(1'b0), .io_parallel_valid_o(), .io_parallel_word_o(),
         .io_first_o(pair_first), .io_last_o(pair_last), .io_dual_lane_o(pair_dual), .io_intf_check_o(pair_check),
         .io_da_fall_o(da_fall), .io_da_rise_o(da_rise), .io_db_fall_o(db_fall), .io_db_rise_o(db_rise)
     );
@@ -162,7 +181,7 @@ module peripheral_readback_link_tb;
         .clk_core_i, .clk_io_i, .fifo_reset_ni(fifo_reset_n), .io_reset_ni(io_reset_n),
         .io_session_allow_i(io_session_allow), .abort_i(record_abort),
         .record_start_valid_i(record_start), .record_start_ready_o(record_start_ready),
-        .record_start_accept_o(record_accept), .record_count_i(15'd2), .format_bound_i(record_bound),
+        .record_start_accept_o(record_accept), .record_count_i(record_count), .format_bound_i(record_bound),
         .crc_service_ready_i(record_crc_service_ready),
         .crc_valid_i(record_crc_valid), .crc_ready_o(record_crc_ready), .crc_i(record_crc), .crc_error_i(1'b0),
         .crc_cancel_o(record_crc_cancel),
@@ -173,6 +192,9 @@ module peripheral_readback_link_tb;
         .sram_read_rsp_data_core_i(sram_rsp_data), .record_idle_core_o(record_idle), .read_fault_core_o(record_read_fault),
         .beat_valid_o(record_beat_valid), .beat_ready_i(1'b1), .beat_pair_o(record_beat),
         .beat_first_o(record_beat_first), .beat_last_o(record_beat_last), .beat_kind_o(record_beat_kind),
+        .first_payload_word_load_io_o(record_first_load), .last_payload_word_load_io_o(record_last_load),
+        .result_mode_io_i(2'd0), .result_capture_full_core_i(1'b0), .result_dcs_ni(1'b1), .result_dclk_i(1'b1),
+        .result_sdo_o(), .result_sdo_oe_o(), .result_spi_ready_io_o(), .result_spi_selected_async_o(),
         .record_done_o(record_done), .record_error_o(record_error), .record_error_code_o(record_error_code)
     );
 
@@ -233,8 +255,8 @@ module peripheral_readback_link_tb;
         end
     end
 
-    // [CRC] 服务从 framer 已交付的头/载荷取位，逐位移位。在独立的余数
-    // 握手前保持完整 CRC，以验证尾部从外部服务进入而非由台架强塞给 PHY。
+    // [CRC] 余数服务使用头/载荷位对。末对从组合下一余数同沿交给外部
+    // CRC 接口，避免寄存上一拍部分结果或追加空拍。参数只用于此台架。
     function automatic logic [23:0] fixture_crc_pair(input logic [23:0] seed, input logic [1:0] pair);
         logic [23:0] remainder;
         remainder = seed;
@@ -244,29 +266,77 @@ module peripheral_readback_link_tb;
         return remainder;
     endfunction
 
+    assign record_crc_valid = record_crc_ready && score_case != SCORE_LATE_CRC;
+    assign record_crc = fixture_crc_pair(record_crc_acc, record_beat);
+    // 每个已发头/载荷位对之后才寄存状态。用末对的组合下一过渡同沿交付，
+    // 否则产出的尾会漏掉最后两位。下一条 record_accept 从幂等种子重算。
     always @(posedge clk_io_i) begin
-        // 合法命令边沿先清整条记录的观测和余数。每个已交付 pair 独立
-        // 记序，发端可以等下一字和 CRC，等待空拍不进入 CRC 或计数。
-        if (!io_online || record_crc_cancel) begin
-            record_crc_valid <= 1'b0;
-        end else if (record_accept) begin
-            record_crc <= FIXTURE_CRC_SEED;
-            record_crc_valid <= 1'b0;
+        if (record_accept || record_crc_cancel) record_crc_acc <= FIXTURE_CRC_SEED;
+        else if (record_selected && record_beat_valid && record_beat_kind != 2'd2)
+            record_crc_acc <= record_crc;
+    end
+
+    // [验收] 从第一个 AA 位对起，每个上升沿都有一条预期，绝不等 valid。
+    // bits 从独立的整串常量取出。未写齐的第三字故意给一拍无效预期，
+    // 真链必须在该拍结束报欠载，不能把它缩成正常前缀和尾继续发送。
+    always @(posedge clk_io_i) begin : observe_raw_record
+        int prefix_ticks, output_ticks, last_load_tick, vector_pairs;
+        logic [71:0] golden;
+        logic [1:0] expected;
+        longint signed observed_ps;
+        prefix_ticks = score_case == SCORE_ONE_WORD ? 14 : 24;
+        vector_pairs = score_case == SCORE_ONE_WORD ? 26 : 36;
+        output_ticks = score_case == SCORE_ONE_WORD || score_case == SCORE_FULL ? vector_pairs : prefix_ticks;
+        last_load_tick = score_case == SCORE_ONE_WORD ? 3 : score_case == SCORE_UNDERRUN ? -1 : 13;
+        golden = score_case == SCORE_ONE_WORD ? {20'b0, ONE_WORD_GOLDEN} : RECORD_GOLDEN;
+        observed_ps = longint'($time);
+        if (record_accept) begin
             record_word <= '0;
             record_pair_count <= 0;
-        end else begin
-            if (record_crc_ready && record_crc_valid) record_crc_valid <= 1'b0;
-            if (record_selected && record_beat_valid) begin
-                if (record_beat_first != (record_pair_count == 0) || record_beat_last != (record_pair_count == 35) ||
-                    record_beat_kind != (record_pair_count < 4 ? 2'd0 : record_pair_count < 24 ? 2'd1 : 2'd2))
-                    $fatal(1, "Incorrect full-record beat framing at %0d", record_pair_count);
-                if (record_pair_count < 24)
-                    record_crc <= fixture_crc_pair(record_crc, record_beat);
-                // 在最后数据位对之后才发布余数，强制经过 WAIT_CRC，
-                // 唯一接收的 CRC 尾由真实位对算得，等待拍不计数。
-                if (record_pair_count == 23) record_crc_valid <= 1'b1;
+            record_trace_active <= 1'b0;
+        end else if (record_selected && score_case != SCORE_OFF && (record_trace_active || record_beat_first)) begin
+            // 首 AA 当且仅当首次对外交付。此处不观察 ready 后才推进索引，
+            // 以免测试自身放过由接口假设错误引入的一个停顿拍。
+            if (record_pair_count == 0) first_record_ps <= observed_ps;
+            else if (observed_ps != first_record_ps + 64'sd2500*longint'(record_pair_count))
+                $fatal(1, "Record did not follow each free-running 2.5 ns CLK");
+            // 原始轨迹保留缺失的拍及信号状态。用独立的稀疏边界行供人工查看，
+            // CSV 则能逐拍重建波形及比较状态事件，无需截取有效流。
+            $display("RAW_RECORD_CSV,%0d,%0d,%0d,%0b,%0d,%b,%0b,%0b,%0b,%0b,%0b,%0b,%0d",
+                     score_case, record_pair_count, observed_ps, record_beat_valid, record_beat_kind, record_beat,
+                     record_beat_first, record_beat_last, record_first_load, record_last_load, record_crc_ready,
+                     record_error, record_error_code);
+            if ((score_case == SCORE_UNDERRUN || score_case == SCORE_LATE_CRC) && record_pair_count == prefix_ticks) begin
+                // 晚 CRC 在末载荷拍已判决。缺样本是在当前空拍判决，两者都应
+                // 停止有效输出，下面的激励在失效沿之后再检查寄存的错误。
+                if (record_beat_valid || record_first_load || record_last_load || record_done)
+                    $fatal(1, "Failed record emitted a beat or completion beyond its prefix");
+                if (score_case == SCORE_LATE_CRC && (!record_error || record_error_code != 3'd4))
+                    $fatal(1, "CRC deadline was not reported before the first would-be tail cycle");
+                $display("TRACE RECORD MISSING case=%0d raw=%0d valid=0 t_ps=%0d",
+                         score_case, record_pair_count, observed_ps);
+                record_trace_active <= 1'b0;
+            end else begin
+                // 原始拍次允许独立对照时钟、PAIRS 和标记。故障场景仍检查
+                // 前缀和装载脉冲，表示已经出去的样本不能被当成可重放的零长度。
+                expected = 2'(golden >> (2*(vector_pairs - 1 - record_pair_count)));
+                if (!record_beat_valid || record_beat !== expected ||
+                    record_beat_first != (record_pair_count == 0) ||
+                    record_beat_last != (record_pair_count == vector_pairs - 1) ||
+                    record_beat_kind != (record_pair_count < 4 ? 2'd0 : record_pair_count < prefix_ticks ? 2'd1 : 2'd2) ||
+                    record_first_load != (record_pair_count == 3) || record_last_load != (record_pair_count == last_load_tick))
+                    $fatal(1, "Incorrect raw clock %0d pair=%b expected=%b valid=%b load=%b%b",
+                           record_pair_count, record_beat, expected, record_beat_valid, record_first_load, record_last_load);
+                if ((record_pair_count inside {0, 3, 4}) || record_pair_count == prefix_ticks-1 ||
+                    record_pair_count == prefix_ticks || record_pair_count == output_ticks-1 ||
+                    record_first_load || record_last_load)
+                    $display("TRACE RECORD case=%0d raw=%0d t_ps=%0d kind=%0d pair=%b first_load=%b last_load=%b crc_ready=%b",
+                             score_case, record_pair_count, observed_ps, record_beat_kind, record_beat,
+                             record_first_load, record_last_load, record_crc_ready);
                 record_word <= {record_word[69:0], record_beat};
                 record_pair_count <= record_pair_count + 1;
+                record_trace_active <= record_pair_count != output_ticks-1 ||
+                                       score_case == SCORE_UNDERRUN || score_case == SCORE_LATE_CRC;
             end
         end
     end
@@ -396,6 +466,7 @@ module peripheral_readback_link_tb;
         // [整记录] 此处 cutover 已无 in-flight 字。不直接给 record DUT
         // 20-bit 输入，两个已知地址仅通过之前同一个物理 SRAM 读端提交。
         @(negedge clk_io_i);
+        io_half = 1250ps;
         record_selected = 1'b1;
         record_crc_service_ready = 1'b1;
         wait (record_select_core_q[1]);
@@ -418,6 +489,8 @@ module peripheral_readback_link_tb;
         // 时不会混进原帧已经离开 SRAM 的第一个字。
         present_read(BATCH_ADDR[4], 1'b0, 1'b0);
         await_read_fire();
+        present_read(BATCH_ADDR[3], 1'b0, 1'b0);
+        await_read_fire();
         wait (record_beat_valid && record_beat_kind == 2'd1);
         @(negedge clk_io_i);
         record_abort = 1'b1;
@@ -430,9 +503,18 @@ module peripheral_readback_link_tb;
         wait (record_start_ready && record_idle);
         $display("PASS record abort flushed active old payload before the next epoch");
 
+        score_case = SCORE_FULL;
         start_record(1'b1);
         present_read(BATCH_ADDR[0], 1'b0, 1'b0);
         await_read_fire();
+        // 首读真已交付，留出足够同步时间再查 AA 仍无效。下一笔命令必须
+        // 在本记录成功或冲刷后发，预取等待和错误恢复由两条用例分别触发。
+        repeat (12) begin
+            @(negedge clk_io_i);
+            if (record_beat_valid || record_first_load || record_last_load)
+                $fatal(1, "Started a two-word record with only the first SRAM result");
+        end
+        $display("PASS first word alone held AA and launch during 12 raw I/O clocks");
         present_read(BATCH_ADDR[1], 1'b0, 1'b0);
         await_read_fire();
         // 两个参与黄金的读已受理，FIFO 此时仍可能有空位。再给地址检验
@@ -447,10 +529,64 @@ module peripheral_readback_link_tb;
             $fatal(1, "Full-record oracle mismatch: %0d pairs word %018h", record_pair_count, record_word);
         wait (record_idle && record_start_ready);
         @(negedge clk_io_i);
+        $display("RECORD_LVDS_GOLDEN PASS");
+        $display("RECORD_RAW_N2 PASS");
+        $display("PASS real SRAM full record %018h on 36 consecutive raw clocks (2.5 ns), load first=3 last=13", record_word);
+
+        // [晚 CRC] 真实 SRAM 数据完整，故意只缺末载荷同沿的外部 CRC。
+        // 已有首末装载事件仍有意义，但输出没有尾，整个记录绝不能报完成。
+        score_case = SCORE_LATE_CRC;
+        start_record(1'b1);
+        // 地址和正常黄金完全一致，故唯一变化是 CRC 服务超出时间预算。
+        for (int idx = 0; idx < 2; idx++) begin
+            present_read(BATCH_ADDR[idx], 1'b0, 1'b0);
+            await_read_fire();
+        end
+        wait (record_error);
+        @(negedge clk_io_i);
+        if (record_error_code != 3'd4 || record_done || record_beat_valid || record_pair_count != 24)
+            $fatal(1, "Late external CRC incorrectly committed a tail or successful record");
+        wait (record_start_ready && record_idle);
+        $display("PASS late CRC: 24 consecutive header/data clocks, error=4, no tail and no done");
+        $display("RECORD_LATE_CRC PASS");
+
+        // [断供] 只给足启动水位两字，第三字未请求。必须留下第 24 拍
+        // 缺失和明确错误，不能跳过再等待其到达。末字未进移位器不报 last。
+        score_case = SCORE_UNDERRUN;
+        record_count = 15'd3;
+        start_record(1'b1);
+        // 外部读描述符身体停止，原单口不制造异常返回。真实缺字来自 FIFO
+        // 流控，和后面专门注入的 SRAM 少回复用例是两个不同失效点。
+        for (int idx = 0; idx < 2; idx++) begin
+            present_read(BATCH_ADDR[idx], 1'b0, 1'b0);
+            await_read_fire();
+        end
+        wait (record_error);
+        @(negedge clk_io_i);
+        if (record_error_code != 3'd7 || record_done || record_beat_valid || record_pair_count != 24)
+            $fatal(1, "Raw FIFO starvation was silently compressed or left pending");
+        wait (record_start_ready && record_idle);
+        $display("PASS two-word prefill followed by withheld third: raw=24 invalid, error=7, no last load or done");
+        $display("RECORD_PAYLOAD_UNDERRUN PASS");
+
+        // [单字] 证明两状态事件在同一装载沿均置位，并且只需一个预取字。
+        score_case = SCORE_ONE_WORD;
+        record_count = 15'd1;
+        start_record(1'b1);
+        present_read(BATCH_ADDR[0], 1'b0, 1'b0);
+        await_read_fire();
+        wait (record_done);
+        @(negedge clk_io_i);
+        if (record_error || record_pair_count != 26 || record_word != {20'b0, ONE_WORD_GOLDEN})
+            $fatal(1, "Single-word clock or shared first/last load mismatch");
+        wait (record_start_ready && record_idle);
+        $display("PASS real SRAM one-word record on 26 consecutive raw clocks, first/last load both at raw=3");
+        $display("RECORD_RAW_N1 PASS");
+        @(negedge clk_io_i);
+        score_case = SCORE_OFF;
         record_selected = 1'b0;
         wait (!record_select_core_q[1]);
-        $display("RECORD_LVDS_GOLDEN PASS");
-        $display("PASS real SRAM full record %018h, 36 pairs, 2 data words", record_word);
+        io_half = 11000ps;
 
         // [测试保持] 已排空的搬运器在 MBIST 开始时被共同冲刷。空闲确认
         // 不能因 transport 下线而撤销，否则仲裁器会误判功能流量恢复并中止。

@@ -1,25 +1,21 @@
-REPORT_ID=CTRL-7408EDF-NOOS
-profile=config_SPI_only_mode3_long_no_crc, AON=100MHz, external_IOVDD
-archive_sha256=37d8e6ee8acee3815134463e617d32157cc5f64beb81d423e7d5ad60597609b3
-runner_sha256=82fd8170b1ee76cd53b1a531c964989a9dacec8266a89dc89f6bca23b09f829e
-verilator=5.30, final_exit=0, no vendor source included in delivery
-missing_adi_archive_guard=exit 1
-standalone_recipe=Clang success without AD4080_NOOS_SIM, dependencies only ad4080 API
-tested_sha256 0ee16b414b40727bf2131c99c53055f9ae274e440c189b439c1b18085b8d02e9 noos_spi_rtl.sv
-tested_sha256 68ae5b3647dfb60b645aaecce8b73c1c83b411bab7535591efede228bd33d708 noos_spi_sim.cpp
-tested_sha256 1a3fec2ebb0c7c0ff0742f9979732ce64564e194a006106d54c8069589f93263 noos_host_recipe.c
-tested_sha256 ac19a1cd6988ec9be99746542f2fbd95145a031e0e5d7c4a4a814f2f64b2f51c ad4080_csr_power_bridge.sv
-tested_sha256 fc5c33a865ffd6329f3d4b05ba57a1b6d578500a0ed342b386c730ed4450f904 ad4080_pwr_supervisor.sv
-tested_sha256 460dc21f9652683a2b30b608f2196249eb9ab6e9e22df2b416e7af1e418aa82e ad4080_pwr_reset_sync.sv
-adi_ad4080.compile.log_warning_count=0
-adi_no_os_util.compile.log_warning_count=0
-noos_host_recipe.compile.log_warning_count=0
-rtl.compile.log_warning_count=0
+REPORT_ID=CTRL-NOOS-FROZEN
+scope=unmodified official C driver wired to actual SPI and CSR in independent AON bridge fixture
+source_context=final DSP from Git objects; original ADI C archive validated file by file
+ADC_FILTER read-modify-write includes accepted PF1 selection. Numerical behavior is tested separately.
 
-baseline=7408edf8db9a41eebdd756378b69d2775f107dec
+baseline=353f745b872a66aaac29fa0e858a13c30b5e8f07
 adi_commit=0e6ed1dea135ef541ad6323fc9fcad116ffce90b
-scratch_run=adi-noos-vktugcmg
+scratch_run=adi-noos-sarvu_5s
 tool=rev UNKNOWN.REV
+dsp_candidate=False
+dsp_sha256 ba25e0416e220aa28ee88f0fb076d75caf1666722b7c025042ed50bc316ae4df spi_slave.sv
+dsp_sha256 a7bf1dcd00fc732dd7d4b023a6c99a994328bb9024cbe54964f34489e3545178 ad4080_regs.sv
+fixture_sha256 460dc21f9652683a2b30b608f2196249eb9ab6e9e22df2b416e7af1e418aa82e ad4080_pwr_reset_sync.sv
+fixture_sha256 cc2c7cbeff4c32534d431d4bb36c2e60617dbc5e78deff8465a7e6e54eda32b4 ad4080_pwr_supervisor.sv
+fixture_sha256 484a1602b6d1b5490e1c23d111fdeeb71651ddd20747fb1aa075c77fa2b68690 noos_host_recipe.c
+fixture_sha256 68ae5b3647dfb60b645aaecce8b73c1c83b411bab7535591efede228bd33d708 noos_spi_sim.cpp
+fixture_sha256 ac19a1cd6988ec9be99746542f2fbd95145a031e0e5d7c4a4a814f2f64b2f51c ad4080_csr_power_bridge.sv
+fixture_sha256 236db77d40116e17b265ae6037156749c58db2ecf4a8e573245cd41fa32889c8 noos_spi_rtl.sv
 adi_sha256 0b30e7424acf70ddb81fab8f203eb10dfefc4adf1b6348904a4be60498954c4d drivers/adc/ad4080/ad4080.c
 adi_sha256 e513771273f961a08c8da4388e66df1ad62f28cb8027cc1114d9284bedee2a27 drivers/adc/ad4080/ad4080.h
 adi_sha256 1d4b345545badbbc3d34deaaba9f77c3674e2ec26dce6547f11e448bb1a5f588 util/no_os_util.c
@@ -81,9 +77,9 @@ SPI R addr=0029 tx=802900 rx=00c001 reject=0 rc=0
 SPI W addr=0029 tx=002919 rx=00c000 reject=0 rc=0
 SPI R addr=0029 tx=802900 rx=00c019 reject=0 rc=0
 SPI R addr=0029 tx=802900 rx=00c019 reject=0 rc=0
-SPI W addr=0029 tx=00291b rx=00c000 reject=1 rc=-5
-SPI R addr=0029 tx=802900 rx=00c019 reject=0 rc=0
-OBS noos_filter sinc1_D16=0x19 unbound_comp_preserved=1
+SPI W addr=0029 tx=00291b rx=00c000 reject=0 rc=0
+SPI R addr=0029 tx=802900 rx=00c01b reject=0 rc=0
+OBS noos_filter sinc1_N16=0x19 sinc5plus_N16=0x1b
 SPI R addr=001a tx=801a00 rx=00c000 reject=0 rc=0
 SPI W addr=001a tx=001aa0 rx=00c000 reject=2 rc=-5
 SPI R addr=001a tx=801a00 rx=00c000 reject=0 rc=0
@@ -162,4 +158,4 @@ SPI W addr=001e tx=001e01aa rx=00c20000 reject=0 rc=0
 SPI R addr=001e tx=801e0000 rx=00c201aa reject=0 rc=0
 OBS noos_strict byte_helper_reject=5 atomic_desc_read=01aa
 NOOS_HOST_COMPLETE checks=47
-NOOS_SPI_RTL_COMPLETE frames=126 reject_frames=4 ready_waits=2 data_guard=1
+NOOS_SPI_RTL_COMPLETE frames=126 reject_frames=3 ready_waits=2 data_guard=1

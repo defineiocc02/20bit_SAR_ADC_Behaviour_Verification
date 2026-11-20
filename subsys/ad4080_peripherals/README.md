@@ -4,7 +4,7 @@
 
 [可直接查看的整芯片布局](figures/floorplan.png) · [后端交付报告排版源](report/handoff.tex) · [分项面积账](floorplan/area_by_scope.csv) · [可打开的 GDS](floorplan/chip.gds) · [DEF](floorplan/chip.def) · [抽象 LEF](floorplan/planning.lef)
 
-**器件功能认可。** [逐模块核对 Rev. B](evidence/MANUAL_TRACE.md)逐项给出 30 个 RTL 模块与 3 个校准程序的手册页、源码、实测和裁定。图 96 要求先加 OFFSET 再乘 GAIN；冻结 DSP 在一个无舍入歧义的例子上输出 1024，按图应为 1032。工程回归通过与器件一致性分别报告。[可打印 PDF](report/manual-trace.pdf) · [可复编 TeX](report/manual-trace.tex)
+**从信号和实测结果查手册。** [逐模块对照表](evidence/MANUAL_TRACE.md)列出每条信号的手册页、实现、观察点和判据。[引脚时序图](figures/signal-timing.svg)来自产品实际逐沿输出；[逐拍数据](integration/product/evidence/pin_edges.csv)可独立复核。系统校正先加 OFFSET、再乘 GAIN；图 96 的定向输入在现用 RTL 实测为 1032。[校准回执](calibration/rtl_verification.json) · [可打印审查 PDF](report/manual-trace.pdf)
 
 ## 工作树入口
 
@@ -13,6 +13,18 @@
 - [系统 OFFSET/GAIN 校准](calibration/README.md)提供可运行的主机程序。可接两个已标定的直流电平，也可用 ADCToolbox 拟合已知正弦。原 DSP 执行逐样本校正；[产品入口](integration/product/README.md)用配置 SPI 写系数，并从同一份结果 SRAM 读回校正码。
 - `integration/`、`transport/`、`io/` 收拢外围装配、跨时钟搬运和读出协议。`memory/`、`rtl/`、`otp/`、`power/` 是存储和电源服务。`interfaces/` 记录所有权，并含复用现有 DSP 的真实测试接口。
 - `verify/` 是本子系统的回归入口，`floorplan/`、`budget/`、`figures/` 是版图及面积入口。桌面交付包另含可直接阅读的 `report/handoff.pdf` 和带原图对照的 `figures/floorplan.pdf`。原图身份见[资料说明](evidence/inputs.md)。
+
+## 数字滤波器如何配置
+
+`0x29` 是实际的八位滤波配置寄存器。上电复位为 `0x00`，输出直通。位 [1:0] 选择路径，位 [6:3] 填基础抽取率 N 的编码，N = 2^(编码 + 1)。三条滤波路径均由配置 SPI 选通。现有实现中普通五阶和补偿五阶共享同一个 CIC。补偿 FIR 的定点系数由公开带宽和频响数据设计。[寄存器表 62](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=94) · [带宽表 28](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=64) · [数字后处理 RTL](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/353f745b872a66aaac29fa0e858a13c30b5e8f07/subsys/ad4080_dsp/rtl/ad4080_dsp_chain.sv)
+
+| 输入 40 MS/s，基础 N=4 | 写入 0x29 | 输出速率 | 手册 −3 dB 带宽 |
+| --- | --- | ---: | ---: |
+| SINC1 平均 | `0x09` | 10 MS/s | 4.56 MHz |
+| SINC5 | `0x0A` | 10 MS/s | 2.10 MHz |
+| SINC5 加补偿，再二抽一 | `0x0B` | 5 MS/s | 2.024 MHz |
+
+在默认长指令、关闭配置 CRC 的工程环境中，发送 `00 29 0B` 即写入最后一行。直接 LVDS 模式可以由写 0x29 或 GPIO FILTER_SYNC 复位滤波器；使用 FIFO 时，每条记录都要用低有效的 GPIO FILTER_SYNC 对齐首个 CNV。首个有效输出还需等该档建立，等待从同步沿起算。详细测量按原输入采样频率归一，区分数据手册表值、读图误差与真实 RTL。[同步图与模式说明](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf#page=67) · [厂商目标数据](interfaces/dsp_review/manual_filter_targets.csv)
 
 ## ISSCC 原型给功能组的面积参照
 
@@ -42,7 +54,7 @@
 
 1. **上电与设置。** 等核心电源、参考和所需 I/O 域合格，装载并校验本批 OTP/配置。接口岗经配置 SPI 写校正、滤波、阈值和水位，读回关键值，再发同步与布防。配置期间有尚未完成的记录时先等它结束或显式清除。
 2. **采样与记录。** 功能组每交一笔码，外围按该笔状态完成码制转换和用户校正。滤波时，事件比较看被选中的滤波结果。验收时把首个合格结果与 CNV、样本序号一起对齐。触发后由同一记录控制器写 SRAM。
-3. **读回与放行。** 记录完成后切换单口 SRAM 所有权。例：已实测 SINC1 四倍抽取、事件启动、水位 3，三笔为 `1886、2536、−3314`。独立接收器从结果 SPI 单线收到 `AA 00075E 0009E8 FFF30E`。负数必须扩展为 24 位补码。该例覆盖同步数字组帧，板级时序另验。[实测用例](interfaces/dsp_review/README.md)
+3. **读回与放行。** 手册图 99 给出 SINC1 两倍抽取、水位 3 的例子。产品用实际配置 SPI 布防，SRAM 在第 6、8、10 个 CNV 沿写入 200、600、1000；第 10 沿 FULL 置位。从同一四银行读回的 LVDS 工程 CRC 记录连续占 46 对，首末样本装载和末 CRC 位分别核对。[实际产品记录](integration/product/README.md)
 4. **异常恢复。** 掉电、记录被中止或 MBIST 接管时先封住新的读写和对外发布。区分要保留的记录与已经失效的记录，等宏重新就绪、记录元数据重建后再开下一笔。接口岗核查复电后的首个完整字，校准岗独立比对码序。
 
 **推进顺序。** 先用同一条三字记录调通数据面与控制面。随后跑满深度、跨时钟、掉电、复位、自测的反例。已打通原 DSP 到唯一四银行结果存储的整记录回路，校准也通过了 SPI 写入和读回。下一步把目标工艺的宏与芯片接口接入同版网表，复验面积、首次出码和实物帧。先期台架保留原码，FPGA 做接收/缓存，主机保留离线滤波参考，便于定位差异。[完整外围审查与复现](evidence/acceptance.md)
@@ -60,7 +72,7 @@
 
 以上按单一归属计入工程 floorplan，转换功能 IP 的 0.250 mm² 单列。共享时钟、LDO、电容、参考、模拟转换区、Pad 和公共通道还有自己的面积行。GDS 的 **10/0 层为功能组转换 IP，11/0 层为产品处理与控制 CTRL**，可在 KLayout 中分别开关。[物理分区归属](floorplan/block_binding.csv) · [完整面积账](floorplan/area_by_scope.csv) · [布局和供电通道](floorplan/README.md)
 
-面积上最需要实际测量的是 **CTRL 的 0.026400 mm²**。例如一条现有 SINC5 有五级 61 位积分器，另有梳状器和延迟寄存器。补偿路径内部又实例化 SINC5，并带三个系数乘积。综合时是否保留两份五阶数据通路，取决于所选功能和常数传播。需按拟交付的校正、滤波、控制、OTP 影子和 MBIST 功能完整展开，再测外围标准单元。若暂按 60% 利用率试算，26,400 µm² 毛窗最多给出 15,840 µm² 单元空间，进一步的行禁放还要扣减。这个算例只用于识别风险。[五阶滤波 RTL](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/7408edf/subsys/ad4080_dsp/rtl/sinc5_decim.sv) · [补偿路径 RTL](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/7408edf/subsys/ad4080_dsp/rtl/sinc5_comp.sv)
+面积上应首先复核 **CTRL 的 0.026400 mm²**。现在 SINC5 与补偿模式共用一条五阶 CIC；PF1 采用 35 个对称抽头，18 个独立乘项。该数字是功能结构。若暂按 60% 利用率试算，26,400 µm² 毛窗给出 15,840 µm² 单元预算，实际还要扣行禁放。在取得相同功能配置的工艺库映射与布局报告之前，这个预算不能作为已装入的面积回执。[分区预算](floorplan/area_by_scope.csv) · [实际产品结构](integration/product/README.md)
 
 ## 交接与复核
 

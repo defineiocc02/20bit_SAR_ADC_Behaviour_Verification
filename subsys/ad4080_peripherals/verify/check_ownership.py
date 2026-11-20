@@ -16,7 +16,8 @@ import re
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-REV = "7408edf8db9a41eebdd756378b69d2775f107dec"
+# 各入口共用同一已发布 DSP 源提交，防止台架与产品绑定读到不同的代码。
+REV = (ROOT / "evidence/dsp-revision.txt").read_text(encoding="ascii").strip()
 PROD = "adc_digital_ip_v21"
 DSP = "sar20_ad4080_top"
 SERVICES = "ad4080_peripheral_services"
@@ -127,8 +128,9 @@ def audit(repo):
     # 所有消费者都从源码求出，不以中文文档对版本、模块数或完成度的说法为输入。
     s5_calls = {m: [s["instance"] for s in calls if s["module"] == "sinc5_decim"]
                 for m, calls in graph.items() if any(s["module"] == "sinc5_decim" for s in calls)}
-    if set(s5_calls) != {"ad4080_dsp_chain", "sinc5_comp"}:
-        raise ValueError("SINC5 语法实例位置发生变化，需更新容量风险说明")
+    # PF1 与普通 SINC5 共用同一积分/梳状链；不同输出选择不能产生第二套大寄存器阵列。
+    if s5_calls != {"sinc5_comp": ["u_sinc5"]}:
+        raise ValueError("SINC5/PF1 共享关系或实例数量发生变化，请复核功能与面积")
     return {"revision": REV, "method": "declared module instance sites in listed source sets",
             "production_files": len(prod_paths), "dsp_declared_modules": len(dsp),
             "roots": {k: {"direct": graph[k], "reachable": sorted(v)} for k, v in scopes.items()},

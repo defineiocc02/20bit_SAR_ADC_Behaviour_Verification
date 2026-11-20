@@ -1,39 +1,41 @@
-[SPI_CRC_TAIL_BOUND=0: Clang build]
-c++ -Os  -I.  -MMD -I<VERILATOR_ROOT>/include -I<VERILATOR_ROOT>/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TIMING=1 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0     -std=c++20 -DVL_TIME_CONTEXT    -c -o verilated.o <VERILATOR_ROOT>/include/verilated.cpp
-c++ -Os  -I.  -MMD -I<VERILATOR_ROOT>/include -I<VERILATOR_ROOT>/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TIMING=1 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0     -std=c++20 -DVL_TIME_CONTEXT    -c -o verilated_timing.o <VERILATOR_ROOT>/include/verilated_timing.cpp
-c++ -Os  -I.  -MMD -I<VERILATOR_ROOT>/include -I<VERILATOR_ROOT>/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TIMING=1 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0     -std=c++20 -DVL_TIME_CONTEXT    -c -o verilated_threads.o <VERILATOR_ROOT>/include/verilated_threads.cpp
-python <VERILATOR_ROOT>/bin/verilator_includer -DVL_INCLUDE_OPT=include Vad4080_fifo_record_framer_tb.cpp Vad4080_fifo_record_framer_tb___024root__DepSet_hec385246__0.cpp Vad4080_fifo_record_framer_tb___024root__DepSet_hcd4ad52c__0.cpp Vad4080_fifo_record_framer_tb__main.cpp Vad4080_fifo_record_framer_tb___024root__Slow.cpp Vad4080_fifo_record_framer_tb___024root__DepSet_hec385246__0__Slow.cpp Vad4080_fifo_record_framer_tb___024root__DepSet_hcd4ad52c__0__Slow.cpp Vad4080_fifo_record_framer_tb__Syms.cpp > Vad4080_fifo_record_framer_tb__ALL.cpp
-c++ -Os  -I.  -MMD -I<VERILATOR_ROOT>/include -I<VERILATOR_ROOT>/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TIMING=1 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0     -std=c++20 -DVL_TIME_CONTEXT    -c -o Vad4080_fifo_record_framer_tb__ALL.o Vad4080_fifo_record_framer_tb__ALL.cpp
-echo "" > Vad4080_fifo_record_framer_tb__ALL.verilator_deplist.tmp
-c++  -Wl,-U,__Z15vl_time_stamp64v,-U,__Z13sc_time_stampv   verilated.o verilated_timing.o verilated_threads.o Vad4080_fifo_record_framer_tb__ALL.a       -o Vad4080_fifo_record_framer_tb
-rm Vad4080_fifo_record_framer_tb__ALL.verilator_deplist.tmp
+Consecutive raw-clock FIFO record verification, Verilator 5.30, -Wall.
+DUT sha256=c59d22b207262a1b25fd69d84d0529c97087451ce7927d7ef17aee7a5a20227d
+TB sha256=71d2c0fffb0c775dd32d6d869c2917e4c0628c0ae6c1743e6badea685877ca5e
+Comment-only supplement: 71/360 to 77/360; stripped code bytes identical.
+
+[SPI_CRC_TAIL_BOUND=0, Clang build exit 0]
+
 - V e r i l a t i o n   R e p o r t:  rev UNKNOWN.REV
-- Verilator: Built from 0.062 MB sources in 3 modules, into 1.340 MB in 8 C++ files needing 0.001 MB
-- Verilator: Walltime 10.401 s (elab=0.008, cvt=0.186, bld=9.863); cpu 0.537 s on 1 threads
+- Verilator: Built from 0.066 MB sources in 3 modules, into 2.008 MB in 8 C++ files needing 0.001 MB
+- Verilator: Walltime 19.122 s (elab=0.017, cvt=0.535, bld=17.889); cpu 1.195 s on 1 threads
 
-[SPI_CRC_TAIL_BOUND=0: simulation]
-PASS FIFO record SPI_TAIL=0 beats=98509 fault_checks=15
-- ad4080_fifo_record_framer_tb.sv:410: Verilog $finish
+PASS RAW CLK RECORD mode=0 words=2 consecutive=36
+PASS RAW CLK RECORD mode=1 words=2 consecutive=56
+PASS RAW CLK RECORD mode=2 words=2 consecutive=20
+PASS SPI raw starvation mode=1 valid_prefix=56 error=7
+PASS SPI raw starvation mode=2 valid_prefix=20 error=7
+PASS RAW CLK RECORD mode=2 words=16384 consecutive=98312
+PASS RAW CLK RECORD mode=0 words=1 consecutive=26
+PASS FIFO record SPI_TAIL=0 beats=98611 fault_checks=21
+- ad4080_fifo_record_framer_tb.sv:462: Verilog $finish
 - S i m u l a t i o n   R e p o r t: Verilator 5.30
-- Verilator: $finish at 986us; walltime 0.127 s; speed 7.976 ms/s
-- Verilator: cpu 0.124 s on 1 threads; alloced 0 MB
+- Verilator: $finish at 987us; walltime 0.226 s; speed 4.446 ms/s
+- Verilator: cpu 0.222 s on 1 threads; alloced 0 MB
 
-[SPI_CRC_TAIL_BOUND=1: Clang build]
-c++ -Os  -I.  -MMD -I<VERILATOR_ROOT>/include -I<VERILATOR_ROOT>/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TIMING=1 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0     -std=c++20 -DVL_TIME_CONTEXT    -c -o verilated.o <VERILATOR_ROOT>/include/verilated.cpp
-c++ -Os  -I.  -MMD -I<VERILATOR_ROOT>/include -I<VERILATOR_ROOT>/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TIMING=1 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0     -std=c++20 -DVL_TIME_CONTEXT    -c -o verilated_timing.o <VERILATOR_ROOT>/include/verilated_timing.cpp
-c++ -Os  -I.  -MMD -I<VERILATOR_ROOT>/include -I<VERILATOR_ROOT>/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TIMING=1 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0     -std=c++20 -DVL_TIME_CONTEXT    -c -o verilated_threads.o <VERILATOR_ROOT>/include/verilated_threads.cpp
-python <VERILATOR_ROOT>/bin/verilator_includer -DVL_INCLUDE_OPT=include Vad4080_fifo_record_framer_tb.cpp Vad4080_fifo_record_framer_tb___024root__DepSet_hec385246__0.cpp Vad4080_fifo_record_framer_tb___024root__DepSet_hcd4ad52c__0.cpp Vad4080_fifo_record_framer_tb__main.cpp Vad4080_fifo_record_framer_tb___024root__Slow.cpp Vad4080_fifo_record_framer_tb___024root__DepSet_hec385246__0__Slow.cpp Vad4080_fifo_record_framer_tb___024root__DepSet_hcd4ad52c__0__Slow.cpp Vad4080_fifo_record_framer_tb__Syms.cpp > Vad4080_fifo_record_framer_tb__ALL.cpp
-c++ -Os  -I.  -MMD -I<VERILATOR_ROOT>/include -I<VERILATOR_ROOT>/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TIMING=1 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0     -std=c++20 -DVL_TIME_CONTEXT    -c -o Vad4080_fifo_record_framer_tb__ALL.o Vad4080_fifo_record_framer_tb__ALL.cpp
-echo "" > Vad4080_fifo_record_framer_tb__ALL.verilator_deplist.tmp
-c++  -Wl,-U,__Z15vl_time_stamp64v,-U,__Z13sc_time_stampv   verilated.o verilated_timing.o verilated_threads.o Vad4080_fifo_record_framer_tb__ALL.a       -o Vad4080_fifo_record_framer_tb
-rm Vad4080_fifo_record_framer_tb__ALL.verilator_deplist.tmp
+[SPI_CRC_TAIL_BOUND=1, Clang build exit 0]
+
 - V e r i l a t i o n   R e p o r t:  rev UNKNOWN.REV
-- Verilator: Built from 0.062 MB sources in 3 modules, into 1.279 MB in 8 C++ files needing 0.001 MB
-- Verilator: Walltime 9.367 s (elab=0.008, cvt=0.178, bld=8.835); cpu 0.530 s on 1 threads
+- Verilator: Built from 0.066 MB sources in 3 modules, into 1.920 MB in 8 C++ files needing 0.001 MB
+- Verilator: Walltime 18.459 s (elab=0.018, cvt=0.525, bld=17.217); cpu 1.191 s on 1 threads
 
-[SPI_CRC_TAIL_BOUND=1: simulation]
-PASS FIFO record SPI_TAIL=1 beats=227 fault_checks=15
-- ad4080_fifo_record_framer_tb.sv:410: Verilog $finish
+PASS RAW CLK RECORD mode=0 words=2 consecutive=36
+PASS RAW CLK RECORD mode=1 words=2 consecutive=80
+PASS RAW CLK RECORD mode=2 words=2 consecutive=26
+PASS SPI raw starvation mode=1 valid_prefix=56 error=7
+PASS SPI raw starvation mode=2 valid_prefix=20 error=7
+PASS RAW CLK RECORD mode=0 words=1 consecutive=26
+PASS FIFO record SPI_TAIL=1 beats=329 fault_checks=21
+- ad4080_fifo_record_framer_tb.sv:462: Verilog $finish
 - S i m u l a t i o n   R e p o r t: Verilator 5.30
-- Verilator: $finish at 3us; walltime 0.001 s; speed 4.109 ms/s
+- Verilator: $finish at 4us; walltime 0.001 s; speed 4.074 ms/s
 - Verilator: cpu 0.001 s on 1 threads; alloced 0 MB

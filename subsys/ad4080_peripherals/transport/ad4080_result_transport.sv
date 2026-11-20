@@ -45,6 +45,12 @@ module ad4080_result_transport #(
     // --- 无回压 DDR 宏装载端 ---
     input  logic        io_start_allow_i,     // IO 域允许领取新帧；在发帧持续推进
     output logic        io_online_o,          // PHY 可在本域观察的链路复位释放许可
+    output logic [1:0]  io_prefetch_words_o,  // 同步可读的未装载字数，2 表示至少两字
+    output logic        io_word_load_o,       // 本沿并行结果进入唯一 frame_q，从下一槽开始发送
+    input  logic        io_parallel_mode_i,   // 已冻结的结果 SPI 会话从同一队列领整字
+    input  logic        io_parallel_ready_i,  // I/O 组帧器能在本沿锁存整字
+    output logic        io_parallel_valid_o,  // 本队首已跨域确认，不受 ready 影响
+    output logic [19:0] io_parallel_word_o,   // 结果 SPI 的原样二补码，未做线序转换
     output logic        io_pair_valid_o,      // 高时本上升沿 PHY 必须收走当前双沿位
     output logic        io_first_o,           // 本槽为连续帧的首槽
     output logic        io_last_o,            // 本槽为连续帧的末槽
@@ -105,7 +111,8 @@ module ad4080_result_transport #(
     (* ASYNC_REG = "TRUE" *) logic [PTR_WIDTH-1:0] read_gray_core_s1_q, read_gray_core_s2_q;
     (* ASYNC_REG = "TRUE" *) logic [PTR_WIDTH-1:0] retired_gray_core_s1_q, retired_gray_core_s2_q;
     (* ASYNC_REG = "TRUE" *) logic [PTR_WIDTH-1:0] write_gray_io_s1_q, write_gray_io_s2_q;
-    logic full_core, empty_io, load_frame;
+    logic full_core, empty_io, load_frame, consume_parallel;
+    logic [21:0] head_word;                   // 两模式共用一个逻辑队首读口
 
     function automatic logic [PTR_WIDTH-1:0] binary_to_gray(input logic [PTR_WIDTH-1:0] value);
         binary_to_gray = value ^ (value >> 1);
@@ -117,6 +124,11 @@ module ad4080_result_transport #(
     assign empty_io = read_gray_q == write_gray_io_s2_q;
     assign core_full_o = core_online_o && full_core;
     assign core_accept_o = core_online_o && result_valid_core_i && !full_core;
+
+    // [预取] 只公布已跨域确认且还没领取的槽。检查后继 Gray 指针即可区分
+    // 当前只有一字与至少两字，避免用尚未同步的写端状态开跑封装时钟。
+    assign io_prefetch_words_o = (!io_online_o || empty_io) ? 2'd0 :
+        (write_gray_io_s2_q == binary_to_gray(read_bin_q + 1'b1) ? 2'd1 : 2'd2);
 
     // [排空] read 指针递增时数据仍有整帧在 IO 端。用对应末槽退休的
     // Gray 指针做排空确认，避免测试接管时截断最后一帧。
@@ -211,8 +223,15 @@ module ad4080_result_transport #(
 
     // [同沿] 末槽仍由旧帧驱动并被 PHY 取走；下一笔若可领取，则同一
     // 沿锁存。下一周期从槽零连续推进。禁止把 io_start_allow 当反压用。
-    assign load_frame = io_online_o && io_start_allow_i && !empty_io &&
+    assign load_frame = io_online_o && !io_parallel_mode_i && io_start_allow_i && !empty_io &&
                         (!frame_active_q || io_last_o);
+    assign io_word_load_o = load_frame;
+    // [共享] SPI 已冻结输出模式时直接领取同一队列队首。其退休指
+    // transport 交付，整记录的退出仍由组帧器/引脚的真实完成控制。
+    assign head_word = fifo_memory_q[read_bin_q[FIFO_ADDR_WIDTH-1:0]];
+    assign io_parallel_valid_o = io_online_o && io_parallel_mode_i && !empty_io && !frame_active_q;
+    assign io_parallel_word_o = io_parallel_valid_o ? head_word[19:0] : 20'b0;
+    assign consume_parallel = io_parallel_valid_o && io_parallel_ready_i;
 
     always_ff @(posedge clk_io_i or negedge io_reset_n) begin
         if (!io_reset_n) begin
@@ -224,15 +243,17 @@ module ad4080_result_transport #(
             frame_q        <= '0;
             slot_q         <= '0;
         end else begin
-            if (io_last_o) begin
+            if (io_last_o || consume_parallel) begin
                 retired_bin_q  <= retired_bin_q + 1'b1;
                 retired_gray_q <= binary_to_gray(retired_bin_q + 1'b1);
             end
 
-            if (load_frame) begin
+            if (load_frame || consume_parallel) begin
                 read_bin_q     <= read_bin_q + 1'b1;
                 read_gray_q    <= binary_to_gray(read_bin_q + 1'b1);
-                frame_q        <= fifo_memory_q[read_bin_q[FIFO_ADDR_WIDTH-1:0]];
+            end
+            if (load_frame) begin
+                frame_q        <= head_word;
                 frame_active_q <= 1'b1;
                 slot_q         <= '0;
             end else if (io_last_o) begin

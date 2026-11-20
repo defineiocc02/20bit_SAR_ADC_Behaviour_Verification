@@ -75,10 +75,19 @@ module power_bridge_tb;
     // 置高，验证桥覆盖 bit3 后仍能从 SPI 返回它们。
     ad4080_regs #(.P_MULTIBYTE_ORDER(0), .P_OFFSET_LSB_ADDR(32'h25),
                   .P_PRODUCT_ID_L(32'h50), .P_SHORT_ADDR_BITS(7)) bank (
+        // 独立数值或协议配置没有 AON 响应；真实功耗命令在产品台架验证。
+        .pwr_cfg_full_allow_i(1'b1), .pwr_cmd_ready_i(1'b0), .pwr_cmd_valid_o(),
+        .pwr_cmd_op_o(), .pwr_cmd_value_o(), .pwr_rsp_valid_i(1'b0),
+        .pwr_rsp_accept_i(1'b0), .pwr_rsp_op_i(2'b00), .pwr_mode_i(2'b00),
+        .pwr_ldo_pd_i(2'b00), .rom_crc_error_i(1'b0), .por_ana_event_i(1'b0),
+
         .clk(clk), .rst_n(rst_n), .addr(addr), .wdata(wdata), .write_bytes(write_bytes), .we(bank_we),
         .rdata(bank_rdata), .entity_bytes(entity_bytes), .address_valid(address_valid),
         .read_only(read_only), .access_supported(access_supported), .access_reject_reason(access_reason),
         .adc_idle(bank_idle), .gpio_levels(4'b0), .capture_active(1'b0),
+        // 仍用独立固定数据配置契约，不借本夹具宣称已接连续 PHY。
+        .data_config_ready_i(1'b1),.data_intf_config_a_o(),.data_intf_config_b_o(), .data_intf_config_c_o(),
+        .conversion_timing_error_i(1'b0),.cnv_error_alert_o(),
         .capture_incomplete(1'b0), .capture_io_active(1'b0),
         .st_fifo_full(1'b1), .st_fifo_read_done(1'b0), .st_hi_flag(1'b1), .st_lo_flag(1'b0),
         .crc_err_pulse(crc_err), .clk_cnt_err_pulse(clocks_err), .partial_err_pulse(partial_err),

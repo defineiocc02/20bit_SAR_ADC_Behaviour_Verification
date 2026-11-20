@@ -21,11 +21,11 @@
     "verilator": "5.30"
   },
   "source_sha256": {
-    "subsys/ad4080_dsp/rtl/sys_error_corr.sv": "45e5022bab911e02a9d3b737b978ba29b1b0daacb7b97377792ae3748fdea3d3",
-    "subsys/ad4080_dsp/model/ad4080_cal_model.py": "46e0a7d5d75c08cb3ccfb4f52e63ad6a1a02e240316bdf98d165dee02e0b5855",
-    "subsys/ad4080_peripherals/calibration/system_cal.py": "ad0a2dc4c73f6838a2884efc8014856605d37ce76214e72907fd62a66dd3eb2c",
+    "subsys/ad4080_dsp/rtl/sys_error_corr.sv": "035c5c869c14b8e4555855f05251c673327685f8f447c487fb91b111fc3d3f80",
+    "subsys/ad4080_dsp/model/ad4080_cal_model.py": "d8630fb1b55f7877b47a5d84d9d02df3c4955e10bc256b0c25c84b4036bbf280",
+    "subsys/ad4080_peripherals/calibration/system_cal.py": "627000eb9ad5a2430ebbcd1104fbcf79c57ff58d3c1ac0cfbc6113a45f66896e",
     "subsys/ad4080_peripherals/calibration/calibration_verify_tb.sv": "3ac32e4d4de2176e0b4590f3ded2552fbf7420168df6296c58e213654bb91eb6",
-    "subsys/ad4080_peripherals/calibration/verify_rtl.py": "d8845964f375da357f4bc42ab71205a34e9f92e79f40c6793a99a5f3568c72a1"
+    "subsys/ad4080_peripherals/calibration/verify_rtl.py": "9eb7f16b3803ebf5dc5a2bdb093ab01c08d09aaadb822da10ec1909914c97398"
   },
   "coverage": {
     "cycles": 8254,
@@ -71,13 +71,13 @@
       },
       "registers": {
         "mapping": "rtl_k_gain_shift",
-        "offset_code": -79,
+        "offset_code": -80,
         "gain_code": 349,
         "applied_gain": 0.995025634765625,
         "k_gain": 1,
         "shift": 15,
         "writes": {
-          "0x25": 177,
+          "0x25": 176,
           "0x26": 15,
           "0x27": 93,
           "0x28": 1
@@ -102,11 +102,11 @@
         },
         "after": {
           "samples": 16,
-          "mean_error_lsb20": 0.0,
-          "rms_error_lsb20": 0.0,
-          "max_abs_error_lsb20": 0,
-          "residual_slope_ppm": 0.0,
-          "fitted_zero_code_error_lsb20": 0.0
+          "mean_error_lsb20": -0.5,
+          "rms_error_lsb20": 0.7071067811865476,
+          "max_abs_error_lsb20": 1,
+          "residual_slope_ppm": 2.200786561116943,
+          "fitted_zero_code_error_lsb20": -0.5384620463353602
         }
       },
       "holdout": {
@@ -120,11 +120,11 @@
         },
         "after": {
           "samples": 1024,
-          "mean_error_lsb20": 0.595703125,
-          "rms_error_lsb20": 0.7718180647017793,
+          "mean_error_lsb20": -0.0166015625,
+          "rms_error_lsb20": 0.4038389994787527,
           "max_abs_error_lsb20": 1,
-          "residual_slope_ppm": 0.8230404683871838,
-          "fitted_zero_code_error_lsb20": 0.6051399213441718
+          "residual_slope_ppm": 0.68822015184529,
+          "fitted_zero_code_error_lsb20": -0.008710585491730066
         }
       }
     },
@@ -187,11 +187,11 @@
         },
         "after": {
           "samples": 2048,
-          "mean_error_lsb20": -0.3681640625,
-          "rms_error_lsb20": 0.6304450313072505,
+          "mean_error_lsb20": 0.01416015625,
+          "rms_error_lsb20": 0.5072713462733727,
           "max_abs_error_lsb20": 1,
-          "residual_slope_ppm": 0.8085057291392331,
-          "fitted_zero_code_error_lsb20": -0.39642338544787764
+          "residual_slope_ppm": 0.7742210848587487,
+          "fitted_zero_code_error_lsb20": -0.012900831547047235
         }
       },
       "holdout": {
@@ -205,17 +205,17 @@
         },
         "after": {
           "samples": 1024,
-          "mean_error_lsb20": -0.404296875,
-          "rms_error_lsb20": 0.6358434359179939,
+          "mean_error_lsb20": -0.0166015625,
+          "rms_error_lsb20": 0.4038389994787527,
           "max_abs_error_lsb20": 1,
-          "residual_slope_ppm": 0.8230404683871838,
-          "fitted_zero_code_error_lsb20": -0.39486007865582823
+          "residual_slope_ppm": 0.68822015184529,
+          "fitted_zero_code_error_lsb20": -0.008710585491730066
         }
       }
     }
   },
   "manual_order_check": {
-    "status": "OPEN_MISMATCH",
+    "status": "MATCHED",
     "manual_reference": {
       "document": "ADI AD4080 Rev. B",
       "page": 64,
@@ -233,9 +233,9 @@
     "engineering_gain_factor": 1.0078125,
     "manual_order_formula": "(x + OFFSET) * engineering_gain_factor",
     "manual_order_expected_lsb20": 1032,
-    "frozen_sys_corr_result_lsb20": 1024,
-    "rtl_observed_lsb20": 1024,
-    "rtl_minus_manual_lsb20": -8,
+    "frozen_sys_corr_result_lsb20": 1032,
+    "rtl_observed_lsb20": 1032,
+    "rtl_minus_manual_lsb20": 0,
     "rtl_matches_frozen_sys_corr": true,
     "probe_cycles": 3,
     "valid_probe_outputs": 1

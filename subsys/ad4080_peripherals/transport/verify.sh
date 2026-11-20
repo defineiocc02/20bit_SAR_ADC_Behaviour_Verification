@@ -20,7 +20,7 @@ set -eu
 # 1. 离线依赖与独立构建目录
 # =========================================================================
 transport_dir=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
-transport_build=$(mktemp -d /tmp/ad4080-transport-verify-XXXXXXXX)
+transport_build=$(mktemp -d "${TRANSPORT_BUILD_ROOT:-/tmp}/ad4080-transport-verify-XXXXXXXX")
 printf 'transport_build=%s\n' "$transport_build"
 cp "$transport_dir/ad4080_result_transport.sv" "$transport_build/"
 cp "$transport_dir/tb_ad4080_result_transport.sv" "$transport_build/"

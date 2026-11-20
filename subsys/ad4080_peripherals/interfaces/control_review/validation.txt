@@ -1,22 +1,30 @@
-冻结 DSP 控制面、GPIO 守卫与主机水位协议 RTL 仿真
-REPORT_ID=CTRL-7408EDF-GPIO-WM
-baseline=7408edf8db9a41eebdd756378b69d2775f107dec
-tool=Verilator 5.30 (binary reports rev UNKNOWN.REV), Clang C++20, Mode 3 long SPI, AON 100 MHz
-verilator_binary_sha256=2b8877d8392b4557cd793d9c7730b0833f6a42593582350622fce00fbea85c61
-runner_sha256=7e5e55d6a7538eeb35f99a360bc0176d2d05a9615a9eb5a435696917a17b5ea9
-checks=assertion invocations, COUNTEREXAMPLE=observed baseline limitation
-optional_fixed_data_default_ack=disabled in this regression
-comment_audit power_bridge_tb.sv 40/263->55/263, control_review_tb.sv 69/359->73/359
-non_comment_lines=byte-identical to pre-comment source, repeated simulation observations identical
-scratch_run=spi-control-g1fh9x9e
+REPORT_ID=CTRL-GPIO-ATOMIC-FROZEN
+tool=Verilator 5.30
+scope=standalone actual SPI, original bank and auxiliary AON bridge
+Historical candidates are retained below with their actual input hashes.
 
-tested_sha256 57ceb15cb9abc8841c456d8dd4d52d8bc5b9bd402eeef7243dda66a7048e3798 control_review_tb.sv
-tested_sha256 87a4d1fb0bcf9aa78b31007f5bac35f5c046c905d127cf5573b04dda864a1919 power_bridge_tb.sv
-tested_sha256 ac19a1cd6988ec9be99746542f2fbd95145a031e0e5d7c4a4a814f2f64b2f51c ad4080_csr_power_bridge.sv
-tested_sha256 fc5c33a865ffd6329f3d4b05ba57a1b6d578500a0ed342b386c730ed4450f904 ad4080_pwr_supervisor.sv
-tested_sha256 460dc21f9652683a2b30b608f2196249eb9ab6e9e22df2b416e7af1e418aa82e ad4080_pwr_reset_sync.sv
-
-baseline_compile_warning_count=0
+[ final frozen controller SPI and auxiliary bridge ]
+baseline=353f745b872a66aaac29fa0e858a13c30b5e8f07
+tool=Verilator 5.30
+scratch_run=spi-control-qyg4ie0l
+source_sha256 ac19a1cd6988ec9be99746542f2fbd95145a031e0e5d7c4a4a814f2f64b2f51c ad4080_csr_power_bridge.sv
+source_sha256 460dc21f9652683a2b30b608f2196249eb9ab6e9e22df2b416e7af1e418aa82e ad4080_pwr_reset_sync.sv
+source_sha256 cc2c7cbeff4c32534d431d4bb36c2e60617dbc5e78deff8465a7e6e54eda32b4 ad4080_pwr_supervisor.sv
+source_sha256 4072d0a281b9478c59fe1da67df52a237493eb7256fff7f33aeaae3d5e1bd8be control_review_tb.sv
+source_sha256 20e75e59d00bdf4f62bdb09628dc1abed8b908f3e90a7c2a073de3efe1812eb6 power_bridge_tb.sv
+source_sha256 0ddd925cddd34f89b2cd3c0d47c75baff8e83d3207f5be19bc9772616bf4999a ad4080_top.sv
+source_sha256 ba25e0416e220aa28ee88f0fb076d75caf1666722b7c025042ed50bc316ae4df spi_slave.sv
+source_sha256 a7bf1dcd00fc732dd7d4b023a6c99a994328bb9024cbe54964f34489e3545178 ad4080_regs.sv
+source_sha256 bf8fdbdd7461fe8e566e9c1b142075edcbedf37bb1decc6a4aa805fe66633155 ad4080_dsp_chain.sv
+source_sha256 035c5c869c14b8e4555855f05251c673327685f8f447c487fb91b111fc3d3f80 sys_error_corr.sv
+source_sha256 936cb25b6bc6da9994213741e9a6d03e843eda8c6dbb258271b246510d9e9b79 sinc1_decim.sv
+source_sha256 fe70cc10d4854be8339cdfc95a3377fabf0477393377a4db680de7042d4900e5 sinc5_decim.sv
+source_sha256 5cf173051e275764beb02f5ca81b3ec30a4028220f6b5912d3468adb1e88fa0d sinc5_comp.sv
+source_sha256 6400b704e19f415af0090b422489ffd27a2e7bb811578e4e9f0980229d82030e event_detect.sv
+source_sha256 79d6b79833f778b8fe515a1aba7497e9697b39f5db86a1c1afe2b25d4f51bdf6 fifo_capture.sv
+source_sha256 c9b4c275465bd31c4b817a2073bdcbe25485914b038e50f8ccbef4cabe1938b1 result_fifo.sv
+source_sha256 1ab1be85db05e792730194b49737a33f31252d47746a10d16476bbe996759255 gpio_ctrl.sv
+source_sha256 33022a5a33888f7f363e5e92ef305605085cf54cbace93c6a72c35d7ce9a1801 sinc5_comp_coeff_lut.svh
 OBS default_boot reject=1 SCRATCH=0x00 bound=0x5a
 COUNTEREXAMPLE device_config request=0x02 read=0x00 reject=2
 OBS baseline_POR after_W1C=0x00 no_separate_analog_event_input
@@ -25,15 +33,13 @@ OBS gain request=0x0201 readback=0x0200 reject=1 IF_STATUS_A=0
 COUNTEREXAMPLE no_os_watermark requested=0x01aa bytewise=0x0100 strict=0x01aa
 OBS watermark_host low_mismatch=blocked high_mismatch=blocked mode11_granularity=blocked ASC=0x01aa DESC=0x01aa FIFO_MODE=01
 OBS protocol_sticky=0x85 long_header=0x0025 W1C=0x81->0x00
-COUNTEREXAMPLE fig83 hi_dtct_after_return=0 alert_n=1 HI_STATUS=1 before_W1C
+OBS event_without_CNV_timing hi_dtct_at_return=0 alert_n=1 HI_STATUS=1
 OBS event_w1c HI+LO=0x30 clear_HI=0x10 persistent=0x10 recross=0x30
 OBS GPIO FILTER_RDY reject=2 unchanged_select=0x40 FILTER_SYNC=low_level
-COUNTEREXAMPLE gpio_sel_reserved code=0xa accepted readback=0xa6 OE=0
+OBS gpio_sel_reserved code=0xa reject=2 both_nibbles_readback=0x86
 OBS software_reset illegal_steps_rejected=2 valid_two_writes POR=0x09 ADDR_ASC=1
 OBS original_bank_reset_pulses=1 unused_by_service
-CONTROL_REVIEW_COMPLETE checks=187 default_rejections=67 bound_rejections=10
-
-bridge_compile_warning_count=0
+CONTROL_REVIEW_COMPLETE checks=192 default_rejections=68 bound_rejections=12
 OBS bridge_ref_event original=0xa0 SPI=0xa8 long=0x2880
 OBS bridge_ref_w1c_collision count=1 event_wins=1
 OBS bridge_gpio addresses=0x1a,0x1b blocked=24 reject=2 atomic=1 filter_rdy_bank=2
@@ -41,4 +47,60 @@ OBS bridge_modes 00->10->00->11->00 reserved_and_busy_blocked=1
 OBS bridge_software_reset rejected=1 accepted=1 SCRATCH=0 POR=0x09 ADDR_ASC=1
 POWER_BRIDGE_COMPLETE checks=561 por_events=2 collisions=1 resets=1
 
-missing_source_guard=exit 1 (source checkout absent)
+[ archived candidate runs ]
+
+[ bank_direct ]
+source_sha256 174756b1a5b4d8264db608e3bfd1b657caaed25cc2b373f9e55ee1336d4d0964 ad4080_regs_rejection_tb.sv
+source_sha256 1aa28d40ae4755d34a0296b74627b1ea0ac03ddc91e3abbfa745fcbb72a01277 ad4080_regs.sv
+scratch_run=candidate-direct-j3tylmzj
+AD4080_REG_REJECTION_COMPLETE rejected_writes=11 metadata_rejects=4 preserved_compares=13 checks=48
+
+[ controller_spi ]
+source_sha256 54302d6c5094aceb68f41ad18c99445aaebb0623c4ddd155f797456af36ba81e control_review_tb.sv
+source_sha256 06b50fd1098c3d7721d9f550af27de7842e0ec7381b3b738be034288bac3cf10 ad4080_top.sv
+source_sha256 cff8cd076af566acbddbcc01c457c9f14254460bf490a29992c7dd948f7d6841 spi_slave.sv
+source_sha256 1aa28d40ae4755d34a0296b74627b1ea0ac03ddc91e3abbfa745fcbb72a01277 ad4080_regs.sv
+source_sha256 5dcc535b926ef2f06d8abd66a51e1423c8fd78dc2c070be5d73d724572ac3356 ad4080_dsp_chain.sv
+source_sha256 035c5c869c14b8e4555855f05251c673327685f8f447c487fb91b111fc3d3f80 sys_error_corr.sv
+source_sha256 936cb25b6bc6da9994213741e9a6d03e843eda8c6dbb258271b246510d9e9b79 sinc1_decim.sv
+source_sha256 fe70cc10d4854be8339cdfc95a3377fabf0477393377a4db680de7042d4900e5 sinc5_decim.sv
+source_sha256 d246d9cd14d4be3fe17887b78a0e8c1524af3a37b3f4948c4525a54fd953c155 sinc5_comp.sv
+source_sha256 6400b704e19f415af0090b422489ffd27a2e7bb811578e4e9f0980229d82030e event_detect.sv
+source_sha256 79d6b79833f778b8fe515a1aba7497e9697b39f5db86a1c1afe2b25d4f51bdf6 fifo_capture.sv
+source_sha256 c9b4c275465bd31c4b817a2073bdcbe25485914b038e50f8ccbef4cabe1938b1 result_fifo.sv
+source_sha256 1ab1be85db05e792730194b49737a33f31252d47746a10d16476bbe996759255 gpio_ctrl.sv
+scratch_run=candidate-control-ga00_8jy
+OBS default_boot reject=1 SCRATCH=0x00 bound=0x5a
+COUNTEREXAMPLE device_config request=0x02 read=0x00 reject=2
+OBS baseline_POR after_W1C=0x00 no_separate_analog_event_input
+OBS offset descending=0x0fed ascending=0x037a lo_alias=0x0345 partial_reject=5
+OBS gain request=0x0201 readback=0x0200 reject=1 IF_STATUS_A=0
+COUNTEREXAMPLE no_os_watermark requested=0x01aa bytewise=0x0100 strict=0x01aa
+OBS watermark_host low_mismatch=blocked high_mismatch=blocked mode11_granularity=blocked ASC=0x01aa DESC=0x01aa FIFO_MODE=01
+OBS protocol_sticky=0x85 long_header=0x0025 W1C=0x81->0x00
+OBS event_without_CNV_timing hi_dtct_at_return=0 alert_n=1 HI_STATUS=1
+OBS event_w1c HI+LO=0x30 clear_HI=0x10 persistent=0x10 recross=0x30
+OBS GPIO FILTER_RDY reject=2 unchanged_select=0x40 FILTER_SYNC=low_level
+OBS gpio_sel_reserved code=0xa reject=2 both_nibbles_readback=0x86
+OBS software_reset illegal_steps_rejected=2 valid_two_writes POR=0x09 ADDR_ASC=1
+OBS original_bank_reset_pulses=1 unused_by_service
+CONTROL_REVIEW_COMPLETE checks=192 default_rejections=68 bound_rejections=12
+
+[ auxiliary_bridge ]
+source_sha256 8d91c8ab86e6c6f2627e6deba155b9c9b9bd7c19500464f01be419758fdf5869 power_bridge_tb.sv
+source_sha256 ac19a1cd6988ec9be99746542f2fbd95145a031e0e5d7c4a4a814f2f64b2f51c ad4080_csr_power_bridge.sv
+source_sha256 cff8cd076af566acbddbcc01c457c9f14254460bf490a29992c7dd948f7d6841 spi_slave.sv
+source_sha256 1aa28d40ae4755d34a0296b74627b1ea0ac03ddc91e3abbfa745fcbb72a01277 ad4080_regs.sv
+source_sha256 fc5c33a865ffd6329f3d4b05ba57a1b6d578500a0ed342b386c730ed4450f904 ad4080_pwr_supervisor.sv
+source_sha256 460dc21f9652683a2b30b608f2196249eb9ab6e9e22df2b416e7af1e418aa82e ad4080_pwr_reset_sync.sv
+scratch_run=candidate-bridge-ulmlleit
+OBS bridge_ref_event original=0xa0 SPI=0xa8 long=0x2880
+OBS bridge_ref_w1c_collision count=1 event_wins=1
+OBS bridge_gpio addresses=0x1a,0x1b blocked=24 reject=2 atomic=1 filter_rdy_bank=2
+OBS bridge_modes 00->10->00->11->00 reserved_and_busy_blocked=1
+OBS bridge_software_reset rejected=1 accepted=1 SCRATCH=0 POR=0x09 ADDR_ASC=1
+POWER_BRIDGE_COMPLETE checks=561 por_events=2 collisions=1 resets=1
+
+
+final_comment_only_sha256 1d518d2108378fc289ffe6f2269db59360bee5298e22a5ad90a03232a49b42dd control_review_tb.sv
+non_comment_lines tested/latest control_review_tb byte_identical

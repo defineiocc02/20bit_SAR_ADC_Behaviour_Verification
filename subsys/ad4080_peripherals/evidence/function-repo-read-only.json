@@ -26,9 +26,10 @@
       "branch": "feat/ad4080-peripherals",
       "directory": "subsys/ad4080_peripherals",
       "pull_request": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/pull/11",
-      "scope": "separate clone; product DSP is imported from the frozen object in a build directory"
+      "scope": "separate feature checkout; product bindings use the pinned shared DSP; conversion production RTL and filelists stay at the protected source"
     },
     "combined_local_checks": 29,
-    "device_obligations": 10
+    "device_obligations": 10,
+    "feature_dsp_source_revision": "353f745b872a66aaac29fa0e858a13c30b5e8f07"
   }
 }

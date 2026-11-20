@@ -1,5 +1,6 @@
 power/ad4080_pwr_reset_sync.sv
 power/ad4080_pwr_supervisor.sv
+power/ad4080_cfg_power_cdc.sv
 otp/otp_shadow_loader.sv
 memory/result_store_mbist.sv
 rtl/result_store.sv

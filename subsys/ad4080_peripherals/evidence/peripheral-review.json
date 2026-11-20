@@ -1,14 +1,14 @@
 {
   "status": "PASS",
   "scope": "all registered open-source checks",
-  "frozen_dsp": "7408edf8db9a41eebdd756378b69d2775f107dec",
+  "frozen_dsp": "353f745b872a66aaac29fa0e858a13c30b5e8f07",
   "checks": {
     "ownership": {
       "status": "PASS",
       "observed": [
-        "PASS [('adc_digital_ip_v21', 11), ('sar20_ad4080_top', 13), ('ad4080_peripheral_services', 8), ('ad4080_result_readback_link', 4), ('ad4080_fifo_lvds_record_link', 6)]",
-        "PASS [('adc_digital_ip_v21', 11), ('sar20_ad4080_top', 13), ('ad4080_peripheral_services', 8), ('ad4080_result_readback_link', 4), ('ad4080_fifo_lvds_record_link', 6)]",
-        "PASS [('adc_digital_ip_v21', 11), ('sar20_ad4080_top', 13), ('ad4080_peripheral_services', 8), ('ad4080_result_readback_link', 4), ('ad4080_fifo_lvds_record_link', 6)]"
+        "PASS [('adc_digital_ip_v21', 11), ('sar20_ad4080_top', 13), ('ad4080_peripheral_services', 9), ('ad4080_result_readback_link', 4), ('ad4080_fifo_lvds_record_link', 7)]",
+        "PASS [('adc_digital_ip_v21', 11), ('sar20_ad4080_top', 13), ('ad4080_peripheral_services', 9), ('ad4080_result_readback_link', 4), ('ad4080_fifo_lvds_record_link', 7)]",
+        "PASS [('adc_digital_ip_v21', 11), ('sar20_ad4080_top', 13), ('ad4080_peripheral_services', 9), ('ad4080_result_readback_link', 4), ('ad4080_fifo_lvds_record_link', 7)]"
       ]
     },
     "layout": {
@@ -20,7 +20,7 @@
     "area": {
       "status": "PASS",
       "observed": [
-        "Ran 34 tests in 0.124s",
+        "Ran 34 tests in 0.123s",
         "OK"
       ]
     },
@@ -83,19 +83,19 @@
       "status": "PASS",
       "observed": [
         "SAT proof finished - no model found: SUCCESS!",
-        "End of script. Logfile hash: c2b24b16bd, time: 0.09s, user: 0.11s, system: 0.00s"
+        "End of script. Logfile hash: c2b24b16bd, time: 0.08s, user: 0.09s, system: 0.00s"
       ]
     },
     "record_frame_0": {
       "status": "PASS",
       "observed": [
-        "PASS FIFO record SPI_TAIL=0 beats=98509 fault_checks=15"
+        "PASS FIFO record SPI_TAIL=0 beats=98611 fault_checks=21"
       ]
     },
     "record_frame_1": {
       "status": "PASS",
       "observed": [
-        "PASS FIFO record SPI_TAIL=1 beats=227 fault_checks=15"
+        "PASS FIFO record SPI_TAIL=1 beats=329 fault_checks=21"
       ]
     },
     "frozen_result_fifo_tb": {
@@ -116,12 +116,65 @@
         "PINNED_FIFO_1RW_PASS depth=16384 queue_both=1 captured_writes=16384 captured_reads=16384"
       ]
     },
+    "cnv_interval": {
+      "status": "PASS",
+      "observed": [
+        "CNV_TCONV_CASE_PASS core_hz=160000000 min_cycles=4 checks=274",
+        "CNV_TCONV_CASE_PASS core_hz=100000000 min_cycles=3 checks=271",
+        "CNV_TCONV_CASE_PASS core_hz=40000000 min_cycles=1 checks=265",
+        "CNV_CTRL_CONTRACT_COMPLETE input_edges=5 busy_errors=2 pulses=5 checks=65"
+      ]
+    },
+    "dsp_cnv_phases": {
+      "status": "PASS",
+      "observed": [
+        "AD4080_CNV_PHASES_COMPLETE checks=66492",
+        "PASS FIG99 CNV RDY=5,7,9 WRITE=6,8,10 FULL=10 data=8,16,24"
+      ]
+    },
+    "por_ana_csr": {
+      "status": "PASS",
+      "observed": [
+        "POR_ANA_CSR PASS"
+      ]
+    },
+    "continuous_lvds": {
+      "status": "PASS",
+      "observed": [
+        "PASS continuous LVDS: 2686 checked bits, 129 completed words, 38 rejection/missing cycles",
+        "PASS CDC deadline: source_ps=48500 due_ps=50000 dst_ps=60000, tag=0014 missing and rejected",
+        "PASS training lane=1 self=0 fixed 0xAC5D6 without CNV/CNT dependency"
+      ]
+    },
+    "lvds_config_cdc": {
+      "status": "PASS",
+      "observed": [
+        "AD4080 LVDS CONFIG CDC REGRESSION PASS commits=9"
+      ]
+    },
+    "config_spi_pins": {
+      "status": "PASS",
+      "observed": [
+        "CFG_SPI_PIN_EDGES_COMPLETE cases=156 checks=16509 failures=0",
+        "CFG_SPI_PIN_EDGES_COMPLETE cases=156 checks=16509 failures=0",
+        "LVDS_CFG_SPI_COMPLETE A=54 B=28 rawC=f0 single_clock8_code5=1 dual_clock5_code2=1 SPI_41_45=1",
+        "CFG_SPI_STREAM_CRC_COMPLETE first_and_later=1 write_abort_retried=1 short_wrap=7fff",
+        "CFG_SPI_RESET_POLL_COMPLETE legal_80_to_00=1 ignored_write=1 sticky_W1C=1 unqualified_block=1"
+      ]
+    },
+    "result_spi_pins": {
+      "status": "PASS",
+      "observed": [
+        "AD4080_RESULT_SPI_PIN_ENGINE PASS tail=0",
+        "AD4080_RESULT_SPI_PIN_ENGINE PASS tail=1"
+      ]
+    },
     "dsp_data": {
       "status": "PASS",
       "observed": [
-        "PASS config SPI -> correction: -1024 -> -1104, input-relative clk=3",
-        "PASS result SPI SDOB: beats=80 wire=aa00075e0009e8fff30e (0xAA + three signed24 words)",
-        "PASS result SPI SDOB: beats=80 wire=aa00075e0009e8fff30e (0xAA + three signed24 words)",
+        "PASS config SPI -> correction: -1024 -> -1105, input-relative clk=3",
+        "PASS result SPI SDOB: beats=80 wire=aa00075d0009e7fff30d (0xAA + three signed24 words)",
+        "PASS result SPI SDOB: beats=80 wire=aa00075d0009e7fff30d (0xAA + three signed24 words)",
         "AD4080_DSP_RATE_SCAN_COMPLETE legal=27 clamp=3 pause_switch=1",
         "AD4080_DSP_REVIEW_COMPLETE"
       ]
@@ -129,7 +182,7 @@
     "dsp_control": {
       "status": "PASS",
       "observed": [
-        "CONTROL_REVIEW_COMPLETE checks=187 default_rejections=67 bound_rejections=10",
+        "CONTROL_REVIEW_COMPLETE checks=192 default_rejections=68 bound_rejections=12",
         "OBS watermark_host low_mismatch=blocked high_mismatch=blocked mode11_granularity=blocked ASC=0x01aa DESC=0x01aa FIFO_MODE=01",
         "OBS bridge_gpio addresses=0x1a,0x1b blocked=24 reject=2 atomic=1 filter_rdy_bank=2",
         "POWER_BRIDGE_COMPLETE checks=561 por_events=2 collisions=1 resets=1"
@@ -150,6 +203,7 @@
       "observed": [
         "PASS BIST hold before grant is harmless and excludes same-edge reset/mode",
         "PASS illegal mode and incomplete-capture reset/mode/BIST blocked without stopping capture",
+        "PASS AON_CFG_CDC CS release defers evaluation, busy rejects without replay",
         "PERIPHERAL_SERVICES PASS",
         "Generic synthesis structure PASS"
       ]
@@ -158,7 +212,11 @@
       "status": "PASS",
       "observed": [
         "RECORD_LVDS_GOLDEN PASS",
-        "PASS real SRAM full record aa95e2b8000181a4d4, 36 pairs, 2 data words",
+        "PASS real SRAM full record aa95e2b8000181a4d4 on 36 consecutive raw clocks (2.5 ns), load first=3 last=13",
+        "RECORD_RAW_N2 PASS",
+        "RECORD_RAW_N1 PASS",
+        "RECORD_LATE_CRC PASS",
+        "RECORD_PAYLOAD_UNDERRUN PASS",
         "PERIPHERAL_READBACK_LINK PASS",
         "Readback generic structure PASS"
       ]
@@ -167,7 +225,7 @@
       "status": "PASS",
       "observed": [
         "NOOS_HOST_COMPLETE checks=47",
-        "NOOS_SPI_RTL_COMPLETE frames=126 reject_frames=4 ready_waits=2 data_guard=1"
+        "NOOS_SPI_RTL_COMPLETE frames=126 reject_frames=3 ready_waits=2 data_guard=1"
       ]
     },
     "adi_receiver": {
@@ -179,28 +237,41 @@
     "adi_crc_analysis": {
       "status": "PASS",
       "observed": [
-        "Ran 12 tests in 0.039s",
+        "Ran 12 tests in 0.024s",
         "OK"
       ]
     },
     "adctoolbox_host": {
       "status": "PASS",
       "observed": [
-        "Ran 14 tests in 5.847s",
+        "Ran 14 tests in 6.492s",
         "OK"
       ]
     },
     "adctoolbox_rtl": {
       "status": "PASS",
       "observed": [
-        "Verified 8234 RTL outputs against sys_corr"
+        "Verified 8234 RTL outputs against sys_corr",
+        "Figure 96 order: MATCHED (RTL 1032, manual order 1032)"
+      ]
+    },
+    "filter_response": {
+      "status": "PASS",
+      "observed": [
+        "AD4080_FILTER_RESPONSE_COMPLETE rates=26 clamps=3 dynamic_words=1392 tones=3308 cancel_trials=58"
       ]
     },
     "product_binding": {
       "status": "PASS",
       "observed": [
-        "AD4080_PRODUCT_BINDING PASS",
-        "PRODUCT_STRUCTURE PASS: original DSP/control leaves, four 4096x20 result banks, one 8x22 transport queue"
+        "AD4080_PRODUCT_ALL_PINS PASS",
+        "AD4080_PRODUCT_PIN_EDGES PASS",
+        "AD4080_PRODUCT_FILTERS PASS",
+        "AD4080_PRODUCT_RESULT_SPI PASS",
+        "AD4080_PRODUCT_CONTROL_PINS PASS",
+        "AD4080_PRODUCT_FULL_RECORD PASS",
+        "PRODUCT_STRUCTURE PASS: original DSP/control leaves, four 4096x20 result banks, one 8x22 transport queue",
+        "AD4080_SIGNAL_EDGES PASS Fig83=8CNV Fig99=10CNV Fig89=46+26连续逻辑位对，实际写/读合格"
       ]
     },
     "product_calibration": {
@@ -219,37 +290,37 @@
     {
       "id": "FRAME-CRC",
       "scope": "FIFO商业器件LVDS尾",
-      "blocking_evidence": "公开资料给24位尾和头格式；官方源码与本机已有资料未含可独立闭合的商用尾样本/算法",
+      "blocking_evidence": "公开资料给0xAA头和24位尾。单lane采后整帧已以工程CRC闭合逻辑位流，原厂CRC参数和独立的商业器件尾样本仍缺。",
       "owner": "数字接口与验证岗",
       "acceptance": "用 io/adi_crc 的捕获工具处理不同输入与N的训练和留出实物帧，排除等效模型歧义，给原厂参数或独立可重算证据"
     },
     {
       "id": "SPI-CLOCK",
       "scope": "结果SPI和LVDS的封装级时序",
-      "blocking_evidence": "官方HDL的接收位序在理想原语上跑通，真实封装引脚、DCS/DCLK持续访问及最短CNV首位仍待板测",
+      "blocking_evidence": "产品数字端 DCS/DCLK 实测单线、四线及外供待机读旧记录。连续 LVDS 逻辑位对含已核时隙；实际 PHY、封装时差、与最快采样并行的回传仍待验。",
       "owner": "混合信号总责和接口岗",
-      "acceptance": "用实际ODDR与引脚模型验证持续输出及首次位点并配板级采样确认"
+      "acceptance": "用已绑定的ODDR、DCO、I/O Pad和封装/板级输入输出模型，逐原始时钟验证连续与结果SPI，测持续吞吐、首位及最小后沿裕量。"
     },
     {
       "id": "DSP-MAP",
       "scope": "用户校正与补偿",
-      "blocking_evidence": "Rev.B p64 图96先加OFFSET再乘GAIN；原DSP反例x=0、O=1024、g=129/128时输出1024，图示1032。工程K/SHIFT及补偿滤波系数非厂商披露。",
+      "blocking_evidence": "Rev.B p.64图96先加OFFSET再乘GAIN，修订RTL与位真模型在x=0、O=1024、g=129/128均得1032。商业器件精确增益码表、零码、内部舍入与真实补偿系数未定。",
       "owner": "片外校准岗和外围RTL",
-      "acceptance": "由DSP所有者统一运算顺序并过图96独立断言；以实物增益表、所选档OFFSET灵敏度和滤波频响核实增益、舍入及补偿响应。"
+      "acceptance": "在实物上测逐档增益和所选GAIN下的OFFSET灵敏度，独立拟合留出码。交补偿系数、频响、舍入及限幅依据，保留图96回归。"
     },
     {
       "id": "CNV-READY",
       "scope": "结果就绪与设备时基",
-      "blocking_evidence": "滤波数值valid尚未接器件RDY，单独起录保护未进产品；图98/99的外部同步和采样首字尚待全链验证。",
+      "blocking_evidence": "SINC1、SINC5、PF1 由已译码 CNV 定相且真实写入四银行。PF1 以总抽取率解释建立公式；真实转换宏的返回时间和物理引脚对齐尚待验。",
       "owner": "外围RTL与模拟时序负责人",
-      "acceptance": "按手册图97至99与合法倍率逐笔对照真实CNV及接口首字"
+      "acceptance": "用真实转换源、模拟建立和宏返回有效窗逐CNV闭环复核RDY、第一笔、后续记录及拒绝路径，交实际分档时序、CDC和目标库STA。"
     },
     {
       "id": "PRODUCT-JOIN",
       "scope": "真实转换核和产品单存储集成",
-      "blocking_evidence": "已通过单存储的采后单LVDS逻辑记录；实时连续输出、结果SPI、设备CSR到AON和记录保护尚未在产品顶层接通。",
+      "blocking_evidence": "同一产品的连续逻辑链、单/四结果 SPI、0x02/软复位到 AON、满史和早事件各16K读已验证。实际 SAR 宏带标识交付各笔码与电气级读取仍待验。",
       "owner": "总后端",
-      "acceptance": "固定一个产品网表将记录控制接唯一物理存储并以真实转换源验证取得到引脚的带标识结果"
+      "acceptance": "在同一产品网表与源版本上验证真实转换源和唯一存储，经合法模式、供电、SPI配置及输出完成带标签的连续与采后记录，独立核对引脚级读回。"
     },
     {
       "id": "MACROS",
@@ -261,16 +332,16 @@
     {
       "id": "OTP-FACTORY",
       "scope": "量产OTP/校准数据/DFT",
-      "blocking_evidence": "p39表16、p83表47给ROM_CRC_ERR，产品该位没有接真实故障；手册未披露上电OTP、一次性宏或影子表，当前MBIST和装载为工程约定。",
+      "blocking_evidence": "p.39表16、p.83表47公开ROM_CRC_ERR，目前该位无真实来源。p.24只有300 µs初始化等待，未披露OTP开机加载、一次性宏或影子表；项目影子与MBIST各自有数字回归。",
       "owner": "产品测试与NVM宏负责人",
       "acceptance": "交授权宏数据目录/读回/镜像完整性及生产测试证据并确认软复位与掉电策略"
     },
     {
       "id": "POWER-PHY",
       "scope": "电源和真实POR",
-      "blocking_evidence": "数字PG与低功耗许可已有夹具；p24初始无REFIN与上电后移除REFIN对测试字的不同语义尚未处理，图44精度恢复以及真实LDO/隔离/POR未实绑。",
+      "blocking_evidence": "产品软复位、初始化轮询、外供待机读旧记录、0x18 数字请求和参考 W1C 已验。图44的实际恢复、LDO、电源监视器、隔离和目标工艺尚待验。",
       "owner": "模拟电源负责人",
-      "acceptance": "给出PVT/环稳/恢复和跨域PG边界并结合功耗状态验证硅宏"
+      "acceptance": "交实际POR/PG与LDO电源状态、PVT/环稳和图44恢复预算，实测真实域隔离及各模式供电时序；在同产品复核数字事件与SPI访问。"
     },
     {
       "id": "PHYSICAL",
@@ -282,9 +353,9 @@
     {
       "id": "GPIO-STATE",
       "scope": "事件与配置控制面",
-      "blocking_evidence": "产品初始未绑定短指令、ID低字节、引脚RDY，拒绝0x15–17实际改配置；独立控制桥的POR/W1C、非法GPIO及no-OS验收未接产品；事件回窗及READ_DONE资料有歧义。",
+      "blocking_evidence": "图83的+2 CNV ALERT与回窗、定相FILTER_RDY及0x14 W1C已有数字回归；0x0A–0x0F GPIO选码需保持拒绝。产品ID/短地址及LVDS配置子集已绑定，GPIO/READ_DONE资料歧义和物理Pad仍待验。",
       "owner": "接口验证岗和外围RTL",
-      "acceptance": "用阈值上下穿越及迟滞窗口的原始码逐CNV同时录GPIO和粘滞位并核对W1C与新事件碰撞"
+      "acceptance": "保留产品引脚独立检查，用实际宏/PHY逐CNV记录阈值迟滞、GPIO与0x14粘滞位及W1C，核对FULL和READ_DONE的真实可见时点。"
     }
   ],
   "product_signoff": "NOT_VERIFIED",
@@ -298,81 +369,165 @@
     "calibration/characterize_registers.py": "16e24cf85110a1c6c806502e18b8ff8e934010e71f034716bdb71cb1b5ced6d5",
     "calibration/example_dc.csv": "376401e47049f9eeb30469d0252db997dd77267ad9276b8e8562d0c24d8cf0aa",
     "calibration/requirements.txt": "24fc022b6049bf753aaf2efce50ef86063012eba3e93886ed8f89ba7496d2e5c",
-    "calibration/system_cal.py": "ad0a2dc4c73f6838a2884efc8014856605d37ce76214e72907fd62a66dd3eb2c",
+    "calibration/system_cal.py": "627000eb9ad5a2430ebbcd1104fbcf79c57ff58d3c1ac0cfbc6113a45f66896e",
     "calibration/test_characterize_registers.py": "ef09b74ee54c408e6702afc5ce25d750b371abfc6056756961e80455c29c0350",
-    "calibration/test_system_cal.py": "339ffe1cba281697247df21b5e2b0f1dd74541cc44bb17d54d944d0aca599b0e",
-    "calibration/verify_rtl.py": "d8845964f375da357f4bc42ab71205a34e9f92e79f40c6793a99a5f3568c72a1",
+    "calibration/test_system_cal.py": "859a7ec012c4b7b6d415004d64f65a79324cc98dcd66dfb751b8397a61e2af1d",
+    "calibration/verify_rtl.py": "9eb7f16b3803ebf5dc5a2bdb093ab01c08d09aaadb822da10ec1909914c97398",
+    "evidence/dsp-revision.txt": "f5aefabfbff77353d68ceac77c87d6976cefc7fcf176c9f483e1bdc1f08d3603",
     "evidence/isscc_digital_area.py": "200f4db1f6a351f3dc18966de754f034706768375e549bf2592b2a1a62f3061e",
-    "evidence/peripheral_open_items.csv": "889c10b64b87329da6bab93b995e7674bdc66ef28ff0a8e33fe8437d5bb1154f",
+    "evidence/peripheral_open_items.csv": "8223014b3b77186d9db4304c8c41075d0943ef0b7d0efffd99c0cfac43603d50",
+    "figures/draw_filter_response.py": "68fa5279dca37c9757eb0f6085398abd45b2b8d27056564c91cae6b6cfa74b6b",
+    "figures/draw_signal_timing.py": "7380f58369e85a0f81a6fc45eeb59950b76d4f4dd9ef8cc4913661f283f7757c",
     "figures/render_floorplan.py": "5ef1d8ee50d093687571ae519ff7957caec803bf80a3b8cfa05fdd7e81c93be8",
     "floorplan/block_binding.csv": "2038bf4a9bc49bf690711518fa528b763a84cf4ac06840f727b508e221d499a6",
     "floorplan/build.py": "b595cd51833631744be1f65ed0436fa609b8a25e8b6120e48f7ede7403676dca",
     "floorplan/plan.json": "b5bd712fc9aa18937a0fa116c11fbd75a7e7dc29773fba3dbf7c963d6f769386",
-    "integration/ad4080_fifo_lvds_record_link.sv": "5de1755b65c74bd936bc04c717dfcfac59d3bb89c05eab7f90a854999c655ddb",
-    "integration/ad4080_peripheral_services.sv": "8230a7c6bf21b37d9bb38eecb757ee28287f05a0788c1e69d9ebca55c350b152",
-    "integration/ad4080_result_readback_link.sv": "e1e16019c8e6eec5de4910fd14930b79bdd243b3d1a08cbdaa6abe3199646075",
+    "integration/ad4080_fifo_lvds_record_link.sv": "0f48ebfe3ee9d08fdece83399c1d69e34f5aad3c46213e680c7cc12873e633a5",
+    "integration/ad4080_peripheral_services.sv": "10fcdc7b7046bf8c3b570f6abb5e05f50b0b89af6722fdba83667782189f035d",
+    "integration/ad4080_result_readback_link.sv": "d881d081f1b6ed9d73bda5eb35f329233ffa7aa53658a46fb3838778f29a9221",
     "integration/check_tool_run.py": "b46e2abcb58cdd0a73cb03d2cb003148161b63ccacd2356a5f69d4f9b509ff81",
-    "integration/files.f": "263554ea37b832e2f9a2323923dccde34c465825e1b31ada870dad4a382d6c6d",
+    "integration/files.f": "f646f8ae9abcd2fe4d56dc8d4b8ceea3b6c8878385b96f411af6f7e56676b010",
     "integration/lint.vlt": "08f5aa5ab2084e35fa1b8f352f073c8bb6c10941a3d2fd321b762d1416c54c9a",
-    "integration/peripheral_readback_link_tb.sv": "122577e7830b5903ab403109c3aa459a2c535d71ec7262293a13ad8f2e840e06",
-    "integration/peripheral_services_tb.sv": "25b0596ef53759939f28f15855a09c5cf0ecb490c24bb2ea30264a176cbfcc74",
-    "integration/product/ad4080_peripheral_product.sv": "4cdc9ca0a164b5582b27850920cb47bee8cfb540e975e6b1579179f5f5ce253d",
+    "integration/peripheral_readback_link_tb.sv": "1ba9eb33d8f6e080c025dfbf28b48cd45a9bfc5f0bf601a929ba3867140a0aa2",
+    "integration/peripheral_services_tb.sv": "88b72be6845dbc5e166d5b459f6334f0c9e1c237b632506e3f0059ae9f35527f",
+    "integration/por_ana_csr_tb.sv": "2f6ae1179e53ea92a53ae781b3c7a7ae77fe0a92661061cc78bdaff9171367bb",
+    "integration/product/ad4080_peripheral_product.sv": "a656f90df50222614f7139e37298a42bd0e6611bbad33cf6a9453313fee8faff",
     "integration/product/ad4080_product_record_session.sv": "01b05e4959b80996ea4045561b13dff20185b0cab3ae8c31ed220b36e2afcfd4",
-    "integration/product/bind_dsp.py": "7dae0145bdbe918abc5774524fefe15ec96b8b3d326a4c867818b43eed5a9984",
-    "integration/product/check_product_netlist.py": "8ce01d8da07fc9d74ed31fc90f79edfedc215e39438eff605db0a0ef1194c5ec",
+    "integration/product/bind_dsp.py": "c3dd8a780cee13fce73273b5354a2954c8090fdffc7b8539baa6e16ea1766c1d",
+    "integration/product/check_product_netlist.py": "6990f8249218627189d133acecac2c5a0575025a7f8364b13729f9e76051812a",
+    "integration/product/continuous_pin_tasks.svh": "1e84d2dc426e0bf5b4fb8bc6188999d58d99d4da3e96a2cf1970a3c8646f6f15",
+    "integration/product/control_pin_tasks.svh": "e94ea930714f84bfa8c56f6c1b9b12490370774a1cfc4482ec9793a0347b641c",
+    "integration/product/full_record_tasks.svh": "f8d9f7dad9112d1b4bfb6535dc92c39a42f417dc0ec06396139b4cdb601fac63",
     "integration/product/prepare_calibration.py": "7477c244af5eecd2b7e83cdc09bbdee6a86e35edc3adf67175efccfc7a7b6ba9",
-    "integration/product/rtl.f": "7fa07424fec62fb192b1cf192db05d491a747d4ad28b8e635b5eb5a9cbac040e",
-    "integration/product/run_product.sh": "0d0e653bb282720d7dd173ecd56c0a84d051c0ab4bb21a0942c8de283fc1e691",
-    "integration/product/tb_ad4080_peripheral_product.sv": "c13e6afa93a8d13f19c600cc7f07d41fd9c66d645015fb1c7026905ade91ceac",
-    "integration/readback_files.f": "9067942dd9ede7a46eccfaee3352c70b4912927b060c6ac069e3199f4de4e1a6",
-    "integration/run_linked.sh": "442628e04c5706c1b73237badea73ba854ef2f434694233dd248b9b25943cdd0",
+    "integration/product/result_spi_tasks.svh": "1f238594ba62ee79d78b9dbbe09507335543543fc5e8699c5baf2347efdc1ff4",
+    "integration/product/rtl.f": "5cdb4a89bd934ffef81824cd60f077c9837284c7e5fa32515ad64391205b8507",
+    "integration/product/run_product.sh": "64d983ab1b53defb07f77bcb91a357d9b8e8074d94c05b50f8e85935f4b993b9",
+    "integration/product/tb_ad4080_peripheral_product.sv": "9e0e85c8bfb84cb8c24db40fa49a8fb0a82be5058bd6a586f0231b27d8f8d2da",
+    "integration/readback_files.f": "8b3e13c2f3473578acd53a43414046a2f4d79aedf88621bd1ffee7d71bce6765",
+    "integration/run_linked.sh": "c59fee23b9418cea25fa1c728bead323f7a1938638c2264c5a4b98fd115deae3",
     "integration/run_verify.sh": "0062cf8488393445bbcfc0f907a15e657068b2c7e69594adc90e58d1ad1e318a",
     "interfaces/control_review/ad4080_csr_power_bridge.sv": "ac19a1cd6988ec9be99746542f2fbd95145a031e0e5d7c4a4a814f2f64b2f51c",
-    "interfaces/control_review/control_review_tb.sv": "57ceb15cb9abc8841c456d8dd4d52d8bc5b9bd402eeef7243dda66a7048e3798",
-    "interfaces/control_review/noos_host_recipe.c": "1a3fec2ebb0c7c0ff0742f9979732ce64564e194a006106d54c8069589f93263",
-    "interfaces/control_review/noos_spi_rtl.sv": "0ee16b414b40727bf2131c99c53055f9ae274e440c189b439c1b18085b8d02e9",
+    "interfaces/control_review/cfg_spi_pin_edges_tb.sv": "5f1a03b55f5c70b994fd18030c63f8d32975576450dc32341fee9e0a1ec836b5",
+    "interfaces/control_review/control_review_tb.sv": "4072d0a281b9478c59fe1da67df52a237493eb7256fff7f33aeaae3d5e1bd8be",
+    "interfaces/control_review/noos_host_recipe.c": "484a1602b6d1b5490e1c23d111fdeeb71651ddd20747fb1aa075c77fa2b68690",
+    "interfaces/control_review/noos_spi_rtl.sv": "236db77d40116e17b265ae6037156749c58db2ecf4a8e573245cd41fa32889c8",
     "interfaces/control_review/noos_spi_sim.cpp": "68ae5b3647dfb60b645aaecce8b73c1c83b411bab7535591efede228bd33d708",
-    "interfaces/control_review/power_bridge_tb.sv": "87a4d1fb0bcf9aa78b31007f5bac35f5c046c905d127cf5573b04dda864a1919",
-    "interfaces/control_review/run.py": "7e5e55d6a7538eeb35f99a360bc0176d2d05a9615a9eb5a435696917a17b5ea9",
-    "interfaces/control_review/run_noos.py": "82fd8170b1ee76cd53b1a531c964989a9dacec8266a89dc89f6bca23b09f829e",
-    "interfaces/dsp_review/ad4080_record_guard.sv": "363cbee29fa294741c6f744b7cbe54085cb10866a41b49a3e7786b4e0386dda2",
-    "interfaces/dsp_review/run.sh": "138351a7b6997fd699cb16edcc08734337822f9da6218dd89ed4b36c3bbc6bf8",
-    "interfaces/dsp_review/tb_dsp_path.sv": "4f2fc5da06c42f4eb3ec1d27327198e67c437b920d035ea40065a6cb285d7f3b",
-    "interfaces/function_ownership.csv": "61fc5f64d388c7ddff8bf0b0f02a9f677f113185b56cc7350f4a29e29ca5357a",
+    "interfaces/control_review/power_bridge_tb.sv": "20e75e59d00bdf4f62bdb09628dc1abed8b908f3e90a7c2a073de3efe1812eb6",
+    "interfaces/control_review/run.py": "a43cdb39949b4f9b1f655ab32077a9e9bcfe20ac62387eec21de4c3a33a39578",
+    "interfaces/control_review/run_noos.py": "11cc2d574c1ba9afc5c881d278a2943ee9bc1e0dcc76c1af8e1c9cc45c27e87a",
+    "interfaces/control_review/run_pin_edges.py": "6fa007cc8df72e2a688aa7147929216a4bc82f796d0b0e9be0b47fa88a4709ef",
+    "interfaces/dsp_review/ad4080_record_guard.sv": "43196acaf2f395bc27ca1ec9471f1bb048243b2a2760158664eb3fcca86547b1",
+    "interfaces/dsp_review/manual_filter_targets.csv": "e39ff051946fdb10b40605b6fbae0be01ba07338f0460b775855da9c081bc927",
+    "interfaces/dsp_review/run.sh": "86261ec09290207a1d456f388f70f7a7d77daf18fbd5de868533aabe9d5fe046",
+    "interfaces/dsp_review/tb_dsp_path.sv": "c9236b41d9642639c15586b7e74c6d3b3d551c6aa371478497f01fad2995329c",
+    "interfaces/dsp_review/tb_filter_response.sv": "289604bb672a1a5a2f2600f148b1da19ba84fada9fb9310a2c105a508c5644d5",
+    "interfaces/dsp_review/verify_filter_response.py": "8633fed1ed0f13b8a8a99e4f4e5992a51f3af1a7113d4a6c9933e5fb82d72471",
+    "interfaces/function_ownership.csv": "3df8c06a8e854ca973f566da77dabc2b68d7e6c471b3845b1a9e16796b1fa8b4",
+    "io/ad4080_continuous_lvds.sv": "3713a7e40381c96333d209cee3f0b5fbd5babfd6fb250f9982216c9aac89fa5e",
+    "io/ad4080_continuous_lvds_tb.sv": "fe21854ef41a9a797fb48c3e1a008228417776d1c3204e2c8bf5f2b17499c30d",
+    "io/ad4080_continuous_result_cdc.sv": "cf21bb4f3fa49eb45eb971a7411afcb5bff163a0ef9384b83106309620b42235",
     "io/ad4080_ddr_edge_words.sv": "5ce0894e7d921cdb582dd3e5984447c1f2f0a1a0443f1bd971745b41486b633c",
     "io/ad4080_ddr_edge_words_properties.sv": "5dc47ea8455b86d1a90fa616f71283f59d17eab5d83a8b7ad21456a4aad9e856",
     "io/ad4080_ddr_edge_words_tb.sv": "eaa702a4c2004107b3cc4c1cf42e966afb628c4a71acaa8158103587a4a315b5",
-    "io/ad4080_fifo_record_framer.sv": "b53600e2725c62bd4bd4a09ddf434f75acec107ac9be57d3ba017570ac9e4218",
-    "io/ad4080_fifo_record_framer_tb.sv": "0deaae07e9ae38ac4ac44c9b5f74789d6ef31c12a2977b0bf268c1e2d633c704",
+    "io/ad4080_fifo_record_framer.sv": "5151ad964fce238cdc710258ece9cfbc61ebd0d0592a1bd8023306db6bee2829",
+    "io/ad4080_fifo_record_framer_tb.sv": "997e4603cccd60ade1f90577bc109229f88c3336c0214b4254be7a006fe3719b",
+    "io/ad4080_lvds_config_cdc.sv": "c35d67799fda56273dc0e34c188890f45d057227d3453d2e600a56add7def00e",
+    "io/ad4080_lvds_config_cdc_tb.sv": "6050f38c3867a14b70f2f0ff41ec08209728cf7bdc8caa9b7cbf66f9b3ebb601",
+    "io/ad4080_result_spi_pins.sv": "0011b032dab317ce5376726f7a9a32a5c0587617386ea2782fe4ed67cae8f112",
+    "io/ad4080_result_spi_pins_tb.sv": "905f904d3c1ebbcc0f2ceac0edd553dfdaeb728a1c0ae21238b6d50537a7322d",
     "io/adi_crc/capture.py": "c80a272138c1e2c73828721924c03ef0a368335f7fdfdf5553ef33ad5f13683c",
     "io/adi_crc/crc24.py": "02fa5bb67d1068160a1b7fe0b89e251f1a164b0d37237080eab4da7c499a6959",
     "io/adi_crc/fifo_crc_probe.py": "93565325f44ebac833ce31afdd832dbf73d412c912ac32897c348bac68bcedd6",
     "io/adi_crc/test_probe.py": "b8fc66df49b3c6c9ab5f53df334bd35272ab6bc26e750fe42b77d337a18ed781",
-    "io/adi_receiver/adi_receiver_tb.sv": "14c20c0c4e89ac08082ea225c5e75aa0fbde53e1e38a69608fbd3f280d356748",
+    "io/adi_receiver/adi_receiver_tb.sv": "96b33904d3f2eb7f6fe8168656025e56bc59265213fa9a358c28139c65301c53",
     "io/adi_receiver/adi_upstream.sha256": "7690dfa6f002a059d181af4bceb51850ef1e96911fe7b35db2ab2ab15d31f275",
     "io/adi_receiver/ideal_7series_io.sv": "962dd6d28112639558960431bb0099e66098391c559ca31079cd5e0083099a3b",
     "io/adi_receiver/run_verify.sh": "903f0a4ed1b3d7d02bf6c795e0dff59498321e7d4cf39e4de51bad6b8d8ab76c",
     "io/evidence/record-source-vectors.py": "76140e05425c1b915f6335066b85c0f3bdce9b356d50fe85326da159455d49d4",
     "io/package_pins.csv": "83dbbd5fb629be5118b1ca82eb0cae104f584bb55819ea79489209f44913a0c4",
     "io/prove_edge_words.ys": "9a46b431b97f42171097601c803e213a0fef08d86541fd55c6b09dbd84525c50",
+    "io/run_result_spi_pins.sh": "33fbb86639c0134ce9014ced49def425332dfacd7105d56ad4c9b8a77287a43c",
     "memory/result_store_mbist.sv": "40ab0e3965df8d437acece0c5d5547ffb2bf7f823ab674dae1d139e618f00773",
     "memory/result_store_mbist_tb.sv": "21ba3a9227e817c070836006f8567976931cfc0ed4cb18eb84f2513a54347290",
     "otp/otp_shadow_loader.sv": "3ab1f0c6927f3c10d7c7e83efbf8c663565cc7d3d1416b3d89fcd60991f0659f",
     "otp/tb_otp_shadow_loader.sv": "771fa6740abf049d1623be83bc920031d4e19da3e57ce40a815b64b36e5dd581",
+    "power/ad4080_cfg_power_cdc.sv": "176a6870a1aa3bb1f7bb6062b5049dd0e07549bf15536351be78a61afa17257f",
     "power/ad4080_pwr_reset_sync.sv": "460dc21f9652683a2b30b608f2196249eb9ab6e9e22df2b416e7af1e418aa82e",
-    "power/ad4080_pwr_supervisor.sv": "fc5c33a865ffd6329f3d4b05ba57a1b6d578500a0ed342b386c730ed4450f904",
-    "power/tb_ad4080_pwr_supervisor.sv": "30538fa8cb90d2f5b9a511c0ea352d67f190cba2cb71333f1ff2a7c94d6156c2",
+    "power/ad4080_pwr_supervisor.sv": "cc2c7cbeff4c32534d431d4bb36c2e60617dbc5e78deff8465a7e6e54eda32b4",
+    "power/tb_ad4080_pwr_supervisor.sv": "1a21a2ad10ef39c5658e04776be05bd116a2a893358a05244475f21256d63e2c",
     "rtl/result_store.sv": "277c131ca1daf4b9b42d1a899091fee1fa4eae44c21acf3883d9140717d93699",
-    "transport/ad4080_result_transport.sv": "e33cae2a00b1868086f1fa17089f31a702fa8bee137ace60cafde55f551d940c",
-    "transport/tb_ad4080_result_transport.sv": "5b0b02651d1d5ca55018ad9fa25a960e16d00ebf7f1c1030da49939e479aa91f",
-    "transport/verify.sh": "6c9c3c7b42bda3c3295fad782c09930719b403f5f6c7c29ce5056b663a12ad80",
+    "transport/ad4080_result_transport.sv": "4f088f4ed13a33e2387d2180d81c5e8647d884759b28d4ab59de4a83a0dad9e2",
+    "transport/tb_ad4080_result_transport.sv": "177ab1578c536b94121039ce16c4db13015fae38b45d8cfbf9686292828b83b0",
+    "transport/verify.sh": "9cf1c52ef9b0b3c3c04914ac5cd48493dd5c33b7420244442f26914478034eb2",
     "verify/check_delivery.py": "86e9d117eed031638d61a60aac364099ccb9702f8e8e3f860e05d69e3e8168d1",
     "verify/check_floorplan.py": "3bb3e7178ca8c2cca478075791e073efb753f64fdb3b6ea4c051cabe6bb48538",
-    "verify/check_ownership.py": "715f51e56e452c46d5cb3fea56330883e6467cfb54e4f6c0056a5c02eb80c06c",
+    "verify/check_ownership.py": "0ac487286165292ebb513c08fc677d4b6d678f8313d364d2e16089d56c5443e2",
+    "verify/check_signal_edges.py": "ce2317885f2b7d3e2b76e2194d40306294d1aca9564eb24fe6125e4144807c9c",
     "verify/pinned_fifo_contract_tb.sv": "25b70ab2a5866f14090ec4183660964c6eadec327200c7991b923ff773f613a5",
-    "verify/run_peripheral_audit.py": "bf52cf2b7e0b9a72a57e45b1d6b1c27a24febaeb91f628bd042761017f2f6b1c",
+    "verify/run_peripheral_audit.py": "0b083d7f9a79038efef6217cbebdecaf79ecfb51c546723e24fca16b1144d793",
     "verify/run_store.py": "c2a1bfe9efd0774ba27bde3fa7e6f6963d1022df56a45943bb1189d0bebc5227",
     "verify/store.ys": "2b295f5b9939b0c9f06bef1794ab6501b42467c81062206334c0e6334413db9f",
     "verify/store_tb.sv": "e2c2bc17799d51f73f1376cc8ba1f8bd7c16e5f1c78bc858a41844cfd9ca706f"
+  },
+  "publication_recheck": {
+    "scope": "Executed initial 37-case audit on the frozen DSP. Four harness files then received comments only; outputs were rerun with the published sources in these cases.",
+    "comment_only_changes": {
+      "integration/run_linked.sh": {
+        "original_sha256": "c59fee23b9418cea25fa1c728bead323f7a1938638c2264c5a4b98fd115deae3",
+        "published_sha256": "c084bb299fa1baa8cbbaff731672cd58271e6e0065b4f336a0682839ff53c7cb"
+      },
+      "interfaces/dsp_review/tb_dsp_path.sv": {
+        "original_sha256": "c9236b41d9642639c15586b7e74c6d3b3d551c6aa371478497f01fad2995329c",
+        "published_sha256": "080025d51926da8512752714eac5007d54497a02c332bfa0832e01a3ea37d2bc"
+      },
+      "interfaces/dsp_review/verify_filter_response.py": {
+        "original_sha256": "8633fed1ed0f13b8a8a99e4f4e5992a51f3af1a7113d4a6c9933e5fb82d72471",
+        "published_sha256": "b293e9850ad887014c99d2729b573c1b5d4873d79c28860c19d2c3042c06587a"
+      },
+      "io/ad4080_result_spi_pins_tb.sv": {
+        "original_sha256": "905f904d3c1ebbcc0f2ceac0edd553dfdaeb728a1c0ae21238b6d50537a7322d",
+        "published_sha256": "227ed52000056fa33b446ded719d15e59e577bc5eb69b5db05a714b577898a47"
+      }
+    },
+    "checks": {
+      "result_spi_pins": {
+        "status": "PASS",
+        "observed": [
+          "AD4080_RESULT_SPI_PIN_ENGINE PASS tail=0",
+          "AD4080_RESULT_SPI_PIN_ENGINE PASS tail=1"
+        ]
+      },
+      "dsp_data": {
+        "status": "PASS",
+        "observed": [
+          "PASS config SPI -> correction: -1024 -> -1105, input-relative clk=3",
+          "PASS result SPI SDOB: beats=80 wire=aa00075d0009e7fff30d (0xAA + three signed24 words)",
+          "PASS result SPI SDOB: beats=80 wire=aa00075d0009e7fff30d (0xAA + three signed24 words)",
+          "AD4080_DSP_RATE_SCAN_COMPLETE legal=27 clamp=3 pause_switch=1",
+          "AD4080_DSP_REVIEW_COMPLETE"
+        ]
+      },
+      "record_link": {
+        "status": "PASS",
+        "observed": [
+          "RECORD_LVDS_GOLDEN PASS",
+          "PASS real SRAM full record aa95e2b8000181a4d4 on 36 consecutive raw clocks (2.5 ns), load first=3 last=13",
+          "RECORD_RAW_N2 PASS",
+          "RECORD_RAW_N1 PASS",
+          "RECORD_LATE_CRC PASS",
+          "RECORD_PAYLOAD_UNDERRUN PASS",
+          "PERIPHERAL_READBACK_LINK PASS",
+          "Readback generic structure PASS"
+        ]
+      },
+      "filter_response": {
+        "status": "PASS",
+        "observed": [
+          "AD4080_FILTER_RESPONSE_COMPLETE rates=26 clamps=3 dynamic_words=1392 tones=3308 cancel_trials=58"
+        ]
+      }
+    },
+    "native_pf1_contract_rechecked": true,
+    "numeric_filter_csv_byte_identical": true
   }
 }

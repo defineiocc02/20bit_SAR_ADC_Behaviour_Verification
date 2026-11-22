@@ -40,11 +40,12 @@ module result_fifo #(
     localparam int PTR_W=MEM_AW+1;
     localparam logic [PTR_W-1:0] DEPTH_C=PTR_W'(DEPTH);
     logic [PTR_W-1:0] wr_ptr, rd_ptr;
+    logic active_q;
     wire [PTR_W-1:0] count=wr_ptr-rd_ptr;
     wire collision=snapshot_rd_en && (wr_en || rd_en);
-    wire write_fire=rst_n && !clear && !collision && wr_en && (!full || overwrite_en);
-    wire read_fire=rst_n && !clear && !collision && rd_en && !empty;
-    wire snapshot_fire=rst_n && !clear && !collision && snapshot_rd_en;
+    wire write_fire=active_q && !clear && !collision && wr_en && (!full || overwrite_en);
+    wire read_fire=active_q && !clear && !collision && rd_en && !empty;
+    wire snapshot_fire=active_q && !clear && !collision && snapshot_rd_en;
     (* ram_style="block" *) logic [DATA_W-1:0] mem [0:DEPTH-1];
     initial begin
         if (DATA_W<1 || DEPTH<2 || (DEPTH&(DEPTH-1))!=0)
@@ -59,9 +60,17 @@ module result_fifo #(
 
     always_ff @(posedge clk) begin
         if (write_fire) mem[wr_ptr[MEM_AW-1:0]]<=wr_data;
-        rd_valid<=read_fire || snapshot_fire;
         if (snapshot_fire) rd_data<=mem[snapshot_addr];
         else if (read_fire) rd_data<=mem[rd_ptr[MEM_AW-1:0]];
+    end
+    // 复位只清控制，不给 RAM 加复位。首个释放沿登记会话，下一沿才可访问。
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) active_q<=1'b0;
+        else active_q<=1'b1;
+    end
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) rd_valid<=1'b0;
+        else rd_valid<=read_fire || snapshot_fire;
     end
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin wr_ptr<='0; rd_ptr<='0; end
@@ -74,9 +83,10 @@ module result_fifo #(
     end
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin overflow<=1'b0; underflow<=1'b0; access_reject<=1'b0; end
+        else if (clear) begin overflow<=1'b0; underflow<=1'b0; access_reject<=1'b0; end
         else begin
-            access_reject<=!clear && collision;
-            if (!clear && !collision) begin
+            access_reject<=active_q && collision;
+            if (active_q && !collision) begin
                 if (wr_en && full && !overwrite_en) overflow<=1'b1;
                 if (rd_en && empty) underflow<=1'b1;
             end

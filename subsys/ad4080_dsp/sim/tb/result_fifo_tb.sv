@@ -1,8 +1,16 @@
 `timescale 1ns/1ps
+// =============================================================================
+// 文件名     : result_fifo_tb.sv
+// 模块名     : 结果 FIFO 独立事务对照
+// 版本       : 随 Git 源版本
+// 功能       : 验证队列读、环形覆盖、物理快照和错误状态。
+// 设计说明   : 预期模型将队列指针与物理有效字分开。
+// 变更记录   : 增加核心首沿前的有效位检查，清队列时同时退休会话错误。
+// =============================================================================
 // 小规模功能测试使用独立队列/RAM 预期模型，只比较已知内容，不假定 RAM 初始化。
 module result_fifo_tb #(parameter int DEPTH=32);
   localparam int W=20,AW=$clog2(DEPTH),AF=3,AE=2;
-  logic clk=0,rst_n=0,clear=0,wr_en=0,overwrite_en=0,rd_en=0,snapshot_rd_en=0;
+  logic clk=0,rst_n=1,clear=0,wr_en=0,overwrite_en=0,rd_en=0,snapshot_rd_en=0;
   logic [W-1:0]wr_data=0;logic[AW-1:0]snapshot_addr=0;
   wire[W-1:0]rd_data;wire rd_valid,full,empty,almost_full,almost_empty,overflow,underflow,access_reject;
   always #5 clk=~clk;
@@ -20,7 +28,8 @@ module result_fifo_tb #(parameter int DEPTH=32);
     col=s&&(w||q);wfire=!cl&&!col&&w&&(count<DEPTH||ow);
     qfire=!cl&&!col&&q&&(count>0);sfire=!cl&&!col&&s;
     compare=(qfire&&known[rp])||(sfire&&known[sa]);expected=memory[sfire?sa:rp];
-    if(cl)begin wp=0;rp=0;count=0;end
+    // 新记录没有旧会话的越界诊断。物理 RAM 的已知内容仍用于快照验证。
+    if(cl)begin wp=0;rp=0;count=0;ov=0;un=0;end
     else if(!col)begin
       if(w&&count==DEPTH&&!ow)ov=1;
       if(q&&count==0)un=1;
@@ -40,6 +49,9 @@ module result_fifo_tb #(parameter int DEPTH=32);
   endtask
   initial begin
     for(int i=0;i<DEPTH;i++)known[i]=0;
+    // 时钟首沿在 5 ns。硬复位断言到有效位清除无需等待时钟。
+    #1 rst_n=0;
+    #1 require(rd_valid===1'b0,"asynchronous reset of read valid");
     repeat(3)@(negedge clk);rst_n=1;
     step(0,0,0,0,0,0,0);
     for(int i=0;i<DEPTH;i++)step(1,i+100,0,0,0,0,0);
@@ -49,6 +61,8 @@ module result_fifo_tb #(parameter int DEPTH=32);
     for(int i=0;i<DEPTH+5;i++)step(1,200+i,0,0,0,1,0);
     step(1,999,1,1,0,1,0);step(0,0,0,1,3,0,0);
     while(count>0)step(0,0,1,0,0,0,0);
+    // 先证实本会话已产生错误，再测试 clear，避免空白测试没有真正清过 1。
+    require(overflow && underflow,"clear precondition holds both errors");
     step(0,0,0,0,0,0,1);
     // 逻辑清除后仍应保留先前写入的 RAM 内容，快照读取据此比较。
     for(int i=0;i<DEPTH;i++)step(0,0,0,1,i,0,0);

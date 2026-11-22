@@ -68,7 +68,9 @@ module sinc5_comp #(
     logic signed [PRODUCT_W-1:0] products_q [0:TERMS-1];
     wire signed [PAIR_W-1:0] pairs [0:TERMS-1];
     wire do_product = pf1_enable_i && sinc5_valid_o && phase_q;
-    assign processing_reject = 1'b0;
+    // 直接叶级绑定对非法 PF1 档位报配置诊断。CIC 与补偿表都在同一
+    // SYNC 沿钳到档 7，保留表62 要求的最大抽取数值行为。
+    assign processing_reject = pf1_enable_i && filter_sync && dec_sel > 4'd7;
     assign window[0] = $signed(sinc5_data_o);
     for (genvar sample_index=1; sample_index<PMODE_COMP_TAPS; sample_index++) begin : g_input
         assign window[sample_index] = history_q[sample_index-1];

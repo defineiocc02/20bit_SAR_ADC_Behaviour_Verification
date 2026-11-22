@@ -25,6 +25,7 @@ module ad4080_top_tb;
   // =========================================================================
   // 参数默认关闭全部物理适配，旧样本从 valid_in 直接推进；为 .* 补全新增端口。
   ad4080_top #(.FIFO_DEPTH(DEPTH),.P_MULTIBYTE_ORDER(0),.P_OFFSET_LSB_ADDR(37),.P_PRODUCT_ID_L(55),.P_SHORT_ADDR_BITS(7),.P_WRITE_SDO_DRIVE(0)) dut(
+    .restart_sync_i(1'b0), .stored_word_valid_o(), // 换代与旧 FIFO 并行读由适配器台架验证。
     // 独立数值或协议配置没有 AON 响应；真实功耗命令在产品台架验证。
     .pwr_cfg_full_allow_i(1'b1), .pwr_cfg_poll_allow_i(1'b0), // 该台架没有软初始化中的 AON 轮询窗口。
     .pwr_cmd_ready_i(1'b0), .pwr_cmd_valid_o(),

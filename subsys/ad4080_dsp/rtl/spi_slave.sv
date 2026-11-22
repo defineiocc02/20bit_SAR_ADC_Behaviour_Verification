@@ -32,6 +32,7 @@ module spi_slave #(
     output logic sdo, sdo_oe,
     input  logic interface_ready,
     input  logic reset_poll_only_i = 1'b0, // 供电、Pad 和所有权均合格的软复位初始化轮询许可
+    input  logic restart_sync_i = 1'b0,    // 核心域换代，原 SPI 帧停止解析。
     input  logic crc_en, send_status, single_inst, short_instr, addr_asc,
     input  logic strict_access,
     input  logic [15:0] status_long,
@@ -59,8 +60,11 @@ module spi_slave #(
     // CS/SCLK 的双级同步切断外部边沿到状态机的异步路径。
     // 表2指定主机可在 SCLK 上升沿后立即改变 SDI。外部时钟沿先锁位，
     // 再将整位交给核心；解析器使用已有的同步上升事件推进。
-    // 最坏同沿相位下，锁存位有一拍额外时间稳定，再由解析器消费。
-    // 保持 clk >= 8*SCLK，并在实际 Pad/STA 约束 SCLK->捕获和跨域路径。
+    // SCLK 先过 sck_meta 与 sck_sync，解析器在下一核心沿使用
+    // sdi_core_sample_q。即使两时钟同沿，数据也可在中间沿完成采样。
+    // 目标 STA 对 sdi_edge_q/Q 到 sdi_core_sample_q/D 设 datapath-only
+    // 最大延迟，一核心周期扣除源 C→Q、接收建立和不确定度；目标库逐角验收。
+    // SCLK Pad 到 sdi_edge_q 独立做输入建立/保持，核心时钟须 >= 8*SCLK。
     (* ASYNC_REG = "TRUE" *) logic cs_meta, cs_sync, sck_meta, sck_sync;
     logic sdi_edge_q, sdi_core_sample_q;
 
@@ -81,8 +85,11 @@ module spi_slave #(
     logic read_command, poisoned, optional_entity, data_started;
     logic poll_only_frame;
     // 未连接或未知许可均封闭。该信号须已经同步到配置执行时钟。
-    wire reset_poll_requested = reset_poll_only_i === 1'b1;
-    wire normal_access_ready = interface_ready === 1'b1;
+    bit reset_poll_requested, normal_access_ready;
+    always_comb begin
+        reset_poll_requested = reset_poll_only_i == 1'b1;
+        normal_access_ready = interface_ready == 1'b1;
+    end
     // 初始化期间仅接受本来就是轮询的帧。恢复后允许这种帧收完，
     // 失去合法供电/所有权且普通权限也为低时立即撤销。
     wire frame_access_ready = poll_only_frame ? (reset_poll_requested || normal_access_ready) :
@@ -144,13 +151,19 @@ module spi_slave #(
             $fatal(1, "spi_slave: write SDO policy must be unbound, Hi-Z, or drive-zero");
     end
 
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    // 核心侧与独立 SCLK 捕获使用硬复位。换代只在核心沿取消旧帧，
+    // 并保持 SCLK 输入触发器的异步复位端不经过功能逻辑。
+    task automatic reset_edges();
             cs_meta <= 1'b1; cs_sync <= 1'b1; cs_prev <= 1'b1;
             sck_meta <= 1'b1; sck_sync <= 1'b1; sck_prev <= 1'b1;
             sdi_core_sample_q <= 1'b0;
             cs_close_pending <= 1'b0;
-        end else begin
+    endtask
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) reset_edges();
+        else if (restart_sync_i) reset_edges();
+        else begin
             cs_meta <= cs_n; cs_sync <= cs_meta; cs_prev <= cs_sync;
             sdi_core_sample_q <= sdi_edge_q;
             sck_meta <= sclk; sck_sync <= sck_meta; sck_prev <= sck_sync;
@@ -158,8 +171,7 @@ module spi_slave #(
         end
     end
 
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    task automatic reset_parser();
             phase <= IDLE; sdo <= 1'b0; sdo_oe <= 1'b0;
             crc_frame <= 1'b0; status_frame <= 1'b0; single_frame <= 1'b0;
             short_frame <= 1'b0; ascend_frame <= 1'b0; strict_frame <= 1'b1;
@@ -178,7 +190,12 @@ module spi_slave #(
             partial_err_pulse <= 1'b0; addr_err_pulse <= 1'b0;
             readonly_err_pulse <= 1'b0; not_ready_err_pulse <= 1'b0;
             cfg_reject <= 1'b0; cfg_reject_reason <= '0;
-        end else begin
+    endtask
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) reset_parser();
+        else if (restart_sync_i) reset_parser();
+        else begin
             we <= 1'b0;
             crc_err_pulse <= 1'b0; clk_cnt_err_pulse <= 1'b0;
             partial_err_pulse <= 1'b0; addr_err_pulse <= 1'b0;

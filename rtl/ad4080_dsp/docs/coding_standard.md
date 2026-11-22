@@ -23,8 +23,8 @@
 
 ```bash
 # 从仓库根目录；工具需预先配置，文件及依赖由调用者明确提供
-STRICT=1 bash subsys/ad4080_dsp/scripts/lint.sh \
-  subsys/ad4080_dsp/rtl/sinc1_decim.sv
+STRICT=1 bash rtl/ad4080_dsp/scripts/lint.sh \
+  rtl/ad4080_dsp/sinc1_decim.sv
 python tools/run_open_rtl.py --tops result_fifo_tb --out ../sar-output/fifo-check-001
 ```
 

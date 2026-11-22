@@ -6,9 +6,9 @@
 
 ```bash
 # 必须明确给文件和依赖；PYTHON指向已有pyslang的解释器
-STRICT=1 bash subsys/ad4080_dsp/scripts/lint.sh subsys/ad4080_dsp/rtl/sinc1_decim.sv
-python subsys/ad4080_dsp/scripts/sv_lint.py --strict subsys/ad4080_dsp/rtl/sinc1_decim.sv
-python subsys/ad4080_dsp/scripts/check_headers.py subsys/ad4080_dsp/rtl/sinc1_decim.sv
+STRICT=1 bash rtl/ad4080_dsp/scripts/lint.sh rtl/ad4080_dsp/sinc1_decim.sv
+python rtl/ad4080_dsp/scripts/sv_lint.py --strict rtl/ad4080_dsp/sinc1_decim.sv
+python rtl/ad4080_dsp/scripts/check_headers.py rtl/ad4080_dsp/sinc1_decim.sv
 ```
 
 | 入口 | 实际检查 | 不代表什么 |
@@ -28,7 +28,7 @@ python tools/run_open_rtl.py --tops result_fifo_tb --out ../sar-output/fifo-chec
 
 `--tops`与库外新`--out`必填；`--simulator`选择已配置的verilator／vcs／iverilog。`VERILATOR`、`VCS`、`IVERILOG`／`VVP`按实际runner支持选择命令。每个已登记组件只编译明确依赖，并检查完成marker、正计数／零错误项与必要OPEN说明。
 
-`subsys/ad4080_dsp/sim/run_all.sh`转发同一显式runner，不是默认全库套件；`run_top.sh`只选ad4080_top_tb，其余输入仍须提供。未登记、未绑定、编译失败或没有有效完成证据都不算通过；没有旧golden／二进制自动回退。
+`rtl/ad4080_dsp/sim/run_all.sh`转发同一显式runner，不是默认全库套件；`run_top.sh`只选ad4080_top_tb，其余输入仍须提供。未登记、未绑定、编译失败或没有有效完成证据都不算通过；没有旧golden／二进制自动回退。
 
 ## 验证 DSP 数字输入
 

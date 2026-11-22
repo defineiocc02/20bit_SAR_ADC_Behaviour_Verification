@@ -59,29 +59,14 @@ module sar20_ad4080_top #(
     output logic processing_reject
 );
     wire restart_sync=sar_epoch_clear || dsp_restart;
-    wire input_fault=sar_dout_valid && (|sar_flags);
-    // 只有明确的 0 能解除上游故障许可。两态变量保留四态台架的拒绝行为。
-    bit conversion_fault_clear;
-    always_comb conversion_fault_clear = sar_conversion_fault == 1'b0;
-    wire conversion_fault_active=!conversion_fault_clear;
-    wire stream_active=rst_n && !restart_sync && !stream_fault && !input_fault &&
-                       !sar_analog_ovf && !conversion_fault_active;
-    wire [19:0] signed_input={~sar_dout[19],sar_dout[18:0]};
-    logic [19:0] signed_output;
-    logic inner_valid,stored_word_valid,clip_low,clip_high;
-    // 已冻结记录的读口保持独立，转换故障只隔离新数据。换代才取消旧记录。
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) stream_fault<=1'b0;
-        else if (restart_sync) stream_fault<=1'b0;
-        else if (input_fault || sar_analog_ovf || conversion_fault_active) stream_fault<=1'b1;
-    end
-    assign sample_accepted=stream_active && sar_dout_valid;
-    assign accepted_sample_id=sar_sample_id;
-    assign sample_rejected=rst_n && !restart_sync && sar_dout_valid &&
-                           (stream_fault || input_fault || sar_analog_ovf || conversion_fault_active);
-    assign rejected_sample_id=sar_sample_id;
-    assign rejected_flags=sar_flags;
-    assign rejected_after_fault=sample_rejected && stream_fault;
+    logic [19:0] signed_input, signed_output;
+    logic stream_active, inner_valid, stored_word_valid, clip_low, clip_high;
+    sar20_result_guard u_retirement (
+        .clk, .rst_n, .restart_sync, .sar_dout, .sar_dout_valid, .sar_sample_id,
+        .sar_flags, .sar_analog_ovf, .sar_conversion_fault, .signed_input,
+        .stream_active, .stream_fault, .sample_accepted, .accepted_sample_id,
+        .sample_rejected, .rejected_sample_id, .rejected_flags, .rejected_after_fault
+    );
     // 并行适配器只接数值与寄存器。下面的模式和 IO 观察输出保留在 DSP 叶层。
     logic unused_pwr_cmd_valid_o, unused_cnv_data_timing_error_o, unused_continuous_bypass_o, unused_continuous_enable_o, unused_continuous_flush_o, unused_continuous_word_valid_o;
     logic [1:0] unused_pwr_cmd_op_o, unused_pwr_cmd_value_o;

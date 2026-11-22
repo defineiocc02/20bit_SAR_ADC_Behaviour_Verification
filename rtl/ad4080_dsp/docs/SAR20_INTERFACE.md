@@ -1,6 +1,6 @@
 # DSP 数字输入接口
 
-[sar20_ad4080_top](../rtl/sar20_ad4080_top.sv) 从调用方接收已经重构的 20 位 offset-binary 码、样本 ID、有效位和故障标志。它完成码制转换与停流控制，再把有效码送到 [ad4080_top](../rtl/ad4080_top.sv)。当前 [v21 顶层](../../../rtl/v21/adc_digital_ip_v21.sv) 的交付范围是 ADC 数字链。DSP 的测试台通过独立的数字输入驱动适配层。
+[sar20_ad4080_top](../sar20_ad4080_top.sv) 从调用方接收已经重构的 20 位 offset-binary 码、样本 ID、有效位和故障标志。它完成码制转换与停流控制，再把有效码送到 [ad4080_top](../ad4080_top.sv)。当前 [v21 顶层](../../sar_core/adc_digital_ip_v21.sv) 的交付范围是 ADC 数字链。DSP 的测试台通过独立的数字输入驱动适配层。
 
 | 事项 | 适配层合同 |
 | --- | --- |

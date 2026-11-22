@@ -16,7 +16,7 @@ case "$out/" in "$root/"*) printf '%s\n' 'output directory must be outside check
 mkdir -- "$out"
 cd "$out"
 cp "$root/flow/formal/refactor/core_safety.sby" "$root/flow/formal/refactor/core_safety.sv" .
-sv2v "$root/rtl/dem_mask_v3.sv" "$root/rtl/sched18.sv" > core-leaves.v
+sv2v "$root/rtl/sar_core/dem_mask_v3.sv" "$root/rtl/sar_core/sched18.sv" > core-leaves.v
 timeout 180 "${SBY:-sby}" -d dem core_safety.sby dem
 timeout 300 "${SBY:-sby}" -d sched core_safety.sby sched
 grep -F 'Induction step proven: SUCCESS!' sched/model/design.log

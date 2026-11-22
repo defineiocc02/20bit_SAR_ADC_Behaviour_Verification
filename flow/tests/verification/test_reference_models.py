@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import random
 
-from subsys.experiments.fig11 import Fig11Parameters
+from experiments.fig11 import Fig11Parameters
 from verification.reference.datapath_ref import (
     OUTPUT_COUNT,
     ReconTerms,

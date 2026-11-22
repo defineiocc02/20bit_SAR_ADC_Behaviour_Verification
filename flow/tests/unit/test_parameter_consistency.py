@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import pytest
 
-from subsys.experiments.fig11 import Fig11Model, Fig11Parameters
+from experiments.fig11 import Fig11Model, Fig11Parameters
 from adi_model.simulation.config import ConfigError
 from adi_model.simulation.parameter_consistency import (
     check_dither_fits_stage2,

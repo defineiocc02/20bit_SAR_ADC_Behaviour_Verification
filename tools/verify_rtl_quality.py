@@ -10,6 +10,7 @@
 # =============================================================================
 """Verilator、sv2v、Yosys 与 Icarus 的生产 RTL 统一入口。"""
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -17,8 +18,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PERIPH = ROOT / "subsys/ad4080_peripherals"
-DSP = ROOT / "subsys/ad4080_dsp/rtl"
+PERIPH = ROOT / "rtl/ad4080_periph"
+DSP = ROOT / "rtl/ad4080_dsp"
 
 # 字符串和注释使用相同长度替换以保持行号。注释里的横幅不参与运算符检查。
 NONCODE = re.compile(r'//[^\n]*|/\*.*?\*/|"(?:\\.|[^"\\])*"', re.S)
@@ -73,13 +74,14 @@ def source_sets(out):
     binding = out / "bound_dsp"
     checked([sys.executable, PERIPH / "integration/product/bind_dsp.py", ROOT, binding],
             out, out / "bind.log")
-    core = [ROOT / rel for rel in filelist(ROOT, "flow/build/filelists/files_adc_v21.f")]
+    core = [ROOT / rel for rel in filelist(ROOT, "rtl/filelists/files_adc_v21.f")]
     dsp = sorted(DSP.glob("*.sv"))
     product = []
     for name in ("integration/files.f", "integration/readback_files.f", "integration/product/rtl.f"):
         for rel in filelist(PERIPH, name):
             product.append(out / rel if rel.startswith("bound_dsp/") else PERIPH / rel)
-    return core, dsp, product
+    chip = core + product + [ROOT / rel for rel in filelist(ROOT, "rtl/filelists/ad4080_chip.f")]
+    return core, dsp, product, chip
 
 
 def run_lint(cases, out, verilator):
@@ -89,7 +91,9 @@ def run_lint(cases, out, verilator):
     if rows != ['lint_off -rule DECLFILENAME -file "*rtl/result_store.sv" -lines 55']:
         raise ValueError("lint.vlt differs from the one permitted filename entry")
     for top, sources, inc in cases:
-        flags = [waiver] if top == "ad4080_peripheral_product" else []
+        flags = [waiver] if top in {"ad4080_peripheral_product", "ad4080_chip_top"} else []
+        if top == "ad4080_chip_top":
+            flags.append("-GCORE_CLOCK_HZ=100000000")
         checked([verilator, "--lint-only", "-Wall", "-Werror-LATCH", "-Werror-WIDTH",
                  "-Werror-PINMISSING", "-Werror-SELRANGE", "--top-module", top,
                  *flags, *inc, *sources], out, out / f"{top}.lint.log")
@@ -105,31 +109,82 @@ def run_synthesis(cases, out, converter, yosys):
         with (folder / "sources.v").open("w") as netlist, (folder / "convert.log").open("w") as diagnostics:
             subprocess.run([converter, "-D", "SYNTHESIS", *inc, *sources], cwd=folder,
                            stdout=netlist, stderr=diagnostics, check=True)
-        script = (f"read_verilog -sv sources.v; hierarchy -check -top {top}; proc; opt; "
+        chip = top == "ad4080_chip_top"
+        params = "-chparam CORE_CLOCK_HZ 100000000" if chip else ""
+        script = (f"read_verilog -sv sources.v; hierarchy -check -top {top} {params}; proc; opt; "
                   "check -assert; select -assert-none t:$dlatch t:$adlatch")
+        if chip:
+            script += "; memory_collect; write_json structure.json"
         checked([yosys, "-Q", "-T", "-p", script], folder, folder / "check.log")
+        if chip:
+            check_chip_storage(folder / "structure.json")
         print(f"RTL_GENERIC_STRUCTURE PASS top={top} latches=0")
+
+
+def check_chip_storage(netlist):
+    """从总顶层展开实例并核对单口结果银行与独立 CNV 监视器。"""
+    from importlib.util import module_from_spec, spec_from_file_location
+
+    # 复用产品验证的参数化实例遍历，核心权重表与结果银行各归其所有者。
+    spec = spec_from_file_location("product_netlist", PERIPH / "integration/product/check_product_netlist.py")
+    checker = module_from_spec(spec)
+    spec.loader.exec_module(checker)
+    modules = json.loads(netlist.read_text())["modules"]
+    top = "ad4080_chip_top"
+    nodes = list(checker.walk(modules, top, top))
+    for module in ("adc_digital_ip_v21", "sar20_result_guard", "ad4080_peripheral_product",
+                   "ad4080_peripheral_services", "cnv_ctrl", "result_store"):
+        if sum(name == module for _, name, _ in nodes) != 1:
+            raise ValueError(f"chip must elaborate exactly one {module}")
+    prefix = top + ".u_peripheral.u_services.u_result_store."
+    banks = [shape for path, _, shape in nodes if path.startswith(prefix) and shape]
+    other_large = [(path, shape) for path, _, shape in nodes
+                   if not path.startswith(prefix) and shape and shape[0] >= 4096]
+    if banks != [(4096, 20)] * 4 or other_large:
+        raise ValueError(f"chip expected single result memory; got {banks} and {other_large}")
+    print("AD4080_CHIP_STORAGE PASS result_banks=4 depth=16384 width=20")
+
+
+def run_chip_sim(sources, out, verilator):
+    """复用 E2E 宏向量，穿过单芯片收码而后验证真实 DSP 输入。"""
+    case = "tb_i4b_e2e"
+    tests = [ROOT / "rtl/sar_core/adc2_node_macro.sv", ROOT / f"tb/v21/{case}.sv"]
+    checked([verilator, "--binary", "--timing", "--assert", "-j", "2",
+             "--top-module", case, "-DTB_AD4080_CHIP", f"-I{ROOT}",
+             f"-I{out / 'bound_dsp'}", "--Mdir", str(out / "obj"), *sources, *tests],
+            out, out / "build.log")
+    checked([out / "obj" / f"V{case}"], out, out / "run.log")
+    log = (out / "run.log").read_text()
+    if "AD4080_CHIP_E2E PASS dsp_words=2" not in log or "RESULT: PASS" not in log:
+        raise ValueError(log)
+    print("AD4080_CHIP_E2E PASS dsp_words=2")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--synth", action="store_true", help="另执行开源通用结构检查")
+    parser.add_argument("--sim-top", action="store_true", help="执行单芯片合流端到端仿真")
     args = parser.parse_args()
     out = args.out.resolve()
     if out == ROOT or ROOT in out.parents:
         parser.error("output path must be outside the repository")
     out.mkdir(parents=True, exist_ok=False)
-    core, dsp, product = source_sets(out)
-    check_code(core + dsp + [path for path in product if PERIPH in path.parents])
+    core, dsp, product, chip = source_sets(out)
+    verilator = os.getenv("VERILATOR", "verilator")
+    if args.sim_top:
+        run_chip_sim(chip, out, verilator)
+        return
+    check_code(dsp + [path for path in chip if ROOT in path.parents])
     cases = [
         ("adc_digital_ip_v21", core, []),
         ("sar20_ad4080_top", dsp, [f"-I{DSP}"]),
         ("ad4080_peripheral_product", product, [f"-I{out / 'bound_dsp'}"]),
+        ("ad4080_chip_top", chip, [f"-I{out / 'bound_dsp'}"]),
     ]
-    run_lint(cases, out, os.getenv("VERILATOR", "verilator"))
+    run_lint(cases, out, verilator)
     if args.synth:
-        run_synthesis([cases[0], cases[2]], out, os.getenv("SV2V", "sv2v"), os.getenv("YOSYS", "yosys"))
+        run_synthesis([cases[0], *cases[2:]], out, os.getenv("SV2V", "sv2v"), os.getenv("YOSYS", "yosys"))
 
 
 if __name__ == "__main__":

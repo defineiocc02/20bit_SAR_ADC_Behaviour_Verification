@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from subsys.experiments.fig11 import Fig11Model, Fig11Parameters
+from experiments.fig11 import Fig11Model, Fig11Parameters
 
 
 def _plan(n: int):

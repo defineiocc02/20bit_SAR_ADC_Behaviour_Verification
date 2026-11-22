@@ -7,7 +7,7 @@
 namespace eval v21 {
     # 在 source 当下捕获脚本位置，后续切换工具工作目录不会重定向 RTL。
     variable root [file normalize [file join [file dirname [info script]] .. .. ..]]
-    variable manifest flow/build/filelists/files_adc_v21.f
+    variable manifest rtl/filelists/files_adc_v21.f
 }
 
 # 1. 路径。源码根由脚本自身确定；只有 PDK 和运行产物属于主机配置。

@@ -59,7 +59,7 @@ from adi_model.control.track_aux import (
     consecutive_sample_charge,
     track_residual_charge,
 )
-from subsys.experiments.fig11 import Fig11Model, Fig11Parameters
+from experiments.fig11 import Fig11Model, Fig11Parameters
 from adi_model.simulation.slice_pool import PhysicalSlicePool
 
 # =============================================================================

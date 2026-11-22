@@ -2,19 +2,22 @@
 
 这套数字逻辑把两次量化合成一个 20 位结果。前级 SAR 先给出粗判决，数字 IP 据此逐位切换残差 DAC（RDAC）。第二级 ADC（ADC2）测量剩余电压并返回 13 位原码。要算准最终结果，还需要知道**这一笔实际用了哪八片电容，采样和转换时分别打开了哪些开关**。顶层将这些记录、校准权重和原码按样本标签配对，再输出最终码。
 
-工作树只有一个生产顶层 `adc_digital_ip_v21`。`v21` 是它在源码与构建清单中的名称。模拟比较器、残差放大器和 ADC2 通过宏接口连接。默认 Python 按这一个顶层的字源、片选、DEM、余差量化和定点规则逐笔出码。宏的电压输入由模拟假设给出。[顶层 RTL](rtl/v21/adc_digital_ip_v21.sv) · [生产源清单](flow/build/filelists/files_adc_v21.f) · [接口合同](docs/CONTRACT_CURRENT.md)
+**单芯片数字顶层是 `ad4080_chip_top`。** 它把转换核产出的 20 位码接到系统零点/增益校正、滤波、触发记录及 SPI/LVDS 读出。由外围服务共享 16,384 × 20 位结果存储。转换核 `adc_digital_ip_v21` 是这个顶层的子模块，默认 Python 模型对应其中的扰动、DEM 和定点重构。[单芯片 RTL](rtl/top/ad4080_chip_top.sv) · [转换核 RTL](rtl/sar_core/adc_digital_ip_v21.sv) · [接口合同](docs/CONTRACT_CURRENT.md)
 
-**从默认分支 `main` 开始复现。** 根目录的 README、生产顶层和 Python 模型随同一个提交发布。配套 Python 包版本是 [9.0.1+adi.repro](pyproject.toml)。引用具体运行请记录提交号。[版本记录](docs/meta/CHANGELOG.md) · [结构与版本实测](docs/audit/TREE_AUDIT_REPORT.md#current-tree-review) · [软件引用](docs/meta/CITATION.cff)
+| 命令 | 结果与前提 |
+| --- | --- |
+| `make lint` | 四套层级的严格 Verilator Lint，及转换核、外围、总顶层的 sv2v/Yosys 结构检查。 |
+| `make sim-core` | 在配置了 VCS 的运行主机执行转换核全回归。 |
+| `make sim-periph` | 外围仿真、结构和手册对拍。ADI 开源驱动及接收器通过 `ADI_NOOS_ARCHIVE`、`ADI_HDL_SOURCE_DIR` 指定。 |
+| `make sim-top` | 单芯片两笔理想宏转换的码、标签、真实 DSP 接收及故障隔离。 |
+| `make cal` | ADCToolbox 主机估计、26 档滤波频响及真实 SPI 写入后读回。 |
+| `make audit` | 目录、相对链接、算法图册、手册追溯和交付 SHA-256。 |
 
-```bash
-git clone https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification.git
-cd 20bit_SAR_ADC_Behaviour_Verification
-git rev-parse HEAD
-```
+从仓库根运行。可用 `RUN_ROOT` 指定一个工作树外的运行目录。复现结果用 `git rev-parse HEAD` 标识。Python 包为 [9.0.1+adi.repro](pyproject.toml)。工具版本和完整验收命令见[重构报告](docs/audit/RTL_REFACTOR.md)。
 
 [**打开数字 IP 图册（四页主图＋算法与状态机附录）**](docs/algorithms/digital-ip-atlas.pdf) · [在线读算法、状态机与可编辑原图](docs/algorithms/README.md) · [逐图对照论文与授权专利](docs/algorithms/README.md#直接核对原图与原文)
 
-[**AD4080 产品外围数字端验收**](subsys/ad4080_peripherals/integration/product/ACCEPTANCE.md)涵盖配置 SPI、40 MS/s 连续 LVDS、滤波与结果存储的复现方法。[逐模块手册对照 PDF](subsys/ad4080_peripherals/report/manual-trace.pdf)
+[**AD4080 产品外围数字端验收**](rtl/ad4080_periph/integration/product/ACCEPTANCE.md)涵盖配置 SPI、滤波、存储及由已知输入驱动的 40 MS/s 外围连续 LVDS 测试。[逐模块手册对照 PDF](rtl/ad4080_periph/report/manual-trace.pdf)
 
 ![实测 tag 54，沿字 53 的两条采样通路追到 410304 码](docs/algorithms/figures/digital-transaction-flow.svg)
 
@@ -25,10 +28,10 @@ git rev-parse HEAD
 
 | 步骤 | 数字 IP 做什么 | 对应实现与图 |
 | --- | --- | --- |
-| 选片与交接 | 18 个物理片中，8 片采集、8 片转换、2 片备用。受理新请求时保存片号、样本标签和量化器编号。前一采集组整组转入转换。 | [片选 RTL](rtl/sched18.sv) · [片号逐拍图](docs/algorithms/digital.md#schedule) |
-| 生成并注入扰动 | 生产时将 `dither_force_i` 接 0。每次受理，片内产生一个六位字。所选的 SADC 接收低段七位开关，另一套保持。八片 RDAC 接收完整采样预置 `pre`。 | [两端开关译码](rtl/dither_pre.sv) · [扰动通路与交替写入状态图](docs/algorithms/digital.md#pre) |
+| 选片与交接 | 18 个物理片中，8 片采集、8 片转换、2 片备用。受理新请求时保存片号、样本标签和量化器编号。前一采集组整组转入转换。 | [片选 RTL](rtl/sar_core/sched18.sv) · [片号逐拍图](docs/algorithms/digital.md#schedule) |
+| 生成并注入扰动 | 生产时将 `dither_force_i` 接 0。每次受理，片内产生一个六位字。所选的 SADC 接收低段七位开关，另一套保持。八片 RDAC 接收完整采样预置 `pre`。 | [两端开关译码](rtl/sar_core/dither_pre.sv) · [扰动通路与交替写入状态图](docs/algorithms/digital.md#pre) |
 | 跟随判决并轮换单元 | 数字逻辑只提交前级已确定的位。动态单元匹配（DEM）让不同电容承担同一个名义码。最高区拒绝 512 试探时，本拍关闭写门，从 bit5 继续；末次实际写入的开关记作 `post`。 | [SAR 状态图](docs/algorithms/digital.md#events) · [DEM 开关矩阵](docs/algorithms/digital.md#dem) |
-| 捕获与重构 | 用八片的物理编号查片外标定、片内装载的权重。ADC2 返回原码后，使用同笔 `post` 的权重加回转换贡献，扣除同笔 `pre` 的权重，输出 20 位码、标签和状态。 | [ADC2 归属](rtl/v21/adc2_capture.sv) · [权重计算](rtl/v21/wsum_v21.sv) · [定点重构](rtl/v21/recon_v21.sv) |
+| 捕获与重构 | 用八片的物理编号查片外标定、片内装载的权重。ADC2 返回原码后，使用同笔 `post` 的权重加回转换贡献，扣除同笔 `pre` 的权重，输出 20 位码、标签和状态。 | [ADC2 归属](rtl/sar_core/adc2_capture.sv) · [权重计算](rtl/sar_core/wsum_v21.sv) · [定点重构](rtl/sar_core/recon_v21.sv) |
 
 ## 效果与验证条件
 
@@ -42,18 +45,19 @@ git rev-parse HEAD
 
 ## 文件放在哪里
 
-根目录的四个文件是本页、Python 打包配置 `pyproject.toml`、Git 忽略规则 `.gitignore` 和检出规则 `.gitattributes`。九个目录按下表使用。
+根目录有 10 个目录和 5 个文件（含隐藏项）。文件是本页、`Makefile`、`pyproject.toml`、`.gitignore`、`.gitattributes`。
 
 | 根目录 | 内容和入口 |
 | --- | --- |
-| [rtl/](rtl/README.md) | 生产 SystemVerilog。顶层与专用模块在 `v21/`，片选、DEM、扰动预置与倒数叶子在 `rtl/`。`core/` 和 `top/` 另供组件验证。 |
+| [rtl/](rtl/README.md) | 单芯片装配在 `top/`，转换在 `sar_core/`，校正与滤波在 `ad4080_dsp/`，控制、存储和读出在 `ad4080_periph/`。 [编译清单](rtl/filelists/README.md) |
 | [tb/](tb/) | SystemVerilog 测试台、C++ 顶层驱动与冻结向量。集成 ADC 的事件、交接、连续采样和重构检查在 [tb/v21/](tb/v21/)。 |
 | [src/](src/adi_model/) | Python 包 `adi_model`。公共入口在 [defaults.py](src/adi_model/defaults.py)，逐事件比较与重构在 [digital_conversion.py](src/adi_model/digital_conversion.py)。`control/` 实现控制算法，`topology/` 和 `behavioral/` 描述电荷与非理想，`simulation/` 推进样本，`calibration/`、`metrics/` 求系数和误差。 |
-| [flow/](flow/) | `build/filelists/` 选编译源，[sim/](flow/sim/README.md) 说明仿真和夹具，`tests/` 保存 Python 回归，`formal/`、`synth/` 保存形式验证和后端流程。 |
+| [flow/](flow/) | [sim/](flow/sim/README.md) 说明仿真和夹具，`tests/` 保存 Python 回归，`formal/`、`synth/` 保存形式验证和后端流程。 |
 | [tools/](tools/) | 可执行入口。定向 RTL 测试用 `run_open_rtl.py`，正式 VCS 回归用 `verify_v21.sh`，结构与图册分别由 `check_engineering.py` 和 `v21_algorithm_atlas.mjs` 核对。 |
 | [docs/](docs/INDEX.md) | [接口合同](docs/CONTRACT_CURRENT.md)、[项目状态](docs/STATUS.md)、[算法与状态机](docs/algorithms/README.md)、[审计证据](docs/audit/README.md)。行为图和全码线性度图在 `figures/`，旧工程记录在 `_history/`。 |
 | [references/](references/README.md) | 论文、讲稿、来源清单。查论文原图和相应页码从这里进入。 |
-| [subsys/](subsys/) | [AD4080 数字后处理](subsys/ad4080_dsp/README.md)接收 20 位码，做用户校正、滤波和事件捕获。[OFFSET/GAIN 校准代码与示例](subsys/ad4080_peripherals/calibration/README.md)用 ADCToolbox 在主机估计系数。[产品外围](subsys/ad4080_peripherals/README.md)复用该 DSP，负责上电、结果存储、读出与物理交接。[逐模块对照 AD4080 手册](subsys/ad4080_peripherals/evidence/MANUAL_TRACE.md)列出实际波形和验收边界。[滤波频响实测](subsys/ad4080_peripherals/figures/filter-response.svg)覆盖 26 个合法档位。另有 CAAZ 扩展和 [Fig.11 电荷研究](subsys/experiments/fig11.py)。 |
+| [experiments/](experiments/) | Fig.11 电荷研究和 CAAZ 独立扩展。 |
+| [archive/](archive/) | 旧数字核的历史对照源码。 |
 | [.github/](.github/) | CI 工作流、协作约定及维护模板。 |
 
 ## 跑起来

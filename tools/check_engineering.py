@@ -82,7 +82,7 @@ def check_doc_links() -> None:
     from urllib.parse import unquote, urlsplit
 
     archived = {"_history", "_superseded", "_legacy", "archive"}
-    sections = (".github", "docs", "flow", "rtl", "src", "subsys", "tools", "references")
+    sections = (".github", "archive", "docs", "experiments", "flow", "rtl", "src", "tools", "references")
     paths = list(ROOT.glob("*.md"))
     for section in sections:
         paths.extend((ROOT / section).rglob("*.md"))
@@ -351,7 +351,7 @@ def check_adc2_contract() -> None:
         if defaults != (bits, lo, hi, "half_open"):
             raise ValueError(f"DefaultParameters ADC2 differs from the contract: {defaults!r}")
 
-        top = _rtl_source("rtl/v21/adc_digital_ip_v21.sv")
+        top = _rtl_source("rtl/sar_core/adc_digital_ip_v21.sv")
         port = _single_match(
             r"\binput\s+logic\s+\[\s*(\d+)\s*:\s*(\d+)\s*\]\s+adc2_raw_i\b",
             top, "v21 ADC2 input port",
@@ -362,13 +362,13 @@ def check_adc2_contract() -> None:
         # 顶层数字输入只携带原始码。编码器中的换算斜率与码域一起定义电压窗，
         # 所以要核对这两处实现，才能发现位宽正确而模拟窗口已经漂移的情况。
         # 捕获已知定点字面量的宽度，防止数值看似相同但解析为更短宽度时被截断。
-        macro = _rtl_source("rtl/v21/adc2_node_macro.sv")
+        macro = _rtl_source("rtl/sar_core/adc2_node_macro.sv")
         macro_bits = int(_single_match(
             r"\bparameter\s+int\s+unsigned\s+ADC2_N\s*=\s*(\d+)\b", macro, "ADC2_N",
         )[1])
         ymin = _single_match(r"\bYMIN_Q24\s*=\s*(-?)\s*64'sd(\d+)\s*;", macro, "YMIN_Q24")
         multiplier = int(_single_match(
-            r"\bnum\s*=\s*\(\$signed\(y_wide\)\s*-\s*YMIN_Q24\)\s*\*\s*96'sd(\d+)\s*;",
+            r"\bnum\s*=\s*\(\$signed\(y_wide\)\s*-\s*(?:YMIN_Q24|96'\(\s*YMIN_Q24\s*\))\)\s*\*\s*96'sd(\d+)\s*;",
             macro, "ADC2 encoder multiplier",
         )[1])
         divisor = int(_single_match(
@@ -392,7 +392,7 @@ def check_adc2_contract() -> None:
         ):
             raise ValueError("v21 ADC2 node encoder does not match the 13-bit half-open contract")
 
-        recon = _rtl_source("rtl/v21/recon_v21.sv")
+        recon = _rtl_source("rtl/sar_core/recon_v21.sv")
         center = _single_match(
             r"\by\s*=\s*(-?)\s*32'sd(\d+)\s*\+\s*32'sd(\d+)\s*\+\s*"
             r"\(\$signed\(\{\s*(\d+)'d0\s*,\s*adc2_raw\s*\}\)\s*\*\s*32'sd(\d+)\)\s*;",

@@ -27,7 +27,7 @@ from adi_model.behavioral.sampler import dc_input
 from adi_model.cli import main_validate_config
 from adi_model.control.dem import SplitSwitchCommand
 from adi_model.control.timing import SlicePlan
-from subsys.experiments.fig11 import Fig11Parameters, fig11_model
+from experiments.fig11 import Fig11Parameters, fig11_model
 from adi_model.inventory_gate import INVENTORY_FILE, MANIFEST_DIR, SOURCES_FILE, build_summary, verify
 from adi_model.inventory_gate import main as inventory_main
 from adi_model.provenance import (

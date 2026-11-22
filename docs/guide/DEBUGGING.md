@@ -16,4 +16,4 @@
 
 给模拟侧的 `device_weights` 以 Ceff/Cf 为单位；数字侧 `weights_q30` 是 18×20 的整数表。核对“同片换表”时，两组原码和物理开关应保持一致。模拟器系数表哈希和加载表哈希分别保存在 metadata 中。[权重配置](../v21/CONFIG_CONTRACT.md)
 
-Fig.11 研究记录另有 `raw.main_masks`、`raw.residue` 和 `static_domain_reasons`，按其图注中的电荷模型和工况追溯。[Fig.11 模型](../../subsys/experiments/fig11.py) · [已发布行为图](../figures/behavioral/README.md) · [原文与当前工程的差异](../audit/AUDIT_ALGO_VS_SOURCE.md)
+Fig.11 研究记录另有 `raw.main_masks`、`raw.residue` 和 `static_domain_reasons`，按其图注中的电荷模型和工况追溯。[Fig.11 模型](../../experiments/fig11.py) · [已发布行为图](../figures/behavioral/README.md) · [原文与当前工程的差异](../audit/AUDIT_ALGO_VS_SOURCE.md)

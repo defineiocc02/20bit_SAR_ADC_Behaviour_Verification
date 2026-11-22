@@ -1,6 +1,6 @@
 # 采样接口、物理片号与数字重构
 
-本章给出同一数字 IP 的电荷坐标、物理单元编号和重构方程。第 9 节的接口是按功能命名的集成需求；实际信号名和位宽查[生产顶层](../../rtl/v21/adc_digital_ip_v21.sv)。开关真值表与受理规则查[开关与事务规则](SWITCHING_RULES.md)。完整入口见[工程合同](../CONTRACT_CURRENT.md)。
+本章给出同一数字 IP 的电荷坐标、物理单元编号和重构方程。第 9 节的接口是按功能命名的集成需求；实际信号名和位宽查[生产顶层](../../rtl/sar_core/adc_digital_ip_v21.sv)。开关真值表与受理规则查[开关与事务规则](SWITCHING_RULES.md)。完整入口见[工程合同](../CONTRACT_CURRENT.md)。
 
 原始设计记录形成于 2026-11-14，基线 `5acf16f`。文中的历史验收次数对应当时的输入。
 
@@ -240,7 +240,7 @@ b为声明并标定的输出坐标偏置；名义为0。如果另外建模了独
 
 Q24解码可精确表示：`y_q24 = -3145728 + 1536*adc2_code + 768`。
 
-生产端口为 `adc2_raw_i[12:0]`，使用上表的半开窗口。窗口外的响应另带范围标志。[顶层接口](../../rtl/v21/adc_digital_ip_v21.sv)
+生产端口为 `adc2_raw_i[12:0]`，使用上表的半开窗口。窗口外的响应另带范围标志。[顶层接口](../../rtl/sar_core/adc_digital_ip_v21.sv)
 
 ### 8.2 定点基础
 
@@ -265,7 +265,7 @@ Q24解码可精确表示：`y_q24 = -3145728 + 1536*adc2_code + 768`。
 
 ## 9. 端口级连接合同
 
-下表记录模拟集成所需的功能和建议名称。`ref_fine`、`ra_az`、`ra_phase` 等相序信号仍需同宏端约定。可直接连线的现有数字引脚见[顶层声明](../../rtl/v21/adc_digital_ip_v21.sv)及[引脚核对](../audit/PORT_AND_ONCHIP_AUDIT.md)。
+下表记录模拟集成所需的功能和建议名称。`ref_fine`、`ra_az`、`ra_phase` 等相序信号仍需同宏端约定。可直接连线的现有数字引脚见[顶层声明](../../rtl/sar_core/adc_digital_ip_v21.sv)及[引脚核对](../audit/PORT_AND_ONCHIP_AUDIT.md)。
 
 | 接口 | 方向 | 最低语义 |
 |---|---|---|
@@ -300,7 +300,7 @@ txn_id、qid、coefficient_epoch等是数字上下文元数据；不假设模拟
 
 ## 11. 现行实现索引
 
-- 数字顶层使用 [v21 生产清单](../../flow/build/filelists/files_adc_v21.f)，调度、事件、掩码、样本快照、权重与重构的连接见 [RTL 导航](../../rtl/README.md)。
+- 数字顶层使用 [v21 生产清单](../../rtl/filelists/files_adc_v21.f)，调度、事件、掩码、样本快照、权重与重构的连接见 [RTL 导航](../../rtl/README.md)。
 - 定点重构根据同一笔 ADC2 原码、冻结的权重和和样本归属出码。采集预置和转换掩码使用当前合同的位序及符号。接口变化以[工程合同](../CONTRACT_CURRENT.md) 指出的补充条款为准。
 - 行为仿真从 [Python 快速上手](../guide/QUICKSTART.md) 进入，使用一套当前默认 ADC 配置。输入、电荷、模拟假设和数值检查按具体试验解释。
 - 初版迁移计划可用 `git show 2224d30:docs/ISSCC2024_ONCHIP_CONTRACT_v2.md` 查看。

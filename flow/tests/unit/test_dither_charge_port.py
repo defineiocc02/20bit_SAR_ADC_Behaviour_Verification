@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 
 from adi_model.behavioral.sampler import dc_input
-from subsys.experiments.fig11 import Fig11Model, Fig11Parameters
+from experiments.fig11 import Fig11Model, Fig11Parameters
 from adi_model.simulation.config import ConfigError
 
 LSB20_V = 6.0 / 2**20
@@ -157,7 +157,7 @@ def test_charge_port_keeps_sample_preset_on_skewed_signal_and_excludes_reference
     from functools import partial
 
     from adi_model.control.dem import REF_LOW, SamplingConnections
-    from subsys.experiments import fig11
+    from experiments import fig11
 
     model = _model(0.0)
     delay_s = 0.75e-9

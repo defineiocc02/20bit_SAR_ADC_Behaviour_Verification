@@ -24,7 +24,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from subsys.experiments.fig11 import Fig11Model, Fig11Parameters
+from experiments.fig11 import Fig11Model, Fig11Parameters
 from dataclasses import replace
 
 LSB20_V = 6.0 / 2**20

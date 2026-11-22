@@ -50,5 +50,15 @@
     }
   ],
   "documents_count": 6,
-  "pages_as_file_inventory": 158
+  "pages_as_file_inventory": 158,
+  "external_documents": [
+    {
+      "source_id": "ADI_AD4080_REV_B",
+      "revision": "B",
+      "pages": 95,
+      "sha256": "f08f2586dc82d5f583b42071b3570c06f1fe736d3053e15a559a47ed2841cbc1",
+      "url": "https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf",
+      "repository_asset": "metadata-only"
+    }
+  ]
 }

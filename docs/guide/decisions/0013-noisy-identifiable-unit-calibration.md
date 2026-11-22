@@ -1,6 +1,6 @@
 # ADR 0013: Noisy, identifiable and frozen split-unit calibration
 
-这份决策记录保留早期研究模型的输入和实验动机。后来采用的 17 主位／5 子位属于[Fig.11 研究夹具](../../../subsys/experiments/fig11.py)。生产数字 IP 与默认 Python 使用每片 16 主位、4 子位和 13 位 ADC2。[现行合同](../../CONTRACT_CURRENT.md)
+这份决策记录保留早期研究模型的输入和实验动机。后来采用的 17 主位／5 子位属于[Fig.11 研究夹具](../../../experiments/fig11.py)。生产数字 IP 与默认 Python 使用每片 16 主位、4 子位和 13 位 ADC2。[现行合同](../../CONTRACT_CURRENT.md)
 
 
 Status: accepted for the static charge-gain model. Final fixed-point code

@@ -429,7 +429,7 @@ zh "#### 采样预置（pre）通路 —— **不要**和上面的 post 预算�
 zh ""
 zh "\`rdac_pre_state_o\` 由 \`dither_pre\` 在 **prepare** 时给出"
 zh "（RTL：\`acq_conv_ctx\` 的 \`pre_state_c\` 直接驱动，"
-zh "见 \`rtl/v21/acq_conv_ctx.sv\`「物理路由」一节），"
+zh "见 \`rtl/sar_core/acq_conv_ctx.sv\`「物理路由」一节），"
 zh "与\"已决事件 → post 开关\"是两条不同的通路。"
 zh ""
 dump_path B2F_PRE_PORTSTART \

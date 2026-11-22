@@ -92,7 +92,7 @@ US10511316B2 第 23 栏原文（页 43，左栏）：
 
 ### 研究夹具采用的几何
 
-2026-11-13 的决策用 Fig.11 的 17/5 阵列替换了研究模型中的 63+8 几何。现行研究装配见 [fig11.py](../../subsys/experiments/fig11.py)。生产顶层与默认 Python 使用 16/4 开关掩码，实际片号和定点权重由[工程合同](../CONTRACT_CURRENT.md)规定。原讨论可用 `git show e50393a:docs/mechanisms/source_reconciliation.md` 查阅。
+2026-11-13 的决策用 Fig.11 的 17/5 阵列替换了研究模型中的 63+8 几何。现行研究装配见 [fig11.py](../../experiments/fig11.py)。生产顶层与默认 Python 使用 16/4 开关掩码，实际片号和定点权重由[工程合同](../CONTRACT_CURRENT.md)规定。原讨论可用 `git show e50393a:docs/mechanisms/source_reconciliation.md` 查阅。
 
 ---
 

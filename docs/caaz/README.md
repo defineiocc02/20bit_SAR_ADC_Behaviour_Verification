@@ -1,6 +1,6 @@
 # CAAZ 来源与归档实验
 
-本专题保存 2026-11-05 的来源核对、样本域对照和历史 RTL 证据。现行 CAAZ 作为独立组件研究，代码和验证入口见 [扩展目录](../../subsys/extensions/caaz/README.md)。集成 ADC 及其验证范围见 [v21 状态页](../STATUS.md)。
+本专题保存 2026-11-05 的来源核对、样本域对照和历史 RTL 证据。现行 CAAZ 作为独立组件研究，代码和验证入口见 [扩展目录](../../experiments/extensions/caaz/README.md)。集成 ADC 及其验证范围见 [v21 状态页](../STATUS.md)。
 
 | 查询 | 入口 |
 | --- | --- |
@@ -180,10 +180,10 @@ PYTHONPATH=src python tools/export_caaz_vectors.py \
 
 | 源码定位 | 归档轮次的职责与边界 |
 |---|---|
-| [`chopping_az.py`](../../subsys/extensions/caaz/model/chopping_az.py) | `ChoppingAZParameters()` 默认 `off`；显式选择 `baseline`、`conventional_az` 或 `chopping_assisted`。输入极性同时进入前级 SADC／RDAC，显式误差在 RA 原有钳位和 ADC2 前注入；完整位权重构后再整数配对。只支持从偶数相开始的独立样本域记录。 |
-| [`caaz_cycle_ctrl.sv`](../../subsys/extensions/caaz/rtl/caaz_cycle_ctrl.sv) | 根据真实 acquisition priming 保存输入极性及 AZ 存储代；独立输出 capture／hold，保留原有每周期 RA 准备及储能复位。现有 phase 1–8 为工程接口窗口，phase 8 接受模拟 `az_capture_ok`；其建立时间仍须模拟宏确认。 |
-| 历史结构核与 [`cal_sample_context.sv`](../../rtl/core/cal_sample_context.sv) | `P_CAAZ_ENABLE=0` 默认旁路；开启仅支持结构配置。极性／AZ 代随残差上下文和重构事务一起保存；原 748 位校准包保留，新增 34 位 CAAZ sideband 和 92 位 raw 观测包。 |
-| [`caaz_pair_processor.sv`](../../subsys/extensions/caaz/rtl/caaz_pair_processor.sv) | 完整 20 位 offset-binary 码先扩为 21 位有符号差 $d=c_e-c_o$，保留精确差，最终 20 位用 $\lfloor(2^{20}+d)/2\rfloor$。ID、实际极性、AZ 代不匹配或任一 raw 异常使配对停止，直到同步 clear／reset。 |
+| [`chopping_az.py`](../../experiments/extensions/caaz/model/chopping_az.py) | `ChoppingAZParameters()` 默认 `off`；显式选择 `baseline`、`conventional_az` 或 `chopping_assisted`。输入极性同时进入前级 SADC／RDAC，显式误差在 RA 原有钳位和 ADC2 前注入；完整位权重构后再整数配对。只支持从偶数相开始的独立样本域记录。 |
+| [`caaz_cycle_ctrl.sv`](../../experiments/extensions/caaz/rtl/caaz_cycle_ctrl.sv) | 根据真实 acquisition priming 保存输入极性及 AZ 存储代；独立输出 capture／hold，保留原有每周期 RA 准备及储能复位。现有 phase 1–8 为工程接口窗口，phase 8 接受模拟 `az_capture_ok`；其建立时间仍须模拟宏确认。 |
+| 历史结构核与 [`cal_sample_context.sv`](../../archive/rtl_core/cal_sample_context.sv) | `P_CAAZ_ENABLE=0` 默认旁路；开启仅支持结构配置。极性／AZ 代随残差上下文和重构事务一起保存；原 748 位校准包保留，新增 34 位 CAAZ sideband 和 92 位 raw 观测包。 |
+| [`caaz_pair_processor.sv`](../../experiments/extensions/caaz/rtl/caaz_pair_processor.sv) | 完整 20 位 offset-binary 码先扩为 21 位有符号差 $d=c_e-c_o$，保留精确差，最终 20 位用 $\lfloor(2^{20}+d)/2\rfloor$。ID、实际极性、AZ 代不匹配或任一 raw 异常使配对停止，直到同步 clear／reset。 |
 
 34 位校准 sideband 为 `{chop_neg, az_pair_id[31:0], az_valid}`，与原 `cal_obs_valid` 同笔。92 位 raw 包为 `{sample_id[31:0], code[19:0], chop_neg, az_pair_id[31:0], az_valid, flags[4:0], analog_bad}`，由 `caaz_raw_valid` 限定。普通时钟空洞允许，样本 ID 的空洞不允许自动拼接。运行中系数被冻结；撤销配置／epoch clear 会丢弃未完成配对，重新预热。模拟状态本身的保持仍由外部电路保证，数字标签不能代替电气确认。
 
@@ -195,7 +195,7 @@ PYTHONPATH=src python tools/export_caaz_vectors.py \
 
 Python 在保留全部输出的同时显式标记无效 pair；RTL 的实时接口采用拒收并锁存故障，两者分别用于离线诊断与在线停流，不能仅比较过滤后的曲线声称错误策略相同。Python 独立记录要求数值偶数 ID 起始且连续；独立 RTL 配对模块认实际极性与存储代，结构核的首次有效 ID 为 2／3，与该约定一致。顶层尚无拒收／丢 pair 计数器和故障后的自动恢复，CAAZ-17 的这些要求仍待补齐。
 
-历史整机只验证关闭时的逐码旁路。现有 DSP 适配层的输入是已经重构的数字码和故障标志；若接入配对流，需重新验收采样率、FIFO、模式切换与错误合同。[DSP 数字输入接口](../../subsys/ad4080_dsp/docs/SAR20_INTERFACE.md)
+历史整机只验证关闭时的逐码旁路。现有 DSP 适配层的输入是已经重构的数字码和故障标志；若接入配对流，需重新验收采样率、FIFO、模式切换与错误合同。[DSP 数字输入接口](../../rtl/ad4080_dsp/docs/SAR20_INTERFACE.md)
 
 旧 `ra_autozero` 是折叠噪声预算与闪烁噪声抑制的现象模型；新入口对它及尚未定义的连续斩波动态组合会明确拒绝，避免双重计入。完整输入开关、CBIAS 存储与隔离、FGA／CP-FIA 器件噪声及开关注入、Spectre／PEX／可靠性与目标工艺 STA 均未由这些数字和样本域结果证明。
 

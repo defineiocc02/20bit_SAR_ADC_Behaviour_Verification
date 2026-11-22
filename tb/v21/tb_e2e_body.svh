@@ -60,6 +60,11 @@
 
         // DUT 解除复位后，为 18 片写入与节点模型相同的名义权重。
         repeat (3) @(negedge clk);
+        `ifdef TB_AD4080_CHIP
+        chip_power_good = 1'b1;
+        wait (chip_allow);
+        @(negedge clk);
+        `endif
         rst_n = 1'b1;
         @(negedge clk);
 
@@ -264,6 +269,9 @@
             else $display("      B 的 20 位码 = 0x80000（端到端）OK");
         end
 
+        `ifdef TB_AD4080_CHIP
+        verify_chip_e2e();
+        `else
         // ==================== 迟到 raw（复位后）====================
         $display("---- 复位后迟到 raw 必须被丢弃 ----");
         @(negedge clk);
@@ -319,6 +327,8 @@
         @(negedge clk);
         #1;
         sample_event = 1'b0; residue_captured = 1'b0;
+
+        `endif
 
         // 最后一拍让轨迹收尾（保持与 RTL 侧相同的结束时刻）
         repeat (2) @(negedge clk);

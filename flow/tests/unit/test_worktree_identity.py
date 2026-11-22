@@ -18,7 +18,7 @@ import pytest
 from adi_model.cli import main_simulate, main_validate_config
 
 ROOT = Path(__file__).resolve().parents[3]
-MANIFEST = Path("flow/build/filelists/files_adc_v21.f")
+MANIFEST = Path("rtl/filelists/files_adc_v21.f")
 BACKEND = Path("flow/synth/v21")
 
 
@@ -270,16 +270,16 @@ def test_directory_gate_rejects_equal_counts_with_different_ownership(tmp_path):
     """用小型 Git 工程走实际 CLI，匹配文件数量不能掩盖错目录或重复选源。"""
     subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
     # Git 不记录空目录，每个公开目录放一个文件，得到和读者实际可见相同的目录树。
-    for directory in (".github", "flow", "references", "rtl", "src", "subsys", "tb", "tools"):
+    for directory in (".github", "archive", "experiments", "flow", "references", "rtl", "src", "tb", "tools"):
         (tmp_path / directory).mkdir()
         (tmp_path / directory / "entry.txt").write_text("fixture")
-    for name in ("README.md", "pyproject.toml", ".gitignore", ".gitattributes"):
+    for name in ("README.md", "Makefile", "pyproject.toml", ".gitignore", ".gitattributes"):
         (tmp_path / name).touch()
     (tmp_path / "docs").mkdir()
     for name in ("INDEX.md", "STATUS.md", "CONTRACT_CURRENT.md"):
         (tmp_path / "docs" / name).touch()
     # 目录职责与生产/仿真清单分别校验。临时模块的名字不绑定实际项目的硬编码计数。
-    source = "rtl/core.sv"
+    source = "rtl/sar_core.sv"
     (tmp_path / source).write_text("module core; endmodule\n")
     (tmp_path / "rtl/rtl_sources.f").write_text(source + "\n")
     (tmp_path / MANIFEST.parent).mkdir(parents=True)
@@ -290,7 +290,7 @@ def test_directory_gate_rejects_equal_counts_with_different_ownership(tmp_path):
     shutil.copyfile(ROOT / "tools/check_doc_counts.py", script)
     command = [sys.executable, str(script), "--check"]
     assert subprocess.run(command, capture_output=True).returncode == 0
-    # 仍为 9 个目录和 4 个文件，但读者已经找不到约定的 src 入口。
+    # 保持 10 个目录和 5 个文件，但读者已经找不到约定的 src 入口。
     (tmp_path / "src").rename(tmp_path / "wrong")
     failure = subprocess.run(command, text=True, capture_output=True)
     assert failure.returncode and "root directories" in failure.stdout

@@ -122,8 +122,8 @@ def test_complete_pair_preserves_comparator_semantics(tmp_path, mutated, verdict
     assert result["hdl_execution_verified"] is False
 
 
-def test_live_divider_mutation_target_is_found_from_source_not_a_frozen_line_number():
-    sites = mutator.enumerate_sites(REPO / "rtl")
+def test_archived_divider_mutation_target_is_found_from_source_not_a_frozen_line_number():
+    sites = mutator.enumerate_sites(REPO / "archive")
     assert any(
-        s.rel == "rtl/core/div_floor.sv" and s.op == "ExprUpdate" and s.span == "<<" for s in sites
+        s.rel == "archive/rtl_core/div_floor.sv" and s.op == "ExprUpdate" and s.span == "<<" for s in sites
     )

@@ -25,7 +25,7 @@ from adi_model.behavioral.ra import ResidueAmplifier
 from adi_model.behavioral.sadc import build_first_stage_quantizer
 from adi_model.behavioral.sampler import dc_input, sine_input
 from adi_model.control.dither import FIG19_STEP_Q, Fig19DitherProgram, Fig19StaticSpec
-from subsys.experiments.fig11 import Fig11Parameters, fig11_model, simulate_fig11
+from experiments.fig11 import Fig11Parameters, fig11_model, simulate_fig11
 from adi_model.metrics.metrics import inl_from_mean_error, sine_fit_metrics, static_test, summarize
 from adi_model.provenance import GradingError, SourceGrade, annotate_config
 from adi_model.simulation.config import Config, ConfigError

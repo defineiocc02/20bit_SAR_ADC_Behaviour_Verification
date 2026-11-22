@@ -40,7 +40,7 @@ module recon_rnd_equiv (
     localparam logic [31:0] D96 = 32'd48;      // 96/2
 
     // ------------------------------------------------------------------ 正确实现
-    // 与 rtl/v21/recon_v21.sv 的 rnd96_const 逐字一致
+    // 与 rtl/sar_core/recon_v21.sv 的 rnd96_const 逐字一致
     function automatic logic signed [31:0] dut_rnd96(input logic signed [31:0] n);
         logic        s;
         logic [31:0] a;

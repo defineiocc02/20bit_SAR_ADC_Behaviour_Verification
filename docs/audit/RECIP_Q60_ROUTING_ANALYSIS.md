@@ -51,7 +51,7 @@ Routed8/225 Partitions, Violations =7066
 `recip_q60` 做 60 位倒数查表：
 
 ```systemverilog
-// rtl/recip_q60.sv
+// rtl/sar_core/recip_q60.sv
 // 从 2^60 / G 查表，G 是 16~64 范围的变量
 ```
 

@@ -23,7 +23,7 @@
 <a id="recon-s3"></a>
 ## 2. 重构负数后的中点码
 
-当前生产模块从本笔的 N 和 I 求出 96 位有符号 X。仅当高 64 位等于第 31 位的符号扩展时，X 可以无损截成 32 位。数据、错误标志和标签随同一个有效沿寄存，空拍只清有效位。[生产 RTL](../../../rtl/v21/recon_v21.sv)
+当前生产模块从本笔的 N 和 I 求出 96 位有符号 X。仅当高 64 位等于第 31 位的符号扩展时，X 可以无损截成 32 位。数据、错误标志和标签随同一个有效沿寄存，空拍只清有效位。[生产 RTL](../../../rtl/sar_core/recon_v21.sv)
 
 2026-11-19 在本地用 Verilator 运行相同激励。缺陷基线取自 Git 提交 `9e4f1fd`，工作树保留修正后的生产实现。
 
@@ -126,7 +126,7 @@ cat "$recon_run/results/tb_recon_stream/compare.log"
 
 ## 6. T-E：ADC2 工程合同已裁定
 
-[当前合同](../../CONTRACT_CURRENT.md)定义 13 bit、`[-0.1875, +0.5625) V`，窗宽 0.75 V。`391c55a` 将默认 Python 参数和 `ADI_40M` profile 改为该口径，v21 节点宏及重构常量继续使用 13 位整数合同。可从 [Python 默认值](../../../src/adi_model/defaults.py)、[profile](../../../src/adi_model/contracts/profiles.py)和 [ADC2 节点宏](../../../rtl/v21/adc2_node_macro.sv)追溯。
+[当前合同](../../CONTRACT_CURRENT.md)定义 13 bit、`[-0.1875, +0.5625) V`，窗宽 0.75 V。`391c55a` 将默认 Python 参数和 `ADI_40M` profile 改为该口径，v21 节点宏及重构常量继续使用 13 位整数合同。可从 [Python 默认值](../../../src/adi_model/defaults.py)、[profile](../../../src/adi_model/contracts/profiles.py)和 [ADC2 节点宏](../../../rtl/sar_core/adc2_node_macro.sv)追溯。
 
 在名义增益 `G=32`、差分满幅 6 V 的条件下，输入折算步长为 `(0.75 / 8192) / 32 = 0.50 LSB20`。旧报告中的 0.60 LSB20 来自 12 bit、0.45 V 的不同组合。上述计算是码宽与窗宽的合同换算。端到端噪声、模拟余量和吞吐仍按各自验证结果登记。
 

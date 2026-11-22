@@ -102,7 +102,7 @@ recip_rnd_v21 → recip_q60 u_recip          (recip_rnd_v21.sv:59)
 
 ## 5. 顶层实际实例化（8 个）
 
-`rtl/v21/adc_digital_ip_v21.sv` 中确认的实例：
+`rtl/sar_core/adc_digital_ip_v21.sv` 中确认的实例：
 
 | 行 | 实例 | 模块 |
 |--:|:---|:---|

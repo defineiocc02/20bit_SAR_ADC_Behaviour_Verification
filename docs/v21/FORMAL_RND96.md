@@ -1,6 +1,6 @@
 # recon 常数除法的形式化与数学证明
 
-时间：2026-11-16　对象：`rtl/v21/recon_v21.sv` 的 `rnd96_const`
+时间：2026-11-16　对象：`rtl/sar_core/recon_v21.sv` 的 `rnd96_const`
 依据：方案 §9.3 的 `Q = RND(X, 96)`
 
 ## 1. 为什么需要证明

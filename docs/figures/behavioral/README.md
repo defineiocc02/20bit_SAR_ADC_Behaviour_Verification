@@ -8,7 +8,7 @@
 
 ![独立粗量化器、RDAC 片池、残差和 v21 数字重构通路](M00_signal_flow.png)
 
-**M00. 两级转换的信号与控制边界。** 粗量化器 SADC 逐次送出已决结果，18 片 RDAC 池在采集、转换和空闲间交接。进入转换的片组随判决更新底板。残差经 RA 放大后交 ADC2。数字端把 ADC2 原码和同笔开关、权重状态配对，输出 20 位码。 [SVG](M00_signal_flow.svg) · [v21 顶层](../../../rtl/v21/adc_digital_ip_v21.sv)
+**M00. 两级转换的信号与控制边界。** 粗量化器 SADC 逐次送出已决结果，18 片 RDAC 池在采集、转换和空闲间交接。进入转换的片组随判决更新底板。残差经 RA 放大后交 ADC2。数字端把 ADC2 原码和同笔开关、权重状态配对，输出 20 位码。 [SVG](M00_signal_flow.svg) · [v21 顶层](../../../rtl/sar_core/adc_digital_ip_v21.sv)
 
 ![18 片的交织工作和 Flash/SAR 前缀更新](M01_interleaving_follower.png)
 

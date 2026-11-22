@@ -1,6 +1,6 @@
 # 数字顶层的引脚与片上实现证据
 
-当前生产源清单有 11 份 SystemVerilog，含顶层、8 种直接实例和 2 种传递依赖。顶层声明 90 个命名端口，45 个输入、45 个输出。端口数按名称计，一条多位总线计一个端口。[顶层与实例清单](../../rtl/README.md) · [端口声明](../../rtl/v21/adc_digital_ip_v21.sv)
+当前生产源清单有 11 份 SystemVerilog，含顶层、8 种直接实例和 2 种传递依赖。顶层声明 90 个命名端口，45 个输入、45 个输出。端口数按名称计，一条多位总线计一个端口。[顶层与实例清单](../../rtl/README.md) · [端口声明](../../rtl/sar_core/adc_digital_ip_v21.sv)
 
 ## 论文中的功能怎样跨过宏边界
 
@@ -16,13 +16,13 @@
 
 2026-11-17 的 13 个模块逐项列在[后端原始汇总](ALL_13_MODULES_FINAL.md)。其中 7 个有 router DRC 为 0 且 Formality 成功的记录，2 个布线后 router DRC 分别为 2 和 27，4 个在相应输入与预算下未完成。两个倒数模块是重构模块的下级，独立层级的面积会重复计入。归档中的 `recon_v21` 面积来自强制 alpha 旁路的诊断配置。
 
-那 7 项中的 `dem_phase_rr`、`dem_phase_gen`、`follower_rt` 是历史独立模块。生产顶层的已决事件由 `sar_evt_v21` 处理，DEM 由 `dem_mask_v3` 实现。已有数据能说明哪些运行通过、哪些停在哪一步；整核能否在目标工艺闭合，需要同一版网表、约束、物理实现和签核结果。[整核与模块证据](../STATUS.md) · [生产编译清单](../../flow/build/filelists/files_adc_v21.f)
+那 7 项中的 `dem_phase_rr`、`dem_phase_gen`、`follower_rt` 是历史独立模块。生产顶层的已决事件由 `sar_evt_v21` 处理，DEM 由 `dem_mask_v3` 实现。已有数据能说明哪些运行通过、哪些停在哪一步；整核能否在目标工艺闭合，需要同一版网表、约束、物理实现和签核结果。[整核与模块证据](../STATUS.md) · [生产编译清单](../../rtl/filelists/files_adc_v21.f)
 
 从仓库根逐项核对端口数、编译入口及历史结果。
 
 ```bash
-rg -c '^\s*input\s+logic\b' rtl/v21/adc_digital_ip_v21.sv
-rg -c '^\s*output\s+logic\b' rtl/v21/adc_digital_ip_v21.sv
-rg '^rtl/.+\.sv$' flow/build/filelists/files_adc_v21.f
+rg -c '^\s*input\s+logic\b' rtl/sar_core/adc_digital_ip_v21.sv
+rg -c '^\s*output\s+logic\b' rtl/sar_core/adc_digital_ip_v21.sv
+rg '^rtl/.+\.sv$' rtl/filelists/files_adc_v21.f
 rg 'SUCCEEDED|router DRC|未完成' docs/audit/ALL_13_MODULES_FINAL.md
 ```

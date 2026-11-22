@@ -95,27 +95,27 @@ BENCHES = {
         module="adc_digital_ip_v21",
     ),
     "tb_i4_recon": Bench(
-        ("rtl/recip_q60.sv", "rtl/v21/recip_rnd_v21.sv", "rtl/v21/recon_v21.sv",
+        ("rtl/sar_core/recip_q60.sv", "rtl/sar_core/recip_rnd_v21.sv", "rtl/sar_core/recon_v21.sv",
          "tb/v21/tb_i4_recon.sv"),
         "RECON_FROZEN_COMPLETE",
         ("vectors", "checks"),
         support_files=("tb/v21/vec_i4_recon.txt",),
     ),
     "tb_recon_stream": Bench(
-        ("rtl/recip_q60.sv", "rtl/v21/recip_rnd_v21.sv", "rtl/v21/recon_v21.sv",
+        ("rtl/sar_core/recip_q60.sv", "rtl/sar_core/recip_rnd_v21.sv", "rtl/sar_core/recon_v21.sv",
          "tb/v21/tb_recon_stream.sv"),
         "RECON_STREAM_CAPTURE_COMPLETE",
         ("rows",),
         support_files=("tools/recon_oracle.py",),
     ),
     "divider_borrow_tb": Bench(
-        ("rtl/core/div_floor.sv", "flow/sim/tb/divider_borrow_tb.sv"),
+        ("archive/rtl_core/div_floor.sv", "flow/sim/tb/divider_borrow_tb.sv"),
         "DIVIDER_BORROW_COMPLETE",
         ("exhaustive_checks",),
         requires_math_format=True,
     ),
     "caaz_pair_vectors_tb": Bench(
-        ("subsys/extensions/caaz/rtl/caaz_pair_processor.sv", "subsys/extensions/caaz/tb/caaz_pair_vectors_tb.sv"),
+        ("experiments/extensions/caaz/rtl/caaz_pair_processor.sv", "experiments/extensions/caaz/tb/caaz_pair_vectors_tb.sv"),
         "CAAZ_PAIR_VECTORS_COMPLETE",
         ("cycles", "outputs", "checks", "cases"),
         (("caaz_pair_processor", ("-GP_CAAZ_ENABLE=1'b1",)),),
@@ -125,28 +125,28 @@ BENCHES = {
 
 # DSP 测试使用各自的明确合同；零计数要求与 OPEN 声明分别处理。
 BENCHES["result_fifo_tb"] = Bench(
-    ("subsys/ad4080_dsp/rtl/result_fifo.sv", "subsys/ad4080_dsp/sim/tb/result_fifo_tb.sv"),
+    ("rtl/ad4080_dsp/result_fifo.sv", "rtl/ad4080_dsp/sim/tb/result_fifo_tb.sv"),
     "RESULT_FIFO_CONTRACT_COMPLETE",
     ("depth", "queue_reads", "snapshot_reads", "collisions", "writes", "checks"),
     (),
 )
 BENCHES["cnv_ctrl_contract_tb"] = Bench(
-    ("subsys/ad4080_dsp/rtl/cnv_ctrl.sv", "subsys/ad4080_dsp/sim/tb/cnv_ctrl_contract_tb.sv"),
+    ("rtl/ad4080_dsp/cnv_ctrl.sv", "rtl/ad4080_dsp/sim/tb/cnv_ctrl_contract_tb.sv"),
     "CNV_CTRL_CONTRACT_COMPLETE",
     ("input_edges", "busy_errors", "pulses", "checks"),
     (),
 )
 BENCHES["sys_error_corr_contract_tb"] = Bench(
-    ("subsys/ad4080_dsp/rtl/sys_error_corr.sv", "subsys/ad4080_dsp/sim/tb/sys_error_corr_contract_tb.sv"),
+    ("rtl/ad4080_dsp/sys_error_corr.sv", "rtl/ad4080_dsp/sim/tb/sys_error_corr_contract_tb.sv"),
     "SYS_ERROR_CORR_CONTRACT_COMPLETE",
     ("comparisons", "unbound_rejects", "cancels", "checks"),
     (),
 )
 BENCHES["sinc5_decim_tb"] = Bench(
     (
-        "subsys/ad4080_dsp/rtl/sinc1_decim.sv",
-        "subsys/ad4080_dsp/rtl/sinc5_decim.sv",
-        "subsys/ad4080_dsp/sim/tb/sinc5_decim_tb.sv",
+        "rtl/ad4080_dsp/sinc1_decim.sv",
+        "rtl/ad4080_dsp/sinc5_decim.sv",
+        "rtl/ad4080_dsp/sim/tb/sinc5_decim_tb.sv",
     ),
     "SINC_KERNEL_CONTRACT_COMPLETE",
     ("cases", "sinc1_outputs", "sinc5_outputs", "steady_compares", "checks"),
@@ -157,9 +157,9 @@ BENCHES["sinc5_decim_tb"] = Bench(
 # 独立协议通过不代表板级引脚和外设时序可用，范围在完成行的边界说明中保留。
 BENCHES["spi_slave_tb"] = Bench(
     (
-        "subsys/ad4080_dsp/rtl/spi_slave.sv",
-        "subsys/ad4080_dsp/rtl/ad4080_regs.sv",
-        "subsys/ad4080_dsp/sim/tb/spi_slave_tb.sv",
+        "rtl/ad4080_dsp/spi_slave.sv",
+        "rtl/ad4080_dsp/ad4080_regs.sv",
+        "rtl/ad4080_dsp/sim/tb/spi_slave_tb.sv",
     ),
     "SPI_ENTITY_CONTRACT_COMPLETE",
     (
@@ -177,9 +177,9 @@ BENCHES["spi_slave_tb"] = Bench(
 )
 BENCHES["fifo_capture_contract_tb"] = Bench(
     (
-        "subsys/ad4080_dsp/rtl/result_fifo.sv",
-        "subsys/ad4080_dsp/rtl/fifo_capture.sv",
-        "subsys/ad4080_dsp/sim/tb/fifo_capture_contract_tb.sv",
+        "rtl/ad4080_dsp/result_fifo.sv",
+        "rtl/ad4080_dsp/fifo_capture.sv",
+        "rtl/ad4080_dsp/sim/tb/fifo_capture_contract_tb.sv",
     ),
     "FIFO_CAPTURE_CONTRACT_COMPLETE",
     (
@@ -198,19 +198,19 @@ BENCHES["fifo_capture_contract_tb"] = Bench(
 # 输入接入与数字处理的控制分属不同模块，顶层的窗口激励不能复用叶子激励。
 BENCHES["ad4080_top_tb"] = Bench(
     (
-        "subsys/ad4080_dsp/rtl/ad4080_top.sv",
-        "subsys/ad4080_dsp/rtl/spi_slave.sv",
-        "subsys/ad4080_dsp/rtl/ad4080_regs.sv",
-        "subsys/ad4080_dsp/rtl/ad4080_dsp_chain.sv",
-        "subsys/ad4080_dsp/rtl/sys_error_corr.sv",
-        "subsys/ad4080_dsp/rtl/sinc1_decim.sv",
-        "subsys/ad4080_dsp/rtl/sinc5_decim.sv",
-        "subsys/ad4080_dsp/rtl/sinc5_comp.sv",
-        "subsys/ad4080_dsp/rtl/event_detect.sv",
-        "subsys/ad4080_dsp/rtl/fifo_capture.sv",
-        "subsys/ad4080_dsp/rtl/result_fifo.sv",
-        "subsys/ad4080_dsp/rtl/gpio_ctrl.sv",
-        "subsys/ad4080_dsp/sim/tb/ad4080_top_tb.sv",
+        "rtl/ad4080_dsp/ad4080_top.sv",
+        "rtl/ad4080_dsp/spi_slave.sv",
+        "rtl/ad4080_dsp/ad4080_regs.sv",
+        "rtl/ad4080_dsp/ad4080_dsp_chain.sv",
+        "rtl/ad4080_dsp/sys_error_corr.sv",
+        "rtl/ad4080_dsp/sinc1_decim.sv",
+        "rtl/ad4080_dsp/sinc5_decim.sv",
+        "rtl/ad4080_dsp/sinc5_comp.sv",
+        "rtl/ad4080_dsp/event_detect.sv",
+        "rtl/ad4080_dsp/fifo_capture.sv",
+        "rtl/ad4080_dsp/result_fifo.sv",
+        "rtl/ad4080_dsp/gpio_ctrl.sv",
+        "rtl/ad4080_dsp/sim/tb/ad4080_top_tb.sv",
     ),
     "AD4080_TOP_CONTRACT_COMPLETE",
     (
@@ -225,16 +225,16 @@ BENCHES["ad4080_top_tb"] = Bench(
 )
 # 与普通 SPI/DSP 使用同一源码；本台架从已译码 CNV 和实际 GPIO 检查引脚拍点。
 BENCHES["ad4080_cnv_phases_tb"] = Bench(
-    BENCHES["ad4080_top_tb"].sources[:-1] + ("subsys/ad4080_dsp/sim/tb/ad4080_cnv_phases_tb.sv",),
+    BENCHES["ad4080_top_tb"].sources[:-1] + ("rtl/ad4080_dsp/sim/tb/ad4080_cnv_phases_tb.sv",),
     "AD4080_CNV_PHASES_COMPLETE",
     ("checks",),
     (),
 )
 BENCHES["sinc5_comp_contract_tb"] = Bench(
     (
-        "subsys/ad4080_dsp/rtl/sinc5_decim.sv",
-        "subsys/ad4080_dsp/rtl/sinc5_comp.sv",
-        "subsys/ad4080_dsp/sim/tb/sinc5_comp_contract_tb.sv",
+        "rtl/ad4080_dsp/sinc5_decim.sv",
+        "rtl/ad4080_dsp/sinc5_comp.sv",
+        "rtl/ad4080_dsp/sim/tb/sinc5_comp_contract_tb.sv",
     ),
     "SINC5_COMP_CONTRACT_COMPLETE",
     (
@@ -253,20 +253,21 @@ BENCHES["sinc5_comp_contract_tb"] = Bench(
 # 错误隔离、有效输出和停流后重新受理分别计数，防止只覆盖稳态。
 BENCHES["sar20_dsp_integration_tb"] = Bench(
     (
-        "subsys/ad4080_dsp/rtl/sar20_ad4080_top.sv",
-        "subsys/ad4080_dsp/rtl/ad4080_top.sv",
-        "subsys/ad4080_dsp/rtl/spi_slave.sv",
-        "subsys/ad4080_dsp/rtl/ad4080_regs.sv",
-        "subsys/ad4080_dsp/rtl/ad4080_dsp_chain.sv",
-        "subsys/ad4080_dsp/rtl/sys_error_corr.sv",
-        "subsys/ad4080_dsp/rtl/sinc1_decim.sv",
-        "subsys/ad4080_dsp/rtl/sinc5_decim.sv",
-        "subsys/ad4080_dsp/rtl/sinc5_comp.sv",
-        "subsys/ad4080_dsp/rtl/event_detect.sv",
-        "subsys/ad4080_dsp/rtl/fifo_capture.sv",
-        "subsys/ad4080_dsp/rtl/result_fifo.sv",
-        "subsys/ad4080_dsp/rtl/gpio_ctrl.sv",
-        "subsys/ad4080_dsp/sim/tb/sar20_dsp_integration_tb.sv",
+        "rtl/ad4080_dsp/sar20_result_guard.sv",
+        "rtl/ad4080_dsp/sar20_ad4080_top.sv",
+        "rtl/ad4080_dsp/ad4080_top.sv",
+        "rtl/ad4080_dsp/spi_slave.sv",
+        "rtl/ad4080_dsp/ad4080_regs.sv",
+        "rtl/ad4080_dsp/ad4080_dsp_chain.sv",
+        "rtl/ad4080_dsp/sys_error_corr.sv",
+        "rtl/ad4080_dsp/sinc1_decim.sv",
+        "rtl/ad4080_dsp/sinc5_decim.sv",
+        "rtl/ad4080_dsp/sinc5_comp.sv",
+        "rtl/ad4080_dsp/event_detect.sv",
+        "rtl/ad4080_dsp/fifo_capture.sv",
+        "rtl/ad4080_dsp/result_fifo.sv",
+        "rtl/ad4080_dsp/gpio_ctrl.sv",
+        "rtl/ad4080_dsp/sim/tb/sar20_dsp_integration_tb.sv",
     ),
     "SAR20_DSP_INGRESS_CONTRACT_COMPLETE",
     (
@@ -285,13 +286,13 @@ BENCHES["sar20_dsp_integration_tb"] = Bench(
     (),
 )
 BENCHES["ad4080_regs_rejection_tb"] = Bench(
-    ("subsys/ad4080_dsp/rtl/ad4080_regs.sv", "subsys/ad4080_dsp/sim/tb/ad4080_regs_rejection_tb.sv"),
+    ("rtl/ad4080_dsp/ad4080_regs.sv", "rtl/ad4080_dsp/sim/tb/ad4080_regs_rejection_tb.sv"),
     "AD4080_REG_REJECTION_COMPLETE",
     ("rejected_writes", "metadata_rejects", "preserved_compares", "checks"),
     (),
 )
 BENCHES["spi_unbound_contract_tb"] = Bench(
-    ("subsys/ad4080_dsp/rtl/spi_slave.sv", "subsys/ad4080_dsp/sim/tb/spi_unbound_contract_tb.sv"),
+    ("rtl/ad4080_dsp/spi_slave.sv", "rtl/ad4080_dsp/sim/tb/spi_unbound_contract_tb.sv"),
     "SPI_UNBOUND_CONTRACT_COMPLETE",
     ("frames", "rejects", "missing_bindings", "not_ready", "invalid_address", "readonly", "checks"),
     (),
@@ -303,12 +304,12 @@ BENCHES["spi_unbound_contract_tb"] = Bench(
 # 选中的重构场景需要独立完成行与事件计数，不能使用别的重构配置下的储存结果。
 BENCHES["review_recon_protocol_tb"] = Bench(
     (
-        "rtl/core/cal_weight_reduce.sv",
-        "rtl/core/adc2_dec.sv",
-        "rtl/core/cal_residue_mac.sv",
-        "rtl/core/div_floor.sv",
-        "rtl/core/cal_output_stage.sv",
-        "rtl/core/recon_core.sv",
+        "archive/rtl_core/cal_weight_reduce.sv",
+        "archive/rtl_core/adc2_dec.sv",
+        "archive/rtl_core/cal_residue_mac.sv",
+        "archive/rtl_core/div_floor.sv",
+        "archive/rtl_core/cal_output_stage.sv",
+        "archive/rtl_core/recon_core.sv",
         "flow/sim/tb/review_recon_protocol_tb.sv",
     ),
     "REVIEW_RECON_PROTOCOL_COMPLETE",
@@ -317,7 +318,7 @@ BENCHES["review_recon_protocol_tb"] = Bench(
     parameters=(),
 )
 BENCHES["weight_row_cache_tb"] = Bench(
-    ("rtl/core/weight_store.sv", "flow/sim/tb/weight_row_cache_tb.sv"),
+    ("archive/rtl_core/weight_store.sv", "flow/sim/tb/weight_row_cache_tb.sv"),
     "WEIGHT_ROW_CACHE_COMPLETE",
     ("geometries", "steps"),
     requires_protocol_fixture=True,
@@ -326,7 +327,7 @@ BENCHES["weight_row_cache_tb"] = Bench(
 # 权重归约用数值夹具检查选通和重构计算。用例名称里的 PPA 不承诺布局量测。
 # 速度或面积比较本应来自单独工艺工具，不能从这份事件次数外推。
 BENCHES["cal_weight_reduce_ppa_tb"] = Bench(
-    ("rtl/core/cal_weight_reduce.sv", "flow/sim/tb/cal_weight_reduce_ppa_tb.sv"),
+    ("archive/rtl_core/cal_weight_reduce.sv", "flow/sim/tb/cal_weight_reduce_ppa_tb.sv"),
     "CAL_WEIGHT_REDUCE_PPA_COMPLETE",
     ("geometries", "checks"),
     requires_protocol_fixture=True,
@@ -334,12 +335,12 @@ BENCHES["cal_weight_reduce_ppa_tb"] = Bench(
 )
 BENCHES["recon_ppa_latency_tb"] = Bench(
     (
-        "rtl/core/cal_weight_reduce.sv",
-        "rtl/core/adc2_dec.sv",
-        "rtl/core/cal_residue_mac.sv",
-        "rtl/core/div_floor.sv",
-        "rtl/core/cal_output_stage.sv",
-        "rtl/core/recon_core.sv",
+        "archive/rtl_core/cal_weight_reduce.sv",
+        "archive/rtl_core/adc2_dec.sv",
+        "archive/rtl_core/cal_residue_mac.sv",
+        "archive/rtl_core/div_floor.sv",
+        "archive/rtl_core/cal_output_stage.sv",
+        "archive/rtl_core/recon_core.sv",
         "flow/sim/tb/recon_ppa_latency_tb.sv",
     ),
     "RECON_PPA_LATENCY_COMPLETE",
@@ -348,7 +349,7 @@ BENCHES["recon_ppa_latency_tb"] = Bench(
     parameters=(),
 )
 BENCHES["tree_mapping_tb"] = Bench(
-    ("rtl/core/cal_weight_reduce.sv", "flow/sim/tb/tree_mapping_dut.sv", "flow/sim/tb/tree_mapping_tb.sv"),
+    ("archive/rtl_core/cal_weight_reduce.sv", "flow/sim/tb/tree_mapping_dut.sv", "flow/sim/tb/tree_mapping_tb.sv"),
     "TREE_MAPPING_COMPLETE",
     ("checks", "valid_cases", "invalid_cases"),
     requires_protocol_fixture=True,
@@ -356,12 +357,12 @@ BENCHES["tree_mapping_tb"] = Bench(
 )
 BENCHES["calibration_physical_tb"] = Bench(
     (
-        "rtl/core/cal_weight_reduce.sv",
-        "rtl/core/adc2_dec.sv",
-        "rtl/core/cal_residue_mac.sv",
-        "rtl/core/div_floor.sv",
-        "rtl/core/cal_output_stage.sv",
-        "rtl/core/recon_core.sv",
+        "archive/rtl_core/cal_weight_reduce.sv",
+        "archive/rtl_core/adc2_dec.sv",
+        "archive/rtl_core/cal_residue_mac.sv",
+        "archive/rtl_core/div_floor.sv",
+        "archive/rtl_core/cal_output_stage.sv",
+        "archive/rtl_core/recon_core.sv",
         "flow/sim/tb/calibration_physical_tb.sv",
     ),
     "CALIBRATION_PHYSICAL_COMPLETE",
@@ -373,12 +374,12 @@ BENCHES["calibration_physical_tb"] = Bench(
 # 前级训练产生的估计质量另有评价。完整回放只验证已给定系数下的数字通过条件。
 BENCHES["calibration_recovery_tb"] = Bench(
     (
-        "rtl/core/cal_weight_reduce.sv",
-        "rtl/core/adc2_dec.sv",
-        "rtl/core/cal_residue_mac.sv",
-        "rtl/core/div_floor.sv",
-        "rtl/core/cal_output_stage.sv",
-        "rtl/core/recon_core.sv",
+        "archive/rtl_core/cal_weight_reduce.sv",
+        "archive/rtl_core/adc2_dec.sv",
+        "archive/rtl_core/cal_residue_mac.sv",
+        "archive/rtl_core/div_floor.sv",
+        "archive/rtl_core/cal_output_stage.sv",
+        "archive/rtl_core/recon_core.sv",
         "flow/sim/tb/calibration_recovery_tb.sv",
     ),
     "CALIBRATION_RECOVERY_COMPLETE",
@@ -388,12 +389,12 @@ BENCHES["calibration_recovery_tb"] = Bench(
 )
 BENCHES["generic_identity_tb"] = Bench(
     (
-        "rtl/core/cal_weight_reduce.sv",
-        "rtl/core/adc2_dec.sv",
-        "rtl/core/cal_residue_mac.sv",
-        "rtl/core/div_floor.sv",
-        "rtl/core/cal_output_stage.sv",
-        "rtl/core/recon_core.sv",
+        "archive/rtl_core/cal_weight_reduce.sv",
+        "archive/rtl_core/adc2_dec.sv",
+        "archive/rtl_core/cal_residue_mac.sv",
+        "archive/rtl_core/div_floor.sv",
+        "archive/rtl_core/cal_output_stage.sv",
+        "archive/rtl_core/recon_core.sv",
         "flow/sim/tb/generic_identity_tb.sv",
     ),
     "GENERIC_IDENTITY_COMPLETE",
@@ -405,9 +406,9 @@ BENCHES["generic_identity_tb"] = Bench(
 SPECIAL_TOPS = ("arithmetic_audit_tb", "engineering_fsm_tb")
 BENCHES["sinc_rate_oracle_tb"] = Bench(
     (
-        "subsys/ad4080_dsp/rtl/sinc1_decim.sv",
-        "subsys/ad4080_dsp/rtl/sinc5_decim.sv",
-        "subsys/ad4080_dsp/sim/tb/sinc_rate_oracle_tb.sv",
+        "rtl/ad4080_dsp/sinc1_decim.sv",
+        "rtl/ad4080_dsp/sinc5_decim.sv",
+        "rtl/ad4080_dsp/sim/tb/sinc_rate_oracle_tb.sv",
     ),
     "SINC_RATE_ORACLE_COMPLETE",
     ("cases", "outputs1", "outputs5", "positive", "negative", "checks"),
@@ -674,7 +675,7 @@ def run_bench(args, top: str, spec: Bench, out: Path, command: list[str], versio
                 raise ValueError("the public-port cadence driver requires Verilator")
             # 测的是公开的唯一生产顶层，使用发布清单。先存清单原文，再从快照解析，
             # 以免编译列表和最终记录的哈希在并发修改时来自不同的读取时刻。
-            rel = "flow/build/filelists/files_adc_v21.f"
+            rel = "rtl/filelists/files_adc_v21.f"
             saved = snapshot / rel
             saved.parent.mkdir(parents=True)
             saved.write_bytes((REPO / rel).read_bytes())
@@ -687,8 +688,8 @@ def run_bench(args, top: str, spec: Bench, out: Path, command: list[str], versio
                 raise ValueError("invalid or duplicate source in the v21 production filelist")
             source_names = [*rtl, *source_names]
         # PF1 的常系数表是真正的 HDL 输入，需要与源码一起冻结，但不能作为独立编译单元。
-        dsp_filter = "subsys/ad4080_dsp/rtl/sinc5_comp.sv"
-        fir_headers = ("subsys/ad4080_dsp/rtl/sinc5_comp_coeff_lut.svh",) if dsp_filter in source_names else ()
+        dsp_filter = "rtl/ad4080_dsp/sinc5_comp.sv"
+        fir_headers = ("rtl/ad4080_dsp/sinc5_comp_coeff_lut.svh",) if dsp_filter in source_names else ()
         for name in (*source_names, *spec.support_files, *fir_headers):
             source = REPO / name
             if not source.is_file():

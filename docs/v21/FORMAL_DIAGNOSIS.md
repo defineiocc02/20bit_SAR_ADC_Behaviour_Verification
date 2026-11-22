@@ -31,7 +31,7 @@
 
 | # | 根因 | 归属 | 状态 |
 |:--:|:---|:---|:---|
-| A | `rtl/recip_q60.sv` 用 `initial` 初始化 64 项 LUT → DC 丢弃 → `i_q60` 在网表里恒为常数 **2** | **第 5 类：真正的逻辑不等价** | **已修复（`878a348`）并复验通过**（修复后 `i_q60_reg` failing = **0**） |
+| A | `rtl/sar_core/recip_q60.sv` 用 `initial` 初始化 64 项 LUT → DC 丢弃 → `i_q60` 在网表里恒为常数 **2** | **第 5 类：真正的逻辑不等价** | **已修复（`878a348`）并复验通过**（修复后 `i_q60_reg` failing = **0**） |
 | B | `w_main_tbl`/`w_sub_tbl` 展平后的端口在实现侧未被约束（旧网表只有 bit 0，修复后扩展到全 bit，见 §3.4.2） → `u_wsum` 的 `G/Wp/Wm` 低位不可判 | **第 5 类**（"网表带出未约束端口"，匹配因素见 §4.2） | **未修复**，修复 A 后**全部 20 个 failing 都变成这一簇** |
 
 ### 0.2 修复前后对照（同一套流程、同一份 RTL 源树）
@@ -598,7 +598,7 @@ A 类已证明不是。
 
 ### 5.1 缺陷源码
 
-`rtl/recip_q60.sv`（修复前，HEAD `45e54f1^`）：
+`rtl/sar_core/recip_q60.sv`（修复前，HEAD `45e54f1^`）：
 
 ```systemverilog
     // 64 项种子表：LUT[i] = 2^60 // (2^30 + (i+0.5)·2^24)
@@ -624,7 +624,7 @@ A 类已证明不是。
 DC 日志（`/tmp/dcwork/dc.log:395`）：
 
 ```
-Warning: /tmp/ip/rtl/recip_q60.sv:82: The statements in initial blocks are ignored. (VER-281)
+Warning: /tmp/ip/rtl/sar_core/recip_q60.sv:82: The statements in initial blocks are ignored. (VER-281)
 ```
 
 后续（`OPT-1206`，共 146 条）：
@@ -771,7 +771,7 @@ SCAN G=34359738368 out=33554432     SCAN G=60000000000 out=19215358
 > 该轮**作废**（`/tmp/fmfix.log`）。改用 `/tmp/gate3/rtl/` 后校验和归零（`/tmp/fmfix2_review_130645.log`）。
 >
 > 附：11:07 那次 DC 用的 `recip_rnd_v21.sv` 是 **4912 B**（= 仓库版，无 `prod2`），
-> 而 `/tmp/ip/rtl/v21/recip_rnd_v21.sv` 是 **5712 B**（09:24 的实验版）。
+> 而 `/tmp/ip/rtl/sar_core/recip_rnd_v21.sv` 是 **5712 B**（09:24 的实验版）。
 > 两者不等价 —— 这也是"必须用同一棵源树"的又一个理由。
 
 > **日志覆盖与复核（重要，过程记录）**
@@ -855,7 +855,7 @@ grep -E "Compare point .* failed|Passing compare|Failing compare" /tmp/fmfix2_*.
 **跑之前务必先确认版本对齐**（本次踩了两次坑）：
 
 ```bash
-md5sum /tmp/gate3/rtl/recip_q60.sv /tmp/gate3/rtl/v21/wsum_v21.sv  # 应与网表同源
+md5sum /tmp/gate3/rtl/sar_core/recip_q60.sv /tmp/gate3/rtl/sar_core/wsum_v21.sv  # 应与网表同源
 grep -c "SVF Design Consistency" /tmp/fmfix2_*.log                # 必须为 0
 ```
 
@@ -867,7 +867,7 @@ grep -c "SVF Design Consistency" /tmp/fmfix2_*.log                # 必须为 0
 
 ### A 类：`i_q60` —— 真实逻辑错误，已定位、已修复、已复验
 
-`rtl/recip_q60.sv` 用 `initial` 块初始化 64 项 Newton 种子表，DC 直接丢弃
+`rtl/sar_core/recip_q60.sv` 用 `initial` 块初始化 64 项 Newton 种子表，DC 直接丢弃
 （`VER-281`）→ `u0_r_reg[30:0]` 被当常量删除（`OPT-1206`）→ Newton 退化 →
 `inv_q60` 被 `TIELBWP7T40P140` 拉成恒 0 → 乘法器退化成 ×1 → **网表 `i_q60` 恒等于 2**。
 

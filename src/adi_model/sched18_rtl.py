@@ -1,4 +1,4 @@
-"""random18 调度器的 RTL 等价模型（位精确，对应 rtl/sched18.sv）。
+"""random18 调度器的 RTL 等价模型（位精确，对应 rtl/sar_core/sched18.sv）。
 
 为什么另写一份
 --------------
@@ -45,7 +45,7 @@ SEED_DEFAULT = 0xACE10001
 
 
 def prng_step(x: int) -> int:
-    """一步 xorshift32（与 rtl/sched18.sv 的 always_ff 逐位一致）。"""
+    """一步 xorshift32（与 rtl/sar_core/sched18.sv 的 always_ff 逐位一致）。"""
     x &= MASK32
     x ^= (x << XORSHIFT_A) & MASK32
     x ^= x >> XORSHIFT_B

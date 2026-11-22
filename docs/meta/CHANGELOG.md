@@ -6,7 +6,7 @@
 | --- | --- |
 | `main` | 数字 IP 的发布入口。普通克隆使用此分支。引用一次试验时记录当时的 Git 提交号。 |
 | [9.0.1+adi.repro](../../pyproject.toml) | 当前源码生成的 Python 分发包版本，由 [pyproject.toml](../../pyproject.toml) 定义。对应的软件作者、许可和引用方式见 [CITATION.cff](CITATION.cff)。 |
-| `adc_digital_ip_v21` | SystemVerilog 顶层模块名。默认 Python 按这套顶层的开关、逐位判决、权重和定点规则出码。[生产清单](../../flow/build/filelists/files_adc_v21.f) |
+| `adc_digital_ip_v21` | SystemVerilog 顶层模块名。默认 Python 按这套顶层的开关、逐位判决、权重和定点规则出码。[生产清单](../../rtl/filelists/files_adc_v21.f) |
 
 截至 2026-11-20，GitHub 最近一次正式发布仍是 `v8.2.2`，标签指向 `cad5114`。它保存了当时的行为模型。复核下表的数字 IP 结果时，请取表中对应的提交。[正式发布](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/releases/tag/v8.2.2) · [全部发布](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/releases)
 

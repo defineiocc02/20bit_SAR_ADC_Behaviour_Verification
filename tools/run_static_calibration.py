@@ -35,7 +35,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from subsys.experiments.fig11 import Fig11Parameters, fig11_model
+from experiments.fig11 import Fig11Parameters, fig11_model
 
 import adi_model
 from adi_model.calibration.weight_calibration import (
@@ -62,21 +62,21 @@ def digest(path: Path) -> str:
 
 # 从加载模块提取实际文件，再按仓库相对路径归档。
 # 新的生产 defaults.py 与旧实验装配有各自的身份。
-# 研究代码移入 subsys 后仍应纳入这次校准的来源校验。
+# 独立研究代码仍应纳入这次校准的来源校验。
 def loaded_sources(source_root: Path) -> dict[str, Path]:
     """返回实际已加载的本包 Python 源文件，不把未使用模块当受测源。"""
     result = {}
     # 此处精确登记研究装配本身，避免把同目录下未导入的实验都算作受测代码。
-    study = PROJECT_ROOT / "subsys/experiments/fig11.py"
+    study = PROJECT_ROOT / "experiments/fig11.py"
     for name, module in tuple(sys.modules.items()):
         filename = getattr(module, "__file__", None)
-        if not isinstance(filename, str) or not (name.startswith("adi_model") or name == "subsys.experiments.fig11"):
+        if not isinstance(filename, str) or not (name.startswith("adi_model") or name == "experiments.fig11"):
             continue
         path = Path(filename).resolve()
         if path.suffix == ".py" and path.is_relative_to(source_root):
             result["src/adi_model/" + path.relative_to(source_root).as_posix()] = path
         elif path == study:
-            result["subsys/experiments/fig11.py"] = path
+            result["experiments/fig11.py"] = path
     return result
 
 
@@ -308,7 +308,7 @@ def run(args: argparse.Namespace, model) -> dict:
     source_root = Path(adi_model.__file__).resolve().parent
     source_before = {"src/adi_model/" + p.relative_to(source_root).as_posix(): digest(p)
                      for p in source_root.rglob("*.py")}
-    study_path = "subsys/experiments/fig11.py"
+    study_path = "experiments/fig11.py"
     # 使用稳定的相对名索引，哈希则读取这个 checkout 中的实际研究源码。
     source_before[study_path] = digest(PROJECT_ROOT / study_path)
     write_json(out / "source_snapshot_before.json", source_before)

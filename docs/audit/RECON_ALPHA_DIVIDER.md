@@ -19,7 +19,7 @@
 
 ```python
 # 诊断用：只把 alpha_bypass 强制为 1，不改其它任何逻辑
-src = open('/tmp/ip/rtl/v21/recon_v21.sv').read()
+src = open('/tmp/ip/rtl/sar_core/recon_v21.sv').read()
 dst = src.replace(
     "wire alpha_bypass = (alpha1a_q == 32'd1073741824);",
     "wire alpha_bypass = 1'b1;   // [DIAG] forced bypass")
@@ -33,7 +33,7 @@ open('/tmp/recon_diag.sv','w').write(dst)
 ## 3. 涉及的具体代码
 
 ```systemverilog
-// rtl/v21/recon_v21.sv:283-287
+// rtl/sar_core/recon_v21.sv:283-287
 if (alpha_bypass)
     z1_q <= d1a_q;
 else
@@ -54,7 +54,7 @@ function automatic logic signed [63:0] rnd64(input logic signed [63:0] n,
 顶层把 alpha 固定为常数：
 
 ```systemverilog
-// rtl/v21/adc_digital_ip_v21.sv:616
+// rtl/sar_core/adc_digital_ip_v21.sv:616
 .alpha_q30(32'd1073741824),   // alpha=1.0 旁路（首版）
 ```
 
@@ -89,7 +89,7 @@ ssh vm-yian 'export PATH=/opt/synopsys/syn/W-2024.09-SP3/bin:$PATH \
   SNPSLMD_LICENSE_FILE=27080@localhost
   cat > /tmp/md.tcl <<EOT
 set MOD recon_v21
-set RTL {/tmp/ip/rtl/recip_q60.sv /tmp/ip/rtl/v21/recip_rnd_v21.sv /tmp/recon_diag.sv}
+set RTL {/tmp/ip/rtl/sar_core/recip_q60.sv /tmp/ip/rtl/sar_core/recip_rnd_v21.sv /tmp/recon_diag.sv}
 source /tmp/syn_module.tcl
 EOT
   dc_shell -f /tmp/md.tcl > /tmp/md.log 2>&1'

@@ -43,10 +43,10 @@ REFERENCES_FILE = "references/source_manifest.json"
 MOVED_REFERENCE_ROOTS = {
     "tests": Path("flow/tests"),
     "sim": Path("flow/sim"),
-    "extensions": Path("subsys/extensions"),
+    "extensions": Path("experiments/extensions"),
 }
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
-TEST_ID_RE = re.compile(r"^(?P<path>(?:(?:flow/)?tests|subsys/extensions/caaz/tests)/[\w/]+\.py)::(?P<symbol>\w+)$")
+TEST_ID_RE = re.compile(r"^(?P<path>(?:(?:flow/)?tests|experiments/extensions/caaz/tests)/[\w/]+\.py)::(?P<symbol>\w+)$")
 RTL_CONTRACT_STATUSES = (
     "DIGITAL_IMPLEMENTED",
     "CONTROL_ONLY",

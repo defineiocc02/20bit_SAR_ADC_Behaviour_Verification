@@ -31,10 +31,10 @@ from run_open_rtl import (  # noqa: E402
 )
 
 SOURCES = (
-    "rtl/core/cal_residue_mac.sv",
-    "rtl/core/adc2_dec.sv",
-    "rtl/core/div_floor.sv",
-    "rtl/core/cal_output_stage.sv",
+    "archive/rtl_core/cal_residue_mac.sv",
+    "archive/rtl_core/adc2_dec.sv",
+    "archive/rtl_core/div_floor.sv",
+    "archive/rtl_core/cal_output_stage.sv",
 )
 FIELDS = (
     "voltage_bits",

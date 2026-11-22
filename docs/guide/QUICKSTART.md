@@ -28,7 +28,7 @@ bash tools/pyenv.sh --run -m adi_model validate-config --parameters "$param_dir/
 
 ~~~bash
 bash tools/pyenv.sh --run tools/run_open_rtl.py --simulator verilator --tops v21_sample_cadence --out "$work/rtl"
-bash tools/pyenv.sh --run tools/check_default_rtl.py "$work/rtl/v21_sample_cadence/samples.csv" --default-npz "$work/stream/codes.npz"
+bash tools/pyenv.sh --run tools/check_default_rtl.py "$work/rtl/sar_core_sample_cadence/samples.csv" --default-npz "$work/stream/codes.npz"
 ~~~
 
 预期输出为 `DEFAULT_PYTHON_RTL_MATCH transactions=1792`。包括片内字、强制遍历、跨全码域混合激励，以及同一失配器件在两张加载表上的结果。复位、反压、采样与捕获沿的归属由 RTL 定向测试覆盖。[仿真入口](../../flow/sim/README.md) · [原文与算法逐项对照](../audit/AUDIT_ALGO_VS_SOURCE.md)
@@ -44,7 +44,7 @@ bash tools/pyenv.sh --run tools/run_review_figures.py --out "$fig_dir"
 
 输出包含机理图、定量图、SVG 和 `figures.json`。只画机理图时追加 `--mechanisms-only`。定量重画包括校准训练。静态残差和频谱图分别核对各自的采样、输入和异常计数。[已归档的图及逐图读法](../figures/behavioral/README.md)
 
-消融矩阵另由 `tools/run_p4_ablation.py` 写入指定的结果目录，配置来源为 [实验矩阵](../../subsys/experiments/configs/matrix.py)。图册和矩阵可能采用不同工况或指标，配对时应查两份清单的记录。
+消融矩阵另由 `tools/run_p4_ablation.py` 写入指定的结果目录，配置来源为 [实验矩阵](../../experiments/configs/matrix.py)。图册和矩阵可能采用不同工况或指标，配对时应查两份清单的记录。
 
 ## 对接与排查
 

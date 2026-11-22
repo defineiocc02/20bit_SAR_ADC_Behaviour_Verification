@@ -44,8 +44,8 @@ def _filelist(name: str) -> list[str]:
 
 def check_layout(paths: set[Path], directories: set[str], files: set[str]) -> bool:
     """只固定公开入口的名称。历史文档、测试台、叶子模块的数量仍从工作树取得。"""
-    expected_dirs = set(".github docs flow references rtl src subsys tb tools".split())
-    expected_files = {"README.md", "pyproject.toml", ".gitignore", ".gitattributes"}
+    expected_dirs = set(".github archive docs experiments flow references rtl src tb tools".split())
+    expected_files = {"README.md", "Makefile", "pyproject.toml", ".gitignore", ".gitattributes"}
     pages = {p.name for p in paths if p.parent == Path("docs") and p.suffix == ".md"}
     checks = {
         "root directories": (directories, expected_dirs),
@@ -55,9 +55,9 @@ def check_layout(paths: set[Path], directories: set[str], files: set[str]) -> bo
     inventory = _filelist("rtl/rtl_sources.f")
     rtl_files = {p.as_posix() for p in paths if p.parts[0] == "rtl" and p.suffix in (".sv", ".v")}
     checks["RTL inventory"] = (set(inventory), rtl_files)
-    production = "flow/build/filelists/files_adc_v21.f"
+    production = "rtl/filelists/files_adc_v21.f"
     inputs = _filelist(production)
-    simulation = _filelist("flow/build/filelists/files_adc_v21_sim.f")
+    simulation = _filelist("rtl/filelists/files_adc_v21_sim.f")
     # 完整 RTL 清点包含组件和仿真宏。生产源只能来自该清点；生产集的可达性由图册检查器核对。
     # 模拟清单继承生产列表一次，附加文件存在且不得手抄一遍已经继承的生产源。
     checks["unknown production sources"] = (set(inputs) - rtl_files, set())

@@ -1,7 +1,13 @@
 # 工作树、版本与数字 IP 证据审查
 
 <a id="current-tree-review"></a>
-## 2026-11-20　结构与版本复核
+## 当前工作树
+
+单芯片总顶层 `ad4080_chip_top` 只连接一个转换核及一个结果存储。根目录 10 个目录、5 个文件，`docs/` 根保留三份导航说明。以 `make audit` 清点源码和链接，以 `make lint` 核看展开的单存储层级，实跑输出见[重构验收](RTL_REFACTOR.md#phase-4-单芯片文件归属与实跑结果)。
+
+## 2026-11-20　历史分支结构与版本复核
+
+本节的 9 个目录、4 个文件、RTL 清点及 GitHub 观测对应当日基线。以下证据应在相应 Git 提交的独立检出内复核。
 
 修正前基线为 `merge/adi-repro@e50393a`，对照合并前的默认分支 `main@bc9a16a`。以下命令从仓库根运行。A1–A6 对应本次实测；11 月 18–19 日的图、EDA 记录及其 E1–E9 命令在后半部分按原基线保存。
 
@@ -93,8 +99,8 @@ git ls-remote --refs origin refs/heads/main refs/heads/merge/adi-repro 'refs/tag
 ```bash
 tclsh flow/synth/v21/design_inputs.tcl --list
 node tools/v21_algorithm_atlas.mjs --check
-rg -n '^\s*\w+\s+u_\w+\s*\(' rtl/v21/{adc_digital_ip_v21,recon_v21,recip_rnd_v21}.sv
-rg -n 'module sar20_ad4080_top|ad4080_top #|u_dsp' subsys/ad4080_dsp/rtl/sar20_ad4080_top.sv
+rg -n '^\s*\w+\s+u_\w+\s*\(' rtl/sar_core/{adc_digital_ip_v21,recon_v21,recip_rnd_v21}.sv
+rg -n 'module sar20_ad4080_top|ad4080_top #|u_dsp' rtl/ad4080_dsp/sar20_ad4080_top.sv
 rg -n 'SUCCEEDED|dem_phase_rr|dem_phase_gen|follower_rt' docs/audit/ALL_13_MODULES_FINAL.md
 rg -n 'default_model|from adi_model.defaults|^PROFILES|DEFAULT_PROFILE_ID' src/adi_model/{__init__,cli,defaults,contracts/profiles}.py
 bash tools/pyenv.sh --run tools/check_default_rtl.py tb/v21/sample_cadence.csv
@@ -277,11 +283,11 @@ ISSCC 论文第 182 页披露两端的扰动范围可以不同，并报告从量
 
 | 来源 | 查到的行为 |
 | --- | --- |
-| 当前生产 RTL | `dither_force_i=0` 时片内生字，`prepare_word/U` 可固定为零。每个受理沿写入一组 SADC 寄存器，并在 RDAC 描述符中保存同一字的预置。片选与扰动各用独立随机状态。[顶层接线](../../rtl/v21/adc_digital_ip_v21.sv) · [采样描述符](../../rtl/v21/acq_conv_ctx.sv) |
+| 当前生产 RTL | `dither_force_i=0` 时片内生字，`prepare_word/U` 可固定为零。每个受理沿写入一组 SADC 寄存器，并在 RDAC 描述符中保存同一字的预置。片选与扰动各用独立随机状态。[顶层接线](../../rtl/sar_core/adc_digital_ip_v21.sv) · [采样描述符](../../rtl/sar_core/acq_conv_ctx.sv) |
 | 工程约定 | 独立 xorshift32（13、17、5），复位种子 `0xC001D00D`，选取下一状态的低六位。只在 `prepare_valid && prepare_ready` 的上升沿推进，强制字也消耗一笔。该序列是本工程可重放的实现。[B8](../v21/SWITCHING_RULES.md) |
 | 软件参考与测试 | Python 的 `DitherWordGenerator` 使用同一递推。生产顶层前八字为 45、7、17、40、26、24、2、32。1,024 次按真实引脚闭环的受理覆盖全部 64 个字。强制遍历 0…63 和切换强制/自动另有定向测试。[参考实现](../../src/adi_model/control/dither_word.py) · [端口检查](../../tb/v21/sample_cadence.cpp) |
 
-生产忽略外部测试字和 U。显式强制时，字 53 要求 U=4；外报 5 的有效请求实测 ready=0、err_o=1。上一次接受 qid0 后，再次要求 qid0 也被拒收。两种拒收和停收均不消耗随机状态或发出 SADC 写门，修正后重试仍使用原本应得的字。[受理门控](../../rtl/v21/adc_digital_ip_v21.sv)
+生产忽略外部测试字和 U。显式强制时，字 53 要求 U=4；外报 5 的有效请求实测 ready=0、err_o=1。上一次接受 qid0 后，再次要求 qid0 也被拒收。两种拒收和停收均不消耗随机状态或发出 SADC 写门，修正后重试仍使用原本应得的字。[受理门控](../../rtl/sar_core/adc_digital_ip_v21.sv)
 
 ### 一个六位字分成哪几部分
 
@@ -293,13 +299,13 @@ ISSCC 论文第 182 页披露两端的扰动范围可以不同，并报告从量
 | 加到已决粗码的上段 U | 4 | 0 | 1 | 0 | 0 | 0 |
 | RDAC 采样预置总量 T | 4 | 2 | 1 | 1/2 | 1/4 | 1/8 |
 
-整数形式为 `f=word&7`，`U=4D6+D4`，`L=2D5+f/8`，`T=U+L=word/8`。低段有 16 个不同取值，全字有 64 个。总预置的峰值为 7.875，低段峰值为 2.875，两种取值数不能替代同一电压口径下的峰峰值比较。八片先各置为 `J=U+2D5`，从纵向相位 v 开始循环选 f 片各加一档。每片用 4、2、1、1 的子支路编码，档位 8 对应四支路全选。[实际译码](../../rtl/dither_pre.sv)
+整数形式为 `f=word&7`，`U=4D6+D4`，`L=2D5+f/8`，`T=U+L=word/8`。低段有 16 个不同取值，全字有 64 个。总预置的峰值为 7.875，低段峰值为 2.875，两种取值数不能替代同一电压口径下的峰峰值比较。八片先各置为 `J=U+2D5`，从纵向相位 v 开始循环选 f 片各加一档。每片用 4、2、1、1 的子支路编码，档位 8 对应四支路全选。[实际译码](../../rtl/sar_core/dither_pre.sv)
 
-例如 `110101` 是十进制 53，U=4、L=2.625、T=6.625。v=3 时，实际八槽的档位依次为 6、6、6、7、7、7、7、7，对应三个十六进制 C 和五个 E。八槽平均为 53/8。SADC 端同时给该 qid 写入 0x2A。低七位对应 SADC0，高七位对应 SADC1，另一个 bank 保持。实际 RDAC 片号和预置随采样描述符冻结。[采样写门与寄存](../../rtl/v21/acq_conv_ctx.sv) · [扰动预置的全域测试](../../tb/tb_dem_dither.sv)
+例如 `110101` 是十进制 53，U=4、L=2.625、T=6.625。v=3 时，实际八槽的档位依次为 6、6、6、7、7、7、7、7，对应三个十六进制 C 和五个 E。八槽平均为 53/8。SADC 端同时给该 qid 写入 0x2A。低七位对应 SADC0，高七位对应 SADC1，另一个 bank 保持。实际 RDAC 片号和预置随采样描述符冻结。[采样写门与寄存](../../rtl/sar_core/acq_conv_ctx.sv) · [扰动预置的全域测试](../../tb/tb_dem_dither.sv)
 
 ### 为什么扣一次恰好还原
 
-设 c 为前级已经受到低段扰动后的粗码。当前 SAR 控制器给 RDAC 的命令是 `k=c+U`。Wm 为八个实际片按最终转换开关 post 求出的权重和，Wp 为同八片按采样时开关 pre 求出的子支路权重和。两者均通过物理片号查已装载的 Q30 系数。G 为八片的全部主权重和。捕获时锁存 G、Wm、Wp 和 tag，ADC2 返回原码时取回该笔的数据。[转换命令](../../rtl/v21/sar_evt_v21.sv) · [权重查表和求和](../../rtl/v21/wsum_v21.sv) · [捕获与返回](../../rtl/v21/adc2_capture.sv)
+设 c 为前级已经受到低段扰动后的粗码。当前 SAR 控制器给 RDAC 的命令是 `k=c+U`。Wm 为八个实际片按最终转换开关 post 求出的权重和，Wp 为同八片按采样时开关 pre 求出的子支路权重和。两者均通过物理片号查已装载的 Q30 系数。G 为八片的全部主权重和。捕获时锁存 G、Wm、Wp 和 tag，ADC2 返回原码时取回该笔的数据。[转换命令](../../rtl/sar_core/sar_evt_v21.sv) · [权重查表和求和](../../rtl/sar_core/wsum_v21.sv) · [捕获与返回](../../rtl/sar_core/adc2_capture.sv)
 
 工程正向坐标下，理想残差为 `y=α(Gx+3G−6Wm+6Wp)+b`。反解输入要加回 Wm 的贡献、扣去 Wp 的贡献。生产 RTL 将 ADC2 原码转换成 Q24 码箱中心，处理偏置和增益后得到 Z（顶层固定 α=1）。重构分子按整数计算：
 
@@ -307,7 +313,7 @@ ISSCC 论文第 182 页披露两端的扰动范围可以不同，并报告从量
 N = 64·Z + 6·Wm − 3·G − 6·Wp
 ```
 
-64 把 Z 的 Q24 尺度对齐到权重的 Q30。随后按本笔 G 归一、舍入到 20 位。名义系数下 Wm=k/16、Wp=T/16，因此 `16(Wm−Wp)=(c+U)−(U+L)=c−L`。上段 U 已经同时进入转换命令和采样预置，两项相抵。寄存器里真正扣的是一次按物理开关加权的 Wp。芯片存在单元失配时仍应查实际系数。[生产重构](../../rtl/v21/recon_v21.sv) · [独立整数参考](../../tools/recon_oracle.py)
+64 把 Z 的 Q24 尺度对齐到权重的 Q30。随后按本笔 G 归一、舍入到 20 位。名义系数下 Wm=k/16、Wp=T/16，因此 `16(Wm−Wp)=(c+U)−(U+L)=c−L`。上段 U 已经同时进入转换命令和采样预置，两项相抵。寄存器里真正扣的是一次按物理开关加权的 Wp。芯片存在单元失配时仍应查实际系数。[生产重构](../../rtl/sar_core/recon_v21.sv) · [独立整数参考](../../tools/recon_oracle.py)
 
 ### 固定输入与故意错扣的结果
 
@@ -345,9 +351,9 @@ N = 64·Z + 6·Wm − 3·G − 6·Wp
 ~~~bash
 dither_run="$(mktemp -d)"
 bash tools/pyenv.sh --run tools/run_open_rtl.py --simulator verilator --tops v21_sample_cadence --out "$dither_run/results"
-rg -n 'dither_next|dither_force_i|sadc_pre_wr_o|prepare_error' rtl/v21/adc_digital_ip_v21.sv
-rg -n 'U_o =|f_o =|assign J|val =|pre_o\[' rtl/dither_pre.sv
-rg -n 'f_Wp|cur_sub\[s\]|Wm1b_q|Wp1b_q' rtl/v21/{wsum_v21,recon_v21}.sv
+rg -n 'dither_next|dither_force_i|sadc_pre_wr_o|prepare_error' rtl/sar_core/adc_digital_ip_v21.sv
+rg -n 'U_o =|f_o =|assign J|val =|pre_o\[' rtl/sar_core/dither_pre.sv
+rg -n 'f_Wp|cur_sub\[s\]|Wm1b_q|Wp1b_q' rtl/sar_core/{wsum_v21,recon_v21}.sv
 python3 -B - <<'PY'
 from tools.recon_oracle import Q30, oracle
 for w in (0, 32, 21, 53):
@@ -383,7 +389,7 @@ PY
 
 | 问题 | 严重度 | 证据命令 | 建议 |
 | --- | --- | --- | --- |
-| 25 ns 的单时钟事件路径不能承接论文的约 7 ns 前级转换。“单时钟 40 MS/s 符合”的审计结论过强。合同列出采样使能、粗精参考和 RA/AZ 相位，生产顶层未提供完整同名接口或已验证的适配宏。 | 高，吞吐与模拟集成 | E2、E6。`rg -n 'exp_evt_q|posedge clk' rtl/v21/sar_evt_v21.sv` | 现阶段保留既有端口。[需仓主决策] 宏时序确定后冻结逐位握手与非交叠条件，再验证连续转换。 |
+| 25 ns 的单时钟事件路径不能承接论文的约 7 ns 前级转换。“单时钟 40 MS/s 符合”的审计结论过强。合同列出采样使能、粗精参考和 RA/AZ 相位，生产顶层未提供完整同名接口或已验证的适配宏。 | 高，吞吐与模拟集成 | E2、E6。`rg -n 'exp_evt_q|posedge clk' rtl/sar_core/sar_evt_v21.sv` | 现阶段保留既有端口。[需仓主决策] 宏时序确定后冻结逐位握手与非交叠条件，再验证连续转换。 |
 | 重构曾将上一笔的负号记为本笔溢出，导致合法中点出零。工作树已让同一笔的 X、错误和标签一起寄存。本地 Verilator 确认两笔分别输出 `0x7FFFF`、`0x80000`。 | 高，已修并完成模块回归 | E7。[逐笔对照与复现](todo/README.md#recon-s3) | 保留有符号事务、空拍和截断边界回归。 |
 | 原审计发现默认 Python 与生产 RTL 只有 ADC2 口径相同。现已修复默认入口，Fig.11 移到研究目录。 | 已复核 | 公开命令和生产顶层在五组 1,792 笔记录上对拍。[现行对照与命令](AUDIT_ALGO_VS_SOURCE.md) | 后续改片选、预置或重构时复核同笔开关、原码、输出和标志。 |
 | 将粗码修正表称为论文“片外求系数”步骤的实现，容易让人误以为 F04 已验证片上 360 权重。以 DR、NSD 反解唯一电容失配也缺乏辨识依据。 | 高，性能归因 | E2、E4、E5。`rg -n 'coefficients derived externally|fit_code_correction' tools/run_p4_ablation.py` | 图例写清“逐粗码输出修正”。物理权重另列训练、秩、独立留出及整数出码。对物理 σ 保留假设或 PDK 统计身份。 |
@@ -403,10 +409,10 @@ PY
 | --- | --- |
 | `README.md` ×28，`__init__.py` ×16 | 前者由各目录或索引导航，后者限定不同 Python 包。它们的路径和读者对象不同。 |
 | `STATUS.md` ×2，`architecture.md` / `ARCHITECTURE.md` | 根 README 走 `docs/STATUS.md`，Python 指南走 `docs/guide/ARCHITECTURE.md`，另一份均在 `docs/_history/archive/`。 |
-| `conftest.py` ×2 | `flow/tests` 与 `subsys/extensions/caaz/tests` 有各自的 pytest 夹具作用域。 |
+| `conftest.py` ×2 | `flow/tests` 与 `experiments/extensions/caaz/tests` 有各自的 pytest 夹具作用域。 |
 | `fixed_point.py` ×2 | `src/adi_model/contracts` 提供模型格式；`flow/verification/reference` 提供独立整数参考。 |
 | `scheduler.py` ×2 | `control.scheduler` 服务控制部件，`simulation.scheduler` 服务流水装配，各有独立导入路径。 |
-| 同一个 HDL `module sched18` | `rtl/sched18.sv` 是生产源，`docs/audit/artifacts/sched18_final.v` 是历史单模块网表。生产清单只取前者。 |
+| 同一个 HDL `module sched18` | `rtl/sar_core/sched18.sv` 是生产源，`docs/audit/artifacts/sched18_final.v` 是历史单模块网表。生产清单只取前者。 |
 
 追查之前三个归档区，`rtl/_legacy/` 和 `tools/_legacy/` 在 Git 树中已无文件。`docs/_history/` 仍有 **134 个跟踪文件**。在 `tb/tools/src/flow/formal` 对应的现行路径和 CI 中，未发现直接运行该归档树源码的入口；维护脚本中用于排除归档的字符串按过滤规则解释。旧 12 位 Fig.19 独立整链已移出。`source_control_component` 仍被包装格式测试引用，其清单明确是 **2+1 单元、6 位**的合成夹具。它不能登记为另一个受支持的 ADC。E1、E9。
 
@@ -528,12 +534,12 @@ rg -n '七片|七个|224|352|保留列|VIN_AUX|Threshold_adjust' docs/mechanisms
 ~~~bash
 rg -n 'def _train_calibration|DEFAULT_TRAINING_POINTS|calibration.apply|run_id: int' tools/run_p4_ablation.py
 rg -n 'def fit_code_correction|error = estimated - known|table = total / counts|values - self.table_v' src/adi_model/calibration/mask_calibration.py
-rg -n 'wt_main\\[|wt_sub\\[|f_Wm|f_Wp' rtl/v21/wsum_v21.sv
+rg -n 'wt_main\\[|wt_sub\\[|f_Wm|f_Wp' rtl/sar_core/wsum_v21.sv
 rg -n 'def (base_post|apply_bridge|post_mask|bridge_swap|rounded)|round\(\(xh' tools/{contract_v2,algo_chain,recon_oracle}.py src/adi_model/dem_dither.py
-rg -n 'function.*f_lut|case \(i\)' rtl/recip_q60.sv
-rg -n 'main_code = coarse >> 4|base_decoder|mask_binding=fig11_masks' subsys/experiments/fig11.py
+rg -n 'function.*f_lut|case \(i\)' rtl/sar_core/recip_q60.sv
+rg -n 'main_code = coarse >> 4|base_decoder|mask_binding=fig11_masks' experiments/fig11.py
 rg -n 'sar_conversion|weight_sums|reconstruct|DitherWordGenerator' src/adi_model/defaults.py
-rg -n 'k = c - self.upper_code|rdac_codes =|k_wide =' src/adi_model/control/dither.py src/adi_model/simulation/pipeline_engine.py rtl/v21/sar_evt_v21.sv
+rg -n 'k = c - self.upper_code|rdac_codes =|k_wide =' src/adi_model/control/dither.py src/adi_model/simulation/pipeline_engine.py rtl/sar_core/sar_evt_v21.sv
 jq '.figures[] | select(.figure|startswith("F03")) | .configs[] | [.label,.fit_residual_peak_lsb20,.flag_counts.adc2_over,.sample_count,.sigma_e_lsb20,.output_domain]' docs/figures/behavioral/figures.json
 jq '.figures[] | select(.figure|startswith("F04")) | .configs[] | [.sndr_db,.sfdr_db,.output_domain]' docs/figures/behavioral/figures.json
 jq '.figures[] | select(.figure|startswith("F11")) | [.medians,.per_seed,.validation_run_id]' docs/figures/behavioral/figures.json
@@ -642,20 +648,20 @@ PYTHON
 ~~~bash
 bash tools/verify_v21.sh --check-sources
 rg -n 'set PERIOD|create_clock' flow/synth/v21/{dc_synth_v21,fc_rtl_to_gds,sta_budget}.tcl
-rg -n 'exp_evt_q|start_i|posedge clk|k_wide|last_evt =' rtl/v21/sar_evt_v21.sv
-rg -n 'prepare_(word|h|v|half|coin)|ev_(start|flash)|ref_fine|ra_phase|alpha_q30|w_cfg_reload' rtl/v21/adc_digital_ip_v21.sv
+rg -n 'exp_evt_q|start_i|posedge clk|k_wide|last_evt =' rtl/sar_core/sar_evt_v21.sv
+rg -n 'prepare_(word|h|v|half|coin)|ev_(start|flash)|ref_fine|ra_phase|alpha_q30|w_cfg_reload' rtl/sar_core/adc_digital_ip_v21.sv
 rg -n 'ref_fine|tp_enable|7ns|高速|clock' docs/v21/PHYSICAL_INTERFACE.md
 python3 - <<'PY'
 import re
 from pathlib import Path
-top=Path("rtl/v21/adc_digital_ip_v21.sv").read_text()
+top=Path("rtl/sar_core/adc_digital_ip_v21.sv").read_text()
 s=re.sub(r"//[^\n]*|/\*[\s\S]*?\*/","",top)
 ports=re.findall(r"\b(input|output)\s+logic\s+(?:signed\s+)?(?:\[(\d+):0\]\s+)?(\w+)",s.split(");",1)[0])
 print("inputs, outputs, bits:",*[sum(p[0]==k for p in ports) for k in ("input","output")],sum(1+int(p[1] or 0) for p in ports))
 print("instances:",re.findall(r"\b(\w+)\s+(u_\w+)\s*\(",s))
 listed=set(Path("rtl/rtl_sources.f").read_text().splitlines())
 assert listed=={str(p) for p in Path("rtl").rglob("*.sv")}
-prod={p for p in Path("flow/build/filelists/files_adc_v21.f").read_text().splitlines() if p.startswith("rtl/")}
+prod={p for p in Path("rtl/filelists/files_adc_v21.f").read_text().splitlines() if p.startswith("rtl/")}
 for name in ("dc_synth_v21","fc_rtl_to_gds","fm_equiv"):
     text=(Path("flow/synth/v21")/(name+".tcl")).read_text()
     assert prod==set(re.findall(r"rtl/(?:v21/)?[a-z0-9_]+\.sv\b",text))
@@ -669,7 +675,7 @@ PY
 recon_run="$(mktemp -d)"
 bash tools/pyenv.sh --run tools/run_open_rtl.py --simulator verilator --tops tb_i4_recon tb_recon_stream --out "$recon_run/results"
 cat "$recon_run/results/tb_recon_stream/compare.log"
-rg -n 'x3_d|x3_overflow|err3_q <= err2_q' rtl/v21/recon_v21.sv
+rg -n 'x3_d|x3_overflow|err3_q <= err2_q' rtl/sar_core/recon_v21.sv
 python3 -B tools/check_engineering.py
 sar_gate="$(mktemp -d)"
 bash tools/pyenv.sh --run -m adi_model.inventory_gate --repo-root . --summary "$sar_gate/index.json"

@@ -44,7 +44,7 @@ import numpy as np
 import pytest
 
 from adi_model.control.dem3d import fig11_masks
-from subsys.experiments.fig11 import Fig11Model, Fig11Parameters, fig11_model
+from experiments.fig11 import Fig11Model, Fig11Parameters, fig11_model
 from adi_model.topology.capacitors import GROUP_SLICES, MAIN_WEIGHTS, SUB_WEIGHTS
 
 ANCHOR_F = 20.5e-12  # 论文披露的有源电容锚点

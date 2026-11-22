@@ -5,7 +5,7 @@
 
 ## 1. 缺陷本身
 
-`rtl/recip_q60.sv` 用 `initial` 块初始化 64 项种子表：
+`rtl/sar_core/recip_q60.sv` 用 `initial` 块初始化 64 项种子表：
 
 ```systemverilog
 logic [30:0] lut [0:63];
@@ -19,7 +19,7 @@ assign u0 = lut[idx];
 **DC 的语义里 `initial` 块被忽略**，日志原文：
 
 ```
-Warning: /tmp/ip/rtl/recip_q60.sv:82: The statements in initial blocks are ignored. (VER-281)
+Warning: /tmp/ip/rtl/sar_core/recip_q60.sv:82: The statements in initial blocks are ignored. (VER-281)
 ```
 
 ## 2. 后果链
@@ -180,7 +180,7 @@ assign u0 = f_lut(idx);
 
 | 文件 | 用途 | 风险 |
 |:---|:---|:---|
-| `rtl/recip_q60.sv:81` | LUT 种子表 | **已修** |
+| `rtl/sar_core/recip_q60.sv:81` | LUT 种子表 | **已修** |
 | `rtl/_legacy/tops/digital_top_w.sv:237` | 历史顶层 | 已退役，见 Git 原件 |
 
 `wsum_v21.sv` **没有** `initial` 块，它的 `f_Wm`/`f_Wp` 是纯组合函数

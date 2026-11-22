@@ -8,7 +8,7 @@
 
 **分路注入扰动，再按同笔权重扣回。**
 
-从字 53 分两条线读。所选前级量化器取得低段 `L=2.625`，返回粗码 202；RDAC 八槽的完整预置平均为 `T=6.625`。高段 `U=4` 加到已决码，最后一次写入命令是 206。理想宏按实际开关返回细码 6016，片内用同笔 `post` 加回转换贡献、用 `pre` 扣回采样贡献，输出 **410304**。[生产顶层](../../rtl/v21/adc_digital_ip_v21.sv) · [字源与两端开关](digital.md#pre)
+从字 53 分两条线读。所选前级量化器取得低段 `L=2.625`，返回粗码 202；RDAC 八槽的完整预置平均为 `T=6.625`。高段 `U=4` 加到已决码，最后一次写入命令是 206。理想宏按实际开关返回细码 6016，片内用同笔 `post` 加回转换贡献、用 `pre` 扣回采样贡献，输出 **410304**。[生产顶层](../../rtl/sar_core/adc_digital_ip_v21.sv) · [字源与两端开关](digital.md#pre)
 
 ![全部 64 个扰动字的出码误差，以及断开 SADC 低段后三轮扫字的越窗位置](figures/dither-transfer.svg)
 
@@ -78,6 +78,8 @@
 | **D4　扰动生成、注入与扣回** | 同一受理沿给正确的 SADC 写低段、给八片 RDAC 写完整预置 | 本地生产顶层 RTL 实测中，片内序列 1,024 笔覆盖全部 64 个字，固定输入逐笔回到 410304。断开 SADC 低段时 96/192 笔余差越窗 | 接受请求 → 取片内字 → 两端分路 → 保存实际开关 → 同笔扣回。[生成与状态](digital.md#pre) · [权重和](digital.md#sum) |
 | **D5　权重与重构** | 按同一笔的片号和开关计算校正量 | 给片 0 子单元 18 注入已知偏差，同一批 192 笔的 10 个 −32 码和 14 个 +32 码误差在装表后归零。RTL 通过 8,209 笔冻结向量和 21 笔逐标签对拍，含负数过中点、夹空拍 | 空表 → 装载 → 提交锁定；G/Wm/Wp 和 tag 逐级推进。[配置 FSM](digital.md#config) · [权重和](digital.md#sum) · [倒数](digital.md#reciprocal) · [余数修正](digital.md#correction) · [重构](digital.md#reconstruct) · [舍入](digital.md#round96) |
 | **D6　采集与返回归属** | 下一笔已开始时，旧 raw 仍能配回自己的权重和 tag | 同沿返回 A 并登记 B：响应取 A，沿后保存 B。无 owner 的 raw 置迟到错误 | ACQ 已采 → CONV → 捕获；owner 空 → 持有 A → 交给 B → 空。[双槽](digital.md#ownership) · [授权和登记](digital.md#arming) · [返回 FSM](digital.md#capture) |
+
+PDF 和数值图使用发布提交 `45f96df` 的冻结输入。当前源文件链接随工作树更新，重构后的回归由[工程回执](../audit/RTL_REFACTOR.md)记录。
 
 [生产 Python 与 RTL 对拍的 CI（d97afa1）](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/44500594977) · [一笔数字交易的总流程](digital.md#transaction) · [数字证据和图数据](figures/digital-evidence.json) · [工程合同](../CONTRACT_CURRENT.md)
 

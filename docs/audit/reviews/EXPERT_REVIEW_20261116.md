@@ -30,7 +30,7 @@
 
 ### R1 · P1：新权重存储没有配置有效性与原子生效保护
 
-**[源码确认]** `rtl/v21/wsum_v21.sv:89–101` 的 360×40 位数据阵列没有复位，写入资格只检查 `cfg_we` 与地址。没有写齐位图、commit、系数有效标志或运行期锁写；`sum_valid` 在 `:181–194` 仅跟随 `calc_valid`，不是系数有效证明。顶层 `rtl/v21/adc_digital_ip_v21.sv:214–224,562–573` 不因配置未完成而拒绝 prepare，`acq_conv_ctx.sv:179–186` 的 ready 也没有系数条件。
+**[源码确认]** `rtl/sar_core/wsum_v21.sv:89–101` 的 360×40 位数据阵列没有复位，写入资格只检查 `cfg_we` 与地址。没有写齐位图、commit、系数有效标志或运行期锁写；`sum_valid` 在 `:181–194` 仅跟随 `calc_valid`，不是系数有效证明。顶层 `rtl/sar_core/adc_digital_ip_v21.sv:214–224,562–573` 不因配置未完成而拒绝 prepare，`acq_conv_ctx.sv:179–186` 的 ready 也没有系数条件。
 
 **这与现行合同存在实质差异。** `docs/v21/PHYSICAL_INTERFACE.md:260–264,282` 要求片上配置完整性/有效标志，停止新 ACQ、排空后完整装载并原子激活 epoch；v2.1 补充 `:302` 规定有有效系数才能受理 prepare。
 

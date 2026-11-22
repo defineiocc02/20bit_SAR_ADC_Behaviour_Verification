@@ -8,7 +8,7 @@
 "我写的公式"，不是"生产实现"。这类检查对漂移完全免疫，毫无价值。
 
 本脚本的做法：
-  1. 从 rtl/v21/recon_v21.sv **原地读取** rnd96_const 的函数体
+  1. 从 rtl/sar_core/recon_v21.sv **原地读取** rnd96_const 的函数体
      与 MAGIC 常数（不复制、不重写）
   2. 把该函数体包成独立可编译单元，用 VCS 仿真
   3. 逐点比对 RND(n,96)，并记录源码哈希
@@ -35,7 +35,7 @@ import sys
 import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-RTL = ROOT / "rtl" / "v21" / "recon_v21.sv"
+RTL = ROOT / "rtl" / "sar_core" / "recon_v21.sv"
 
 # 期望在生产源码里出现的结构（用于检测"函数被悄悄换掉"）
 EXPECT_FUNC = "function automatic logic signed [31:0] rnd96_const"

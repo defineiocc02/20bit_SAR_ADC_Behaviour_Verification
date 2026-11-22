@@ -42,7 +42,7 @@ from adi_model.calibration.mask_calibration import fit_code_correction
 from adi_model.control.dem3d import Dem3State, fig11_masks, round_robin_plan
 from adi_model.control.dither import FIG19_FRACTIONAL_WEIGHTS_Q, FIG19_STEP_Q, Fig19StaticSpec
 from adi_model.control.dither_port import DitherPort
-from subsys.experiments.fig11 import Fig11Model, Fig11Parameters, _schedule
+from experiments.fig11 import Fig11Model, Fig11Parameters, _schedule
 from adi_model.simulation.pipeline import run_pipeline
 from adi_model.simulation.slice_pool import PhysicalSlicePool
 
@@ -137,7 +137,7 @@ def _run(model, input_fn, n_samples: int, *, dem: bool, uniform_plan: bool, cali
     k=c-U。SADC 偏移使用 lower 分段，数字重构从对应扰动项恢复输出。
     run_id=0 沿用默认种子。其它编号可隔离训练和评估的噪声及片选流。
     """
-    from subsys.experiments.fig11 import _all_signal
+    from experiments.fig11 import _all_signal
 
     # 留出记录换用独立片选与噪声流，仍复用同一颗芯片的电容和名义解码器。
     # 默认编号沿用已有流程的种子，保留其它消融配置的可复现结果。
@@ -392,7 +392,7 @@ def _train_calibration(model, *, points: int = DEFAULT_TRAINING_POINTS, dem: boo
     }
 
 
-from subsys.experiments.configs.matrix import ablation_configs as _configs
+from experiments.configs.matrix import ablation_configs as _configs
 
 
 def _build_model(mismatch_std: float, noise: bool, *, seed: int = 20261105) -> Fig11Model:

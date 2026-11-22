@@ -223,9 +223,9 @@
       "rtl_contract": {
         "status": "CONTROL_ONLY",
         "code": [
-          "rtl/v21/sar_evt_v21.sv",
-          "rtl/dem_mask_v3.sv",
-          "rtl/v21/adc_digital_ip_v21.sv"
+          "rtl/sar_core/sar_evt_v21.sv",
+          "rtl/sar_core/dem_mask_v3.sv",
+          "rtl/sar_core/adc_digital_ip_v21.sv"
         ],
         "tests": [
           "tb/v21/tb_i2_events.sv",
@@ -384,9 +384,9 @@
       "rtl_contract": {
         "status": "CONTROL_ONLY",
         "code": [
-          "rtl/v21/adc2_capture.sv",
-          "rtl/v21/recon_v21.sv",
-          "rtl/v21/adc_digital_ip_v21.sv"
+          "rtl/sar_core/adc2_capture.sv",
+          "rtl/sar_core/recon_v21.sv",
+          "rtl/sar_core/adc_digital_ip_v21.sv"
         ],
         "tests": [
           "tb/v21/tb_i3_full.sv",
@@ -535,8 +535,8 @@
       "rtl_contract": {
         "status": "CONTROL_ONLY",
         "code": [
-          "rtl/v21/acq_conv_ctx.sv",
-          "rtl/v21/adc_digital_ip_v21.sv"
+          "rtl/sar_core/acq_conv_ctx.sv",
+          "rtl/sar_core/adc_digital_ip_v21.sv"
         ],
         "tests": [
           "tb/v21/tb_analog_if.sv"
@@ -586,7 +586,7 @@
         "src/adi_model/control/dither.py",
         "src/adi_model/behavioral/sampler.py",
         "src/adi_model/defaults.py",
-        "subsys/experiments/fig11.py"
+        "experiments/fig11.py"
       ],
       "tests": [
         "tests/unit/test_source_contract.py::test_old_amplitude_request_cannot_be_silently_ignored",
@@ -620,9 +620,9 @@
       "rtl_contract": {
         "status": "CONTROL_ONLY",
         "code": [
-          "rtl/dither_pre.sv",
-          "rtl/v21/sar_evt_v21.sv",
-          "rtl/v21/adc_digital_ip_v21.sv"
+          "rtl/sar_core/dither_pre.sv",
+          "rtl/sar_core/sar_evt_v21.sv",
+          "rtl/sar_core/adc_digital_ip_v21.sv"
         ],
         "tests": [
           "tb/tb_dem_dither.sv",
@@ -688,8 +688,8 @@
       "rtl_contract": {
         "status": "NOT_IMPLEMENTED",
         "code": [
-          "rtl/dem_mask_v3.sv",
-          "rtl/v21/adc_digital_ip_v21.sv"
+          "rtl/sar_core/dem_mask_v3.sv",
+          "rtl/sar_core/adc_digital_ip_v21.sv"
         ],
         "tests": [
           "tb/v21/tb_i12_full.sv"
@@ -735,7 +735,7 @@
         "src/adi_model/topology/dac_arch.py",
         "src/adi_model/behavioral/charge_ref.py",
         "src/adi_model/defaults.py",
-        "subsys/experiments/fig11.py"
+        "experiments/fig11.py"
       ],
       "tests": [
         "tests/integration/test_architecture_candidates.py::test_explicit_capacitor_charge_agrees_with_independent_two_node_kcl",
@@ -1218,9 +1218,9 @@
       "rtl_contract": {
         "status": "DIGITAL_IMPLEMENTED",
         "code": [
-          "rtl/sched18.sv",
-          "rtl/v21/acq_conv_ctx.sv",
-          "rtl/v21/adc_digital_ip_v21.sv"
+          "rtl/sar_core/sched18.sv",
+          "rtl/sar_core/acq_conv_ctx.sv",
+          "rtl/sar_core/adc_digital_ip_v21.sv"
         ],
         "tests": [
           "tb/tb_sched18.sv",
@@ -1381,8 +1381,8 @@
       "rtl_contract": {
         "status": "CONTROL_ONLY",
         "code": [
-          "rtl/v21/acq_conv_ctx.sv",
-          "rtl/v21/adc_digital_ip_v21.sv"
+          "rtl/sar_core/acq_conv_ctx.sv",
+          "rtl/sar_core/adc_digital_ip_v21.sv"
         ],
         "tests": [
           "tb/v21/tb_analog_if.sv"
@@ -1428,7 +1428,7 @@
         "src/adi_model/defaults.py",
         "src/adi_model/provenance.py",
         "src/adi_model/metrics/metrics.py",
-        "subsys/experiments/fig11.py"
+        "experiments/fig11.py"
       ],
       "tests": [
         "tests/integration/test_architecture_candidates.py::test_given_physical_arrays_are_immutable_and_never_uniformly_redistributed",
@@ -2055,8 +2055,8 @@
       "rtl_contract": {
         "status": "CONTROL_ONLY",
         "code": [
-          "rtl/v21/adc2_capture.sv",
-          "rtl/v21/adc_digital_ip_v21.sv"
+          "rtl/sar_core/adc2_capture.sv",
+          "rtl/sar_core/adc_digital_ip_v21.sv"
         ],
         "tests": [
           "tb/v21/tb_i3_full.sv",
@@ -2275,10 +2275,10 @@
       "rtl_contract": {
         "status": "DIGITAL_IMPLEMENTED",
         "code": [
-          "rtl/v21/adc_digital_ip_v21.sv",
-          "rtl/v21/adc2_capture.sv",
-          "rtl/v21/wsum_v21.sv",
-          "rtl/v21/recon_v21.sv"
+          "rtl/sar_core/adc_digital_ip_v21.sv",
+          "rtl/sar_core/adc2_capture.sv",
+          "rtl/sar_core/wsum_v21.sv",
+          "rtl/sar_core/recon_v21.sv"
         ],
         "tests": [
           "tb/v21/tb_cfg_lifecycle.sv",

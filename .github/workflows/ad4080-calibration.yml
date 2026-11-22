@@ -12,17 +12,17 @@ name: AD4080 system calibration
 on:
   pull_request:
     paths:
-      - 'subsys/ad4080_peripherals/calibration/**'
-      - 'subsys/ad4080_peripherals/integration/**'
-      - 'subsys/ad4080_peripherals/**/*.sv'
-      - 'subsys/ad4080_peripherals/evidence/MANUAL_TRACE.md'
-      - 'subsys/ad4080_peripherals/report/manual-trace.*'
-      - 'subsys/ad4080_peripherals/verify/check_manual_trace.mjs'
-      - 'subsys/ad4080_peripherals/verify/check_signal_edges.py'
-      - 'subsys/ad4080_peripherals/evidence/dsp-revision.txt'
-      - 'subsys/ad4080_peripherals/interfaces/dsp_review/**'
-      - 'subsys/ad4080_dsp/rtl/**'
-      - 'subsys/ad4080_dsp/model/ad4080_cal_model.py'
+      - 'rtl/ad4080_periph/calibration/**'
+      - 'rtl/ad4080_periph/integration/**'
+      - 'rtl/ad4080_periph/**/*.sv'
+      - 'rtl/ad4080_periph/evidence/MANUAL_TRACE.md'
+      - 'rtl/ad4080_periph/report/manual-trace.*'
+      - 'rtl/ad4080_periph/verify/check_manual_trace.mjs'
+      - 'rtl/ad4080_periph/verify/check_signal_edges.py'
+      - 'rtl/ad4080_periph/evidence/dsp-revision.txt'
+      - 'rtl/ad4080_periph/interfaces/dsp_review/**'
+      - 'rtl/ad4080_dsp/**'
+      - 'Makefile'
       - '.github/workflows/ad4080-calibration.yml'
       - '.github/actions/setup-verilator/**'
   workflow_dispatch:
@@ -45,7 +45,7 @@ jobs:
       MPLBACKEND: Agg
       OPENBLAS_NUM_THREADS: "1"
       PYTHONDONTWRITEBYTECODE: "1"
-      CAL: subsys/ad4080_peripherals/calibration
+      CAL: rtl/ad4080_periph/calibration
     # 先验收文档链接与文件摘要，再启动实际台架。
     steps:
       - uses: actions/checkout@v4
@@ -55,7 +55,7 @@ jobs:
       - name: Check each module against the manual evidence inventory
         shell: bash
         run: |
-          p=subsys/ad4080_peripherals
+          p=rtl/ad4080_periph
           node "$p/verify/check_manual_trace.mjs" --check-local
           # 可打印稿由同一份 Markdown 生成。干净检出也要核对这次发布的内容。
           digest=$(sha256sum "$p/evidence/MANUAL_TRACE.md" | cut -d' ' -f1)
@@ -77,8 +77,8 @@ jobs:
             sudo apt-get -o Acquire::Retries=3 update
             sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends ripgrep
           fi
-      - name: Compare held-out samples with the existing DSP RTL
-        run: python "$CAL/verify_rtl.py" --repo . --out "$RUNNER_TEMP/ad4080-system-calibration.json" --require-manual-order
+      - name: Check held-out samples, filter response and product calibration
+        run: make cal RUN_ROOT="$RUNNER_TEMP" | tee "$RUNNER_TEMP/ad4080-calibrated-record.txt"
       - name: Publish the independent Figure 96 result
         shell: bash
         run: |
@@ -95,19 +95,11 @@ jobs:
               print(json.dumps(result["manual_order_check"], ensure_ascii=False, indent=2), file=summary)
               print("```", file=summary)
           PY
-      - name: Write the estimated coefficients through SPI and read both records
-        shell: bash
-        run: |
-          # 输入是主机实算的寄存器字节，断言比较从同一四银行存储读出的完整记录。
-          export DSP_UPSTREAM_REPO="$GITHUB_WORKSPACE"
-          export CAL_PYTHON="$(command -v python)"
-          bash subsys/ad4080_peripherals/integration/product/run_product.sh --calibration |
-            tee "$RUNNER_TEMP/ad4080-calibrated-record.txt"
       - name: Compare raw CNV and readout edges with the data sheet
         shell: bash
         run: |
           # 单独的检查器只依赖外部时间、观测值和手册事件定义，漏拍或错拍会阻断本作业。
-          p=subsys/ad4080_peripherals
+          p=rtl/ad4080_periph
           export DSP_UPSTREAM_REPO="$GITHUB_WORKSPACE"
           bash "$p/integration/product/run_product.sh" --all-pins | tee "$RUNNER_TEMP/ad4080-pin-edges.txt"
           build_dir=$(sed -n 's/^Build directory //p' "$RUNNER_TEMP/ad4080-pin-edges.txt")
@@ -118,10 +110,7 @@ jobs:
         shell: bash
         run: |
           export DSP_UPSTREAM_REPO="$GITHUB_WORKSPACE"
-          bash subsys/ad4080_peripherals/integration/product/run_product.sh --at-speed | tee "$RUNNER_TEMP/ad4080-at-speed.txt"
-      # 单独检查每种抽取档的实测幅度，原厂图表读数不用于生成 DUT 输出。
-      - name: Measure all filter settings on RTL output
-        run: python -B subsys/ad4080_peripherals/interfaces/dsp_review/verify_filter_response.py --repo . --output "$RUNNER_TEMP/filter-response"
+          bash rtl/ad4080_periph/integration/product/run_product.sh --at-speed | tee "$RUNNER_TEMP/ad4080-at-speed.txt"
       # 发布原始输出，供查验首次出码、截断和每个合法档位的截止。
       - uses: actions/upload-artifact@v4
         with:

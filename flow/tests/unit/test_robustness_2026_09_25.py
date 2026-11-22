@@ -44,7 +44,7 @@ from adi_model.calibration.weight_calibration import (
     fit_unit_weights,
 )
 from adi_model.cli import main_simulate
-from subsys.experiments.fig11 import Fig11Parameters, fig11_model
+from experiments.fig11 import Fig11Parameters, fig11_model
 from adi_model.inventory_gate import GateResult, _check_sources, build_summary, verify
 from adi_model.metrics.metrics import reference_precision_bits
 from adi_model.simulation.config import Config, ConfigError

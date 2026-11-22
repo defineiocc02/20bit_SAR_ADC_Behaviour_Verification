@@ -272,6 +272,9 @@
         //   S3 X / S4 Q->code
         // rsp_valid 在 posedge1 采入，out_valid 要到 posedge7 才为 1。
         @(posedge clk); #1;
+        // 第一拍已经消费 owner。余下六拍只等重构，避免重复发送同一 raw。
+        @(negedge clk);
+        adc2_valid_i = 1'b0; adc2_raw_i = 13'd0; adc2_range_err_i = 1'b0;
         @(posedge clk); #1;
         @(posedge clk); #1;
         @(posedge clk); #1;
@@ -284,7 +287,6 @@
         d5_err_seen   = out_err;
         @(posedge clk);
         @(negedge clk);
-        adc2_valid_i = 1'b0; adc2_raw_i = 13'd0; adc2_range_err_i = 1'b0;
     endtask
 
     // ---------------------------------------------------------------- sticky 脉冲

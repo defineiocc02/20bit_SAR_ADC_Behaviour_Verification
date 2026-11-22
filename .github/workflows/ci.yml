@@ -73,7 +73,7 @@ jobs:
               rtl/*.sv) sources+=("$GITHUB_WORKSPACE/$line") ;;
               *) printf 'Invalid v21 source-list entry: %s\n' "$line" >&2; exit 1 ;;
             esac
-          done < "$GITHUB_WORKSPACE/flow/build/filelists/files_adc_v21.f"
+          done < "$GITHUB_WORKSPACE/rtl/filelists/files_adc_v21.f"
           test "${#sources[@]}" -gt 0
           verilator --lint-only --timing -Wall -Werror-LATCH -Werror-WIDTH \
             -Werror-PINMISSING -Werror-SELRANGE \
@@ -93,7 +93,7 @@ jobs:
             --x-initial unique --x-assign unique --coverage \
             -Werror-PINMISSING -Werror-SELRANGE \
             --top-module tb_cfg_lifecycle --Mdir obj \
-            "$GITHUB_WORKSPACE/rtl/v21/wsum_v21.sv" \
+            "$GITHUB_WORKSPACE/rtl/sar_core/wsum_v21.sv" \
             "$GITHUB_WORKSPACE/tb/v21/tb_cfg_lifecycle.sv" \
             > compile.log 2>&1 || { cat compile.log; exit 1; }
           ./obj/Vtb_cfg_lifecycle | tee simulation.log
@@ -133,7 +133,7 @@ jobs:
         # flow 是共享测试夹具的导入根，环境仅对本步骤生效。
         env:
           PYTHONPATH: src:flow
-        run: python -m pytest subsys/extensions/caaz/tests -q
+        run: python -m pytest experiments/extensions/caaz/tests -q
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -176,7 +176,9 @@ jobs:
           printf '%s\n' "$PWD/sby-install/bin" >> "$GITHUB_PATH"
       - name: Gate actual core, DSP and peripheral hierarchies
         shell: bash
-        run: YOSYS=yowasp-yosys python tools/verify_rtl_quality.py --synth --out "$SAR_CI_RUN_ROOT/strict"
+        run: YOSYS=yowasp-yosys make lint RUN_ROOT="$SAR_CI_RUN_ROOT"
+      - name: Exercise the single-chip SAR to DSP handoff
+        run: make sim-top RUN_ROOT="$SAR_CI_RUN_ROOT"
       - name: Run independent four-state checks and both core mutations
         shell: bash
         run: |
@@ -191,6 +193,7 @@ jobs:
           name: production-rtl-quality
           path: |
             ${{ env.SAR_CI_RUN_ROOT }}/strict
+            ${{ env.SAR_CI_RUN_ROOT }}/chip
             ${{ env.SAR_CI_RUN_ROOT }}/mutations
             ${{ env.SAR_CI_RUN_ROOT }}/four-state
             ${{ env.SAR_CI_RUN_ROOT }}/safety
@@ -256,6 +259,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -264,9 +269,7 @@ jobs:
         # 对照当前合同、Python、RTL 和图件，避免目录迁移留下坏链接或旧规格。
         # 算法图的检查仅读取图源、RTL 与已发布 SVG，无需浏览器或 EDA。
         run: |
-          python tools/check_doc_counts.py --check
-          python tools/check_engineering.py
-          node tools/v21_algorithm_atlas.mjs --check
+          make audit
       - name: Check index structure without relabeling unbuilt mechanisms
         run: |
           mkdir -p "$SAR_CI_RUN_ROOT"

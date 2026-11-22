@@ -1,6 +1,6 @@
 # 集成 ADC 的控制与定点通路
 
-总框图按宏接口与数字 IP 分层，方框中给出可以在 RTL 搜到的实例名。状态图把条件写在箭头旁，标明寄存器状态或一笔样本的阶段。采集和转换两个上下文槽可以同时有效。具体管脚与位序以 [v21 顶层](../../rtl/v21/adc_digital_ip_v21.sv) 和 [工程合同](../CONTRACT_CURRENT.md) 为准。
+总框图按宏接口与数字 IP 分层，方框中给出可以在 RTL 搜到的实例名。状态图把条件写在箭头旁，标明寄存器状态或一笔样本的阶段。采集和转换两个上下文槽可以同时有效。具体管脚与位序以 [v21 顶层](../../rtl/sar_core/adc_digital_ip_v21.sv) 和 [工程合同](../CONTRACT_CURRENT.md) 为准。
 
 <a id="transaction"></a>
 ## 一笔样本怎样从采集走到出码
@@ -13,7 +13,7 @@
 
 生产事务的 Python 入口和 CLI 已与顶层对齐。默认单位、正向扰动与 guard 的选择可沿同一组输入核对。[逐笔数据](../../tools/check_default_rtl.py) · [论文与专利差异](../audit/AUDIT_ALGO_VS_SOURCE.md)
 
-**入口与出口。** 在 `prepare_valid && prepare_ready` 的沿冻结 tag、qid、片号、相位和实际采样预置。下一次合法提升使这笔进入转换。ADC2 返回后随同笔冻结的求和结果进入 D5，最终输出 `out_valid/out_tag/out_code/out_err`。采样开关与最后实际写入的转换开关分别送到 u_wsum。u_adc2 登记同一笔的权重和 tag，待细码返回后送给 u_recon。 [顶层接线](../../rtl/v21/adc_digital_ip_v21.sv) · [端到端测试](../../tb/v21/tb_i4b_e2e.sv)
+**入口与出口。** 在 `prepare_valid && prepare_ready` 的沿冻结 tag、qid、片号、相位和实际采样预置。下一次合法提升使这笔进入转换。ADC2 返回后随同笔冻结的求和结果进入 D5，最终输出 `out_valid/out_tag/out_code/out_err`。采样开关与最后实际写入的转换开关分别送到 u_wsum。u_adc2 登记同一笔的权重和 tag，待细码返回后送给 u_recon。 [顶层接线](../../rtl/sar_core/adc_digital_ip_v21.sv) · [端到端测试](../../tb/v21/tb_i4b_e2e.sv)
 
 ![从准备、SADC 判决和 RDAC 开关到 ADC2 返回与 20 位出码](figures/digital-transaction-flow.svg "SVG 源图")
 
@@ -28,7 +28,7 @@
 
 **原文对照。** [ISSCC 正文第 182 页](../../references/ISSCC2024_PAPER.pdf#page=1) 披露片外求系数、片上权重修正。360 字、写入位图、提交和重装协议均由工程定义。
 
-入口是 `cfg_we/sel/sid/idx/data`、commit、reload；出口为 valid、busy 和范围错误。主表 18×16，子表 18×4，共 360 个 Q30 字。每个合法地址只置一位写入位图。 [权重寄存器](../../rtl/v21/wsum_v21.sv) · [配置合同](../v21/CONFIG_CONTRACT.md) · [20 项检查](../../tb/v21/tb_cfg_lifecycle.sv)
+入口是 `cfg_we/sel/sid/idx/data`、commit、reload；出口为 valid、busy 和范围错误。主表 18×16，子表 18×4，共 360 个 Q30 字。每个合法地址只置一位写入位图。 [权重寄存器](../../rtl/sar_core/wsum_v21.sv) · [配置合同](../v21/CONFIG_CONTRACT.md) · [20 项检查](../../tb/v21/tb_cfg_lifecycle.sv)
 
 ![D5　校准权重装载与原子生效 · 算法流程](figures/digital-config-flow.svg)
 
@@ -82,7 +82,7 @@ stateDiagram-v2
 
 **原文对照。** [ISSCC 图 9.8.1](../../references/ISSCC2024_PAPER.pdf#page=2) 和[讲稿第 10 页](../../references/ISSCC2024_SLIDES.pdf#page=10) 给出 18 片、8 采、8 转、2 备用。[片级专利图 16](https://patents.google.com/patent/US10516408B2/en) 画出两组 8 片和 2 个备用片。去二留八的随机映射与种子为工程选择。
 
-**输入与不变量。** `adv=sched_adv_o` 对应一次真实 prepare。沿前的采集组交给本笔，按升序打包八个 5 位 ID。18 位候选掩码排除这八片，从余下十片中选两个不同位置留空。复位的首组是 0–7；首次推进前转换组为空。稳态采集、转换各八片、空闲两片且互斥。种子零映射到缺省非零种子。 [调度 RTL](../../rtl/sched18.sv) · [逐拍 Python 镜像](../../src/adi_model/sched18_rtl.py) · [前两次推进的原始向量](../../tb/vec_r18_sched.txt) · [冻结向量测试台](../../tb/tb_sched18.sv)
+**输入与不变量。** `adv=sched_adv_o` 对应一次真实 prepare。沿前的采集组交给本笔，按升序打包八个 5 位 ID。18 位候选掩码排除这八片，从余下十片中选两个不同位置留空。复位的首组是 0–7；首次推进前转换组为空。稳态采集、转换各八片、空闲两片且互斥。种子零映射到缺省非零种子。 [调度 RTL](../../rtl/sar_core/sched18.sv) · [逐拍 Python 镜像](../../src/adi_model/sched18_rtl.py) · [前两次推进的原始向量](../../tb/vec_r18_sched.txt) · [冻结向量测试台](../../tb/tb_sched18.sv)
 
 ![18 片在复位和前两次推进后的采集、转换和备用角色](figures/digital-schedule-flow.svg "SVG 源图")
 
@@ -121,7 +121,7 @@ stateDiagram-v2
 
 **原文对照。** [ISSCC 图 9.8.1、9.8.2](../../references/ISSCC2024_PAPER.pdf#page=2) 给出交织采集、转换及公共采样沿。[片级专利图 16](https://patents.google.com/patent/US10516408B2/en) 给出双组结构。标签、排空与同沿优先级为工程实现。
 
-**受理条件。** `rst_n && cfg_valid && !stop_i` 且 ACQ 空闲或已采可提升。已有 CONV 需要满足余差已采、hold 已确认且安静计数达阈值才可释放。图按一个 tag 画生命周期；沿上可以一边释放旧 CONV，一边把另一个 ACQ 提升，再建立新 ACQ。 [上下文 RTL](../../rtl/v21/acq_conv_ctx.sv) · [同沿与冻结反例](../../tb/v21/tb_acq_ctx_fixed.sv) · [交接沿逐引脚实测](../audit/ISSUE_10.md)
+**受理条件。** `rst_n && cfg_valid && !stop_i` 且 ACQ 空闲或已采可提升。已有 CONV 需要满足余差已采、hold 已确认且安静计数达阈值才可释放。图按一个 tag 画生命周期；沿上可以一边释放旧 CONV，一边把另一个 ACQ 提升，再建立新 ACQ。 [上下文 RTL](../../rtl/sar_core/acq_conv_ctx.sv) · [同沿与冻结反例](../../tb/v21/tb_acq_ctx_fixed.sv) · [交接沿逐引脚实测](../audit/ISSUE_10.md)
 
 ![D6　采集槽、转换槽与排空 · 算法流程](figures/digital-ownership-flow.svg)
 
@@ -178,9 +178,9 @@ stateDiagram-v2
 
 **原文对照。** [作者讲稿第 17 页](../../references/ISSCC2024_SLIDES.pdf#page=17) 标出低段去 SADC、完整扰动去 RDAC。[扰动专利图 19 及正文](https://patents.google.com/patent/US10505561B2/en) 的 300、222、224 分别对应低段、全字和上段修正。七片示例用 f/7、c−U；本工程用八槽 f/8、c+U。
 
-**端口。** 生产时 dither_force_i 接 0。片内独立 xorshift32 从 0xC001D00D 复位，连续异或移 13、17、5 位，每笔取新状态的低六位。受理沿才推进，强制字也占用一笔。SADC0 与 SADC1 的七位开关分别由 sadc_pre_state_o 的低七位和高七位保存，只写 sadc_pre_wr_o 指定的 bank。位 6 至 0 依次是 0、D5、0、D3、D2、D1、0。[顶层接线](../../rtl/v21/adc_digital_ip_v21.sv) · [字源参考](../../src/adi_model/control/dither_word.py) · [实际端口回归](../../tb/v21/sample_cadence.cpp)
+**端口。** 生产时 dither_force_i 接 0。片内独立 xorshift32 从 0xC001D00D 复位，连续异或移 13、17、5 位，每笔取新状态的低六位。受理沿才推进，强制字也占用一笔。SADC0 与 SADC1 的七位开关分别由 sadc_pre_state_o 的低七位和高七位保存，只写 sadc_pre_wr_o 指定的 bank。位 6 至 0 依次是 0、D5、0、D3、D2、D1、0。[顶层接线](../../rtl/sar_core/adc_digital_ip_v21.sv) · [字源参考](../../src/adi_model/control/dither_word.py) · [实际端口回归](../../tb/v21/sample_cadence.cpp)
 
-**电荷。** U=4D6+D4，f=4D3+2D2+D1，L=2D5+f/8，T=U+L。SADC 接 L，RDAC 八槽的平均预置为 T。字 53、相位 3 时，SADC 控制为 0x2A，RDAC 槽位为 6、6、6、7、7、7、7、7。采样时保存 pre，重构时按实际片号求 Wp 并扣回一次。[开关译码](../../rtl/dither_pre.sv) · [权重计算](../../rtl/v21/wsum_v21.sv) · [逐字测试](../../tb/tb_dem_dither.sv)
+**电荷。** U=4D6+D4，f=4D3+2D2+D1，L=2D5+f/8，T=U+L。SADC 接 L，RDAC 八槽的平均预置为 T。字 53、相位 3 时，SADC 控制为 0x2A，RDAC 槽位为 6、6、6、7、7、7、7、7。采样时保存 pre，重构时按实际片号求 Wp 并扣回一次。[开关译码](../../rtl/sar_core/dither_pre.sv) · [权重计算](../../rtl/sar_core/wsum_v21.sv) · [逐字测试](../../tb/tb_dem_dither.sv)
 
 ![同一六位字分到所选 SADC、八槽 RDAC 和带权重扣除的重构通路](figures/digital-pre-flow.svg "SVG 源图")
 
@@ -199,7 +199,7 @@ stateDiagram-v2
 
 **原文对照。** [作者讲稿第 9 页](../../references/ISSCC2024_SLIDES.pdf#page=9) 将 RDAC 标为 SADC follower。[ISSCC 图 9.8.1](../../references/ISSCC2024_PAPER.pdf#page=2) 给出独立量化器。512 试探、拒绝后返回 bit5 及每拍写门是工程规则。
 
-**约束。** v21 用 `commit_fire` 开始事件上下文，锁存沿前 ACQ 的 qid、tag、U 和可用的 Flash 结果。相同 qid 的真实 Flash 可以在采样沿、采样后、交接沿或首事件同沿到达并更新前缀。首事件确认最终使用的 Flash。若准备码只是占位值，宏须在首提交之前或同沿提供真实 Flash。首提交后的返回不再改动本笔前缀。独立事件模块有 abort，顶层接低。普通区事件 1 提交 Flash 前缀，事件 2–7 依次处理 bit5 至 bit0。应提交的事件必须匹配 qid、事件序号、位号及范围。 [事件 RTL](../../rtl/v21/sar_evt_v21.sv) · [事件测试](../../tb/v21/tb_i2_events.sv) · [联合测试](../../tb/v21/tb_i12_full.sv)
+**约束。** v21 用 `commit_fire` 开始事件上下文，锁存沿前 ACQ 的 qid、tag、U 和可用的 Flash 结果。相同 qid 的真实 Flash 可以在采样沿、采样后、交接沿或首事件同沿到达并更新前缀。首事件确认最终使用的 Flash。若准备码只是占位值，宏须在首提交之前或同沿提供真实 Flash。首提交后的返回不再改动本笔前缀。独立事件模块有 abort，顶层接低。普通区事件 1 提交 Flash 前缀，事件 2–7 依次处理 bit5 至 bit0。应提交的事件必须匹配 qid、事件序号、位号及范围。 [事件 RTL](../../rtl/sar_core/sar_evt_v21.sv) · [事件测试](../../tb/v21/tb_i2_events.sv) · [联合测试](../../tb/v21/tb_i12_full.sv)
 
 ![D2　Flash/SAR 已决事件与保护码 · 算法流程](figures/digital-events-flow.svg)
 
@@ -238,7 +238,7 @@ flowchart LR
 
 统计直接读取归档叶子输出的八个开关字。桥关闭时两个主半单元同时选通，每对只计一次。逐位参考比较覆盖 521 个合法命令、256 种相位与桥控制组合；名义权重按含子支路的完整掩码核对。[两组使用次数图](figures/physical-masks.svg) · [归档输入行](../../tb/vec_dem_dither_effects.txt)
 
-**输出。** 8 个槽每槽 20 位。普通码 `k=64H+8V+L`。水平旋转七位热码及保留零位；保留列 `(7+h) mod 8` 内用纵向旋转的 V 个 1，其他列用水平选择。两相等的半单元先一同选中。保护码由独立支路形成实际开关。 [掩码 RTL](../../rtl/dem_mask_v3.sv) · [合同枚举](../../tools/contract_v2.py) · [叶子测试](../../tb/tb_dem_dither.sv)
+**输出。** 8 个槽每槽 20 位。普通码 `k=64H+8V+L`。水平旋转七位热码及保留零位；保留列 `(7+h) mod 8` 内用纵向旋转的 V 个 1，其他列用水平选择。两相等的半单元先一同选中。保护码由独立支路形成实际开关。 [掩码 RTL](../../rtl/sar_core/dem_mask_v3.sv) · [合同枚举](../../tools/contract_v2.py) · [叶子测试](../../tb/tb_dem_dither.sv)
 
 ![同一命令 283 在两种相位下的八乘八主单元开关](figures/digital-dem-flow.svg "SVG 源图")
 
@@ -253,7 +253,7 @@ flowchart LR
 
 **原文对照。** [作者讲稿第 31 页](../../references/ISSCC2024_SLIDES.pdf#page=31) 披露二进制至一元段的桥接。[DEM 专利图 19–20](https://patents.google.com/patent/US10511316B2/en) 提供打乱与分配实施例。coin、half、八片交换表及电容比为工程定义。
 
-在基础 post 形成后，coin 决定是否交换。选择 `slot=v_phase`、保留宏列和指定 half，将该主半单元的开关与八片共有的 4Cu 子支路选择对调。名义两边各为 4Cu；失配下实际 Wm 依赖交换后的位图。此算法复用同一个组合叶子，随后由物理写门决定应用时刻。 [交换逻辑](../../rtl/dem_mask_v3.sv) · [电荷核查](../../tools/bridge_charge_check.py) · [测试台](../../tb/tb_dem_dither.sv)
+在基础 post 形成后，coin 决定是否交换。选择 `slot=v_phase`、保留宏列和指定 half，将该主半单元的开关与八片共有的 4Cu 子支路选择对调。名义两边各为 4Cu；失配下实际 Wm 依赖交换后的位图。此算法复用同一个组合叶子，随后由物理写门决定应用时刻。 [交换逻辑](../../rtl/sar_core/dem_mask_v3.sv) · [电荷核查](../../tools/bridge_charge_check.py) · [测试台](../../tb/tb_dem_dither.sv)
 
 ![D3　跨段等名义电荷交换 · 算法流程](figures/digital-bridge-flow.svg)
 
@@ -284,7 +284,7 @@ flowchart LR
 
 **原文对照。** [ISSCC 图 9.8.3 下部](../../references/ISSCC2024_PAPER.pdf#page=2) 示意各 sDAC 在片组内的位置。[DEM 专利图 20](https://patents.google.com/patent/US10511316B2/en) 展示 MUX 分配。按片号拼接总线和写门位序由本工程规定。
 
-入口为冻结的八个 5 位片号和槽位级 160 位 post。按物理 ID 散射至 18×20，每个命中片只写本片寄存器。采样预置由 ACQ 一侧路由成 18×4。CONV 占用时，在上升沿切换采样片号、预置数据与写门；CONV 空闲时，上游可在受理沿前为新采集组预置。排空之后，空 ACQ 的写门与片选均为零。 [顶层写门](../../rtl/v21/adc_digital_ip_v21.sv) · [采集预置路由](../../rtl/v21/acq_conv_ctx.sv) · [同沿反例测试](../../tb/v21/tb_audit3.sv)
+入口为冻结的八个 5 位片号和槽位级 160 位 post。按物理 ID 散射至 18×20，每个命中片只写本片寄存器。采样预置由 ACQ 一侧路由成 18×4。CONV 占用时，在上升沿切换采样片号、预置数据与写门；CONV 空闲时，上游可在受理沿前为新采集组预置。排空之后，空 ACQ 的写门与片选均为零。 [顶层写门](../../rtl/sar_core/adc_digital_ip_v21.sv) · [采集预置路由](../../rtl/sar_core/acq_conv_ctx.sv) · [同沿反例测试](../../tb/v21/tb_audit3.sv)
 
 ![在 18 个物理片上产生写门 · 算法流程](figures/digital-physical-route-flow.svg)
 
@@ -316,7 +316,7 @@ flowchart LR
 
 算例固定片号 0–7、命令 283、相位 (2,3) 和采样字 53。18×20 个配置字全部给定，每次只将物理片 0 的一个子权重增加 2⁻¹⁰（Q30 整数加 2²⁰）。在固定原码 4096 时，仅转换使用该单元会让加权输出增加 32 码，仅采样使用会减少 32 码。图中另外构造同一理想输入的残差。α=1、b=0 时，raw 每增 1 使重构分子 N 增加 64×1536；同一系数偏差使 N 增加 6×(post−pre)×2²⁰。因此只在转换时使用该单元，给两张表都输入 4032；只在采样时使用，都输入 4160；另两种组合都输入 4096。参考直接计算两表的定点输出。[校正前后输出图](figures/integer-arithmetic.svg) · [定点参考与算例](../../tools/verify_v21_algorithms.py)
 
-`calc_valid` 绑定八个物理 ID、实际 post 与采样 pre。G 为八片全部主权重之和，Wm 按 post 选主/子单元，Wp 只按 pre 选子支路。sum_valid 与寄存后的三项配对。交换后的第 19 位在合法 guard 命令下有真实权重。 [求和实现](../../rtl/v21/wsum_v21.sv) · [任意权重与生命周期测试](../../tb/v21/tb_cfg_lifecycle.sv) · [整链测试](../../tb/v21/tb_i4b_e2e.sv)
+`calc_valid` 绑定八个物理 ID、实际 post 与采样 pre。G 为八片全部主权重之和，Wm 按 post 选主/子单元，Wp 只按 pre 选子支路。sum_valid 与寄存后的三项配对。交换后的第 19 位在合法 guard 命令下有真实权重。 [求和实现](../../rtl/sar_core/wsum_v21.sv) · [任意权重与生命周期测试](../../tb/v21/tb_cfg_lifecycle.sv) · [整链测试](../../tb/v21/tb_i4b_e2e.sv)
 
 ![D5　按物理单元求 G、Wm、Wp · 算法流程](figures/digital-sum-flow.svg)
 
@@ -347,7 +347,7 @@ flowchart LR
 
 **原文对照。** [ISSCC 图 9.8.1–2](../../references/ISSCC2024_PAPER.pdf#page=2) 给出采集和余差处理的相序。公开资料未列出捕获授权的数字握手；末次写、权重有效和 seen 标志来自本 RTL。
 
-arm 条件为 conv_valid、final_applied、wsum_valid 与未登记；叶子还核对 owner 是否有容量。登记条件使用 sample_event、residue_captured 和 conv_valid。接口要求上游在授权窗口内回报。复位优先，随后 commit_fire 换代清 seen；同沿换代优先于旧笔的登记标记。 [顶层授权条件](../../rtl/v21/adc_digital_ip_v21.sv) · [捕获接口](../../rtl/v21/adc2_capture.sv) · [授权定向测试](../../tb/v21/tb_analog_if.sv)
+arm 条件为 conv_valid、final_applied、wsum_valid 与未登记；叶子还核对 owner 是否有容量。登记条件使用 sample_event、residue_captured 和 conv_valid。接口要求上游在授权窗口内回报。复位优先，随后 commit_fire 换代清 seen；同沿换代优先于旧笔的登记标记。 [顶层授权条件](../../rtl/sar_core/adc_digital_ip_v21.sv) · [捕获接口](../../rtl/sar_core/adc2_capture.sv) · [授权定向测试](../../tb/v21/tb_analog_if.sv)
 
 ![最后开关应用、求和与捕获授权 · 算法流程](figures/digital-arming-flow.svg)
 
@@ -400,7 +400,7 @@ stateDiagram-v2
 
 ![实测第 32 沿的三个动作与全部 191 个输出间隔](figures/capture-handover.svg)
 
-最后应用 post 后计算权重和。顶层形成沿前 arm，公共沿发生且有余差捕获才登记 owner。owner 保存 tag、qid、G、Wp、Wm、epoch；raw 返回时读取沿前的 owner。 [捕获 RTL](../../rtl/v21/adc2_capture.sv) · [顶层门禁](../../rtl/v21/adc_digital_ip_v21.sv) · [延迟返回测试](../../tb/v21/tb_i3_full.sv)
+最后应用 post 后计算权重和。顶层形成沿前 arm，公共沿发生且有余差捕获才登记 owner。owner 保存 tag、qid、G、Wp、Wm、epoch；raw 返回时读取沿前的 owner。 [捕获 RTL](../../rtl/sar_core/adc2_capture.sv) · [顶层门禁](../../rtl/sar_core/adc_digital_ip_v21.sv) · [延迟返回测试](../../tb/v21/tb_i3_full.sv)
 
 ![D6　ADC2 捕获和延迟返回 · 算法流程](figures/digital-capture-flow.svg)
 
@@ -452,7 +452,7 @@ stateDiagram-v2
 
 **原文对照。** [ISSCC 正文第 182 页](../../references/ISSCC2024_PAPER.pdf#page=1) 披露片上权重修正。64 项初值表、两次 Newton 和延迟来自本工程定点实现。
 
-输入 G 为 Q30 正数；合同输入域传给倒数核时取 [2³⁴, 2³⁶]。先按最高有效位归一化，用 64 项种子表近似，做两次整数 Newton 迭代，移回原尺度。下游修正器另按同笔 G 计算乘积和余数，并给出就近的 `RND(2⁶⁰/G)`。种子表是固定算术常量。 [近似倒数 RTL](../../rtl/recip_q60.sv) · [精确修正 RTL](../../rtl/v21/recip_rnd_v21.sv) · [整数镜像](../../src/adi_model/recip_q60.py) · [倒数回归](../../tb/v21/tb_recip_rnd.sv)
+输入 G 为 Q30 正数；合同输入域传给倒数核时取 [2³⁴, 2³⁶]。先按最高有效位归一化，用 64 项种子表近似，做两次整数 Newton 迭代，移回原尺度。下游修正器另按同笔 G 计算乘积和余数，并给出就近的 `RND(2⁶⁰/G)`。种子表是固定算术常量。 [近似倒数 RTL](../../rtl/sar_core/recip_q60.sv) · [精确修正 RTL](../../rtl/sar_core/recip_rnd_v21.sv) · [整数镜像](../../src/adi_model/recip_q60.py) · [倒数回归](../../tb/v21/tb_recip_rnd.sv)
 
 ![D5　定长倒数与精确余数修正 · 算法流程](figures/digital-reciprocal-flow.svg)
 
@@ -483,7 +483,7 @@ flowchart LR
 
 **原文对照。** [ISSCC 正文第 182 页](../../references/ISSCC2024_PAPER.pdf#page=1) 给出校正分工。用余数修正倒数并确定半点舍入是本工程算术实现。
 
-先检 qG 是否超 2⁶⁰；若超则 q 减一，再检 (q+1)G 是否仍不大于 2⁶⁰。取地板商后用 2r≥G 决定进位；输出寄存器按同笔 valid、g_ok 和 err 更新。 [精确修正](../../rtl/v21/recip_rnd_v21.sv) · [输入近似](../../rtl/recip_q60.sv) · [取整与域错误测试](../../tb/v21/tb_recip_rnd.sv)
+先检 qG 是否超 2⁶⁰；若超则 q 减一，再检 (q+1)G 是否仍不大于 2⁶⁰。取地板商后用 2r≥G 决定进位；输出寄存器按同笔 valid、g_ok 和 err 更新。 [精确修正](../../rtl/sar_core/recip_rnd_v21.sv) · [输入近似](../../rtl/sar_core/recip_q60.sv) · [取整与域错误测试](../../tb/v21/tb_recip_rnd.sv)
 
 ![从近似倒数得到精确的舍入商 · 算法流程](figures/digital-correction-flow.svg)
 
@@ -512,7 +512,7 @@ flowchart LR
 
 **原文对照。** [ISSCC 正文第 182 页](../../references/ISSCC2024_PAPER.pdf#page=1) 给出片上校正。[扰动专利图 19 正文](https://patents.google.com/patent/US10505561B2/en) 说明余留扰动由后级处理。本工程权重符号、Q24/Q30、13 位细码及流水错误位由代码确定。
 
-**输入。** 13 位 raw、偏置 b、实际 G/Wp/Wm、捕获时的 epoch 和 tag。顶层固定 α=1；单模块支持合同域内的 α。Y 为 Q24，`Y=−3145728+1536·raw+768`。下图各级用 valid/tag 区分独立交易；空拍仅移动有效位。 [重构 RTL](../../rtl/v21/recon_v21.sv) · [整数 oracle](../../tools/recon_oracle.py) · [连续事务逐级对拍](../../tb/v21/tb_recon_stream.sv)
+**输入。** 13 位 raw、偏置 b、实际 G/Wp/Wm、捕获时的 epoch 和 tag。顶层固定 α=1；单模块支持合同域内的 α。Y 为 Q24，`Y=−3145728+1536·raw+768`。下图各级用 valid/tag 区分独立交易；空拍仅移动有效位。 [重构 RTL](../../rtl/sar_core/recon_v21.sv) · [整数 oracle](../../tools/recon_oracle.py) · [连续事务逐级对拍](../../tb/v21/tb_recon_stream.sv)
 
 ![D5　ADC2 码箱中心与 20 位定点重构 · 算法流程](figures/digital-reconstruct-flow.svg)
 
@@ -537,7 +537,7 @@ flowchart LR
 
 </details>
 
-S3 用本笔 N 和 I 算出 X，检查其高 64 位是否等于第 31 位的符号扩展，并在同一沿保存 X、错误位和 tag。S4 在 v3 有效时退休。连续输入 raw=2046、2048，在定向用例中依次得到 `0x7FFFF` 和 `0x80000`，两笔 err 均为 0。[生产 RTL](../../rtl/v21/recon_v21.sv) · [实测记录](../audit/todo/README.md#recon-s3)
+S3 用本笔 N 和 I 算出 X，检查其高 64 位是否等于第 31 位的符号扩展，并在同一沿保存 X、错误位和 tag。S4 在 v3 有效时退休。连续输入 raw=2046、2048，在定向用例中依次得到 `0x7FFFF` 和 `0x80000`，两笔 err 均为 0。[生产 RTL](../../rtl/sar_core/recon_v21.sv) · [实测记录](../audit/todo/README.md#recon-s3)
 
 <a id="round96"></a>
 ## 有符号除 96、舍入与输出限幅
@@ -548,7 +548,7 @@ S3 用本笔 N 和 I 算出 X，检查其高 64 位是否等于第 31 位的符�
 
 **原文对照。** [ISSCC 图 9.8.4](../../references/ISSCC2024_PAPER.pdf#page=2) 以 20 位输出码展示 INL/DNL。除 96、半点离零、偏移二进制与饱和标志是工程数字格式。
 
-以 32 位幅度乘常数 ceil(2³⁴/3)，移位求除 96 的地板商。余数达到 48 则进一，恢复符号、加 524,288 中点，夹至 20 位合法范围。 [rnd96_const 与输出级](../../rtl/v21/recon_v21.sv) · [整数恒等式](../../tools/prove_rnd96.py) · [重构测试](../../tb/v21/tb_i4_recon.sv)
+以 32 位幅度乘常数 ceil(2³⁴/3)，移位求除 96 的地板商。余数达到 48 则进一，恢复符号、加 524,288 中点，夹至 20 位合法范围。 [rnd96_const 与输出级](../../rtl/sar_core/recon_v21.sv) · [整数恒等式](../../tools/prove_rnd96.py) · [重构测试](../../tb/v21/tb_i4_recon.sv)
 
 ![有符号除 96、舍入与输出限幅 · 算法流程](figures/digital-round96-flow.svg)
 

@@ -6,13 +6,13 @@
 
 | 对象 | 实现、输入与证据 |
 | --- | --- |
-| 生产数字 IP | [唯一顶层](../../rtl/v21/adc_digital_ip_v21.sv)由[生产清单](../../flow/build/filelists/files_adc_v21.f)展开。测试侧模拟宏由[仿真清单](../../flow/build/filelists/files_adc_v21_sim.f)引入。 |
+| 生产数字 IP | [唯一顶层](../../rtl/sar_core/adc_digital_ip_v21.sv)由[生产清单](../../rtl/filelists/files_adc_v21.f)展开。测试侧模拟宏由[仿真清单](../../rtl/filelists/files_adc_v21_sim.f)引入。 |
 | 时序、开关与出码 | [算法卡片](../algorithms/digital.md)链接到相应 RTL 与测试台。顶层测试驱动在 [sample_cadence.cpp](../../tb/v21/sample_cadence.cpp)，运行入口、夹具与向量说明在[仿真导航](../../flow/sim/README.md)。 |
 | 默认 Python 数字模型 | [defaults.py](../../src/adi_model/defaults.py)运行同一生产事务，[工具](../../tools/check_default_rtl.py)对真实顶层事件和出码逐笔核验；[快速上手](../guide/QUICKSTART.md)给出输入、输出与诊断命令；预期行为由 [flow/tests/](../../flow/tests/)核对。 |
-| 可复用组件及研究扩展 | [组件接口](../audit/components/CURRENT_INTERFACE_AND_ARITHMETIC.md)定义组件测试口径。[subsys/](../../subsys/)存放 DSP、CAAZ 与对照实验。生产顶层的接口以工程合同为准。 |
+| 可复用组件及研究扩展 | [组件接口](../audit/components/CURRENT_INTERFACE_AND_ARITHMETIC.md)定义组件测试口径。[DSP](../../rtl/ad4080_dsp/)归入生产 RTL。[独立研究与扩展](../../experiments/)存放 CAAZ 和对照实验。生产顶层的接口以工程合同为准。 |
 | 运行和发布 | [tools/](../../tools/)存放命令和参考计算，[flow/](../../flow/)存放清单、测试、综合与形式验证流程。根层打包配置定义 Python 交付，[.github/](../../.github/)存放 CI 和协作模板。 |
 
-PCG 选片原型由独立组件测试调用。生产事务在 `defaults.py` 使用 RTL 整数镜像 `sched18_rtl.py`；Fig.11 电荷研究须由 `subsys/experiments/fig11.py` 显式装配。[调度源码](../../src/adi_model/sched18_rtl.py) · [工作树复核](../audit/TREE_AUDIT_REPORT.md#current-tree-review)
+PCG 选片原型由独立组件测试调用。生产事务在 `defaults.py` 使用 RTL 整数镜像 `sched18_rtl.py`；Fig.11 电荷研究须由 `experiments/fig11.py` 显式装配。[调度源码](../../src/adi_model/sched18_rtl.py) · [工作树复核](../audit/TREE_AUDIT_REPORT.md#current-tree-review)
 
 ## docs 的九个目录
 
@@ -30,7 +30,7 @@ PCG 选片原型由独立组件测试调用。生产事务在 `defaults.py` 使�
 
 ## 哪些文件属于验证输入
 
-`.f` 决定待编译的源。`tb/` 的冻结向量和 `flow/sim/fixtures/` 的 `.sv/.hex/.json` 均有读入它们的测试台；`flow/tests/fixtures/` 的 `.rpt` 可用于诊断测试。审计目录内的 `.svf/.v` 随原工具报告解释。[编译清单说明](../../flow/build/filelists/README.md) · [后端存证说明](../audit/artifacts/README.md)
+`.f` 决定待编译的源。`tb/` 的冻结向量和 `flow/sim/fixtures/` 的 `.sv/.hex/.json` 均有读入它们的测试台；`flow/tests/fixtures/` 的 `.rpt` 可用于诊断测试。审计目录内的 `.svf/.v` 随原工具报告解释。[编译清单说明](../../rtl/filelists/README.md) · [后端存证说明](../audit/artifacts/README.md)
 
 两份早期试验台已由现行用例取代。ADC2 捕获与返回见 [tb_i3_full.sv](../../tb/v21/tb_i3_full.sv)，SAR 与物理写门联调见 [tb_i12_full.sv](../../tb/v21/tb_i12_full.sv)。需要核查旧用例时可读取整理前的 Git 对象。
 

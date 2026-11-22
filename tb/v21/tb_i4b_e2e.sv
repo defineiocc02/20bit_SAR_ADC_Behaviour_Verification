@@ -24,9 +24,16 @@ module tb_i4b_e2e;
     `include "tb/v21/tb_e2e_decl.svh"
 
     // ---------------------------------------------------------------- DUT 与权重配置
-    adc_digital_ip_v21 dut (
-        .alpha_q30_cfg(32'd1073741824), // 名义增益与冻结向量一致。
+    `ifdef TB_AD4080_CHIP
+        `include "tb/v21/tb_ad4080_chip_fixture.svh"
+        ad4080_chip_top #(.CORE_CLOCK_HZ(100_000_000)) dut (
+        `include "tb/v21/tb_ad4080_chip_ports.svh"
+    `else
+        adc_digital_ip_v21 dut (
         .clk(clk), .rst_n(rst_n),
+    `endif
+        .alpha_q30_cfg(32'd1073741824), // 名义增益与冻结向量一致。
+        .ev_start_i(1'b0),
         .prepare_valid(prepare_valid), .prepare_ready(prepare_ready),
         .dither_force_i(1'b1), .sadc_pre_state_o(), .sadc_pre_wr_o(),
         .prepare_tag(prepare_tag), .prepare_word(prepare_word),
@@ -73,8 +80,13 @@ module tb_i4b_e2e;
 
     // ---------------------------------------------------------------- 层级探针（RTL 直读）
     // acq_sampled / conv_tag 是 RTL 顶层内部信号（非端口）。
+    `ifdef TB_AD4080_CHIP
+    wire probe_acq_sampled = dut.u_converter.acq_sampled;
+    wire [31:0] probe_conv_tag = dut.u_converter.conv_tag;
+    `else
     wire probe_acq_sampled = dut.acq_sampled;
     wire [31:0] probe_conv_tag = dut.conv_tag;
+    `endif
 
     // ---------------------------------------------------------------- 公共激励与断言
     `include "tb/v21/tb_e2e_body.svh"

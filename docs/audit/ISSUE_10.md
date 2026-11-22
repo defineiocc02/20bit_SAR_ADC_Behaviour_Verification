@@ -17,7 +17,7 @@
 | 601 | `0x78000` | `0x78000 / 0` | `0x78000 / 0` |
 | 602 | `0x88000` | `0x00000 / 1` | `0x88000 / 0` |
 
-原 S3 同沿写入 `x3_q`，却对该寄存器的旧值做或归约。空拍保留上一笔 X，合法负数的高位又全是符号扩展的 1，于是正值标签 602 被错误清零。现由本笔乘积取出 X，判断高位是否等于第 31 位的符号扩展，并在同一沿锁存 X、错误和标签。现行回归含 8,209 笔冻结向量、八组共 21 笔逐标签事务、六个 S3 边界探针。[重构 RTL](../../rtl/v21/recon_v21.sv) · [逐笔期望与原始激励](../../tools/recon_oracle.py)
+原 S3 同沿写入 `x3_q`，却对该寄存器的旧值做或归约。空拍保留上一笔 X，合法负数的高位又全是符号扩展的 1，于是正值标签 602 被错误清零。现由本笔乘积取出 X，判断高位是否等于第 31 位的符号扩展，并在同一沿锁存 X、错误和标签。现行回归含 8,209 笔冻结向量、八组共 21 笔逐标签事务、六个 S3 边界探针。[重构 RTL](../../rtl/sar_core/recon_v21.sv) · [逐笔期望与原始激励](../../tools/recon_oracle.py)
 
 ## 物理采集与转换片权
 
@@ -29,7 +29,7 @@ A 正在转换，B 已采样，C 等待受理。A 的捕获、hold 和安静窗�
 | 修复后，交接沿前 | `3BD00`（B） | `000FF`（A） | `3BD00` | `00000` |
 | 修复后，交接沿后 | `040FE`（C） | `3BD00`（B） | `040FE` | `00000` |
 
-修复前，组合信号 `do_prepare` 先把片选和采样写门切到 C，而转换描述符仍持有 A。修复后，CONV 有主时一直使用冻结的 ACQ 描述符驱动宏接口；在受理上升沿更新描述符后，新片选、写门和四位预置一起生效。CONV 本来就空闲时仍允许提前预置。测试让 B 与 C 实际驱动不同的四位值，同时检查所有 72 根预置数据线。[片权与预置路由](../../rtl/v21/acq_conv_ctx.sv) · [沿前沿后接口测试](../../tb/v21/tb_analog_if.sv)
+修复前，组合信号 `do_prepare` 先把片选和采样写门切到 C，而转换描述符仍持有 A。修复后，CONV 有主时一直使用冻结的 ACQ 描述符驱动宏接口；在受理上升沿更新描述符后，新片选、写门和四位预置一起生效。CONV 本来就空闲时仍允许提前预置。测试让 B 与 C 实际驱动不同的四位值，同时检查所有 72 根预置数据线。[片权与预置路由](../../rtl/sar_core/acq_conv_ctx.sv) · [沿前沿后接口测试](../../tb/v21/tb_analog_if.sv)
 
 **复核中另见。** 旧实现排空后，采集描述符无效却仍把候选掩码 `39701` 送到采集片选。现有区分冷启动的状态位。首次受理前仍是八片预选、写门为零；停收排空后，空 ACQ 选通和写门都为零，恢复接收也要等到下一笔准备请求。加强后的用例在旧 RTL 上 124 项中有 10 项失败，在现行 RTL 上 124 项全部通过。连续采样的十二个场景另在每个上升沿前后核对片组互斥和写门归属。[生产顶层连续采样测试](../../tb/v21/sample_cadence.cpp)
 
@@ -37,7 +37,7 @@ A 正在转换，B 已采样，C 等待受理。A 的捕获、hold 和安静窗�
 
 ## 旧封装为何无需改回当前工程
 
-`ffc10ef` 的 `sar20_system_top` 实例化了 `sar20_digital_core`，却传入该模块声明中不存在的 `P_CAAZ_ENABLE` 及 13 个 CAAZ 端口。`9e4f1fd` 和现行生产清单都不含这两个设计文件。讨论区给出的历史修复计数属于报告者的运行。这里以当时的源码核对接口，以当前生产清单确定影响范围。[历史封装](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/ffc10eff9adfdd3321b1d018a281a0a28b69ec47/subsys/ad4080_dsp/rtl/sar20_system_top.sv) · [历史模块声明](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/ffc10eff9adfdd3321b1d018a281a0a28b69ec47/rtl/top/sar20_digital_core.sv) · [现行生产清单](../../flow/build/filelists/files_adc_v21.f)
+`ffc10ef` 的 `sar20_system_top` 实例化了 `sar20_digital_core`，却传入该模块声明中不存在的 `P_CAAZ_ENABLE` 及 13 个 CAAZ 端口。`9e4f1fd` 和现行生产清单都不含这两个设计文件。讨论区给出的历史修复计数属于报告者的运行。这里以当时的源码核对接口，以当前生产清单确定影响范围。[历史封装](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/ffc10eff9adfdd3321b1d018a281a0a28b69ec47/subsys/ad4080_dsp/rtl/sar20_system_top.sv) · [历史模块声明](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/ffc10eff9adfdd3321b1d018a281a0a28b69ec47/rtl/top/sar20_digital_core.sv) · [现行生产清单](../../rtl/filelists/files_adc_v21.f)
 
 ## 复现
 
@@ -86,6 +86,6 @@ with open(sys.argv[1]) as f:
         if row["scenario"] == "8" and row["out_valid"] == "1":
             print(row["out_tag"], hex(int(row["out_code"])), row["out_err"])
 PY
-git ls-tree -r ffc10ef -- rtl/top/sar20_digital_core.sv subsys/ad4080_dsp/rtl/sar20_system_top.sv
-git ls-tree -r HEAD -- rtl/top/sar20_digital_core.sv subsys/ad4080_dsp/rtl/sar20_system_top.sv
+git ls-tree -r ffc10ef -- rtl/top/sar20_digital_core.sv rtl/ad4080_dsp/sar20_system_top.sv
+git ls-tree -r HEAD -- rtl/top/sar20_digital_core.sv rtl/ad4080_dsp/sar20_system_top.sv
 ~~~

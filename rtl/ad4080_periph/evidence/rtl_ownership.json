@@ -1,0 +1,425 @@
+{
+  "revision": "2efe16dff1512ec7e1bca51b68908a977dfd94e1",
+  "method": "declared module instance sites in listed source sets",
+  "production_files": 11,
+  "dsp_declared_modules": 15,
+  "roots": {
+    "adc_digital_ip_v21": {
+      "direct": [
+        {
+          "module": "dither_pre",
+          "instance": "u_pd"
+        },
+        {
+          "module": "sched18",
+          "instance": "u_sched"
+        },
+        {
+          "module": "acq_conv_ctx",
+          "instance": "u_ctx"
+        },
+        {
+          "module": "sar_evt_v21",
+          "instance": "u_evt"
+        },
+        {
+          "module": "dem_mask_v3",
+          "instance": "u_dem"
+        },
+        {
+          "module": "adc2_capture",
+          "instance": "u_adc2"
+        },
+        {
+          "module": "wsum_v21",
+          "instance": "u_wsum"
+        },
+        {
+          "module": "recon_v21",
+          "instance": "u_recon"
+        }
+      ],
+      "reachable": [
+        "acq_conv_ctx",
+        "adc2_capture",
+        "adc_digital_ip_v21",
+        "dem_mask_v3",
+        "dither_pre",
+        "recip_q60",
+        "recip_rnd_v21",
+        "recon_v21",
+        "sar_evt_v21",
+        "sched18",
+        "wsum_v21"
+      ]
+    },
+    "sar20_ad4080_top": {
+      "direct": [
+        {
+          "module": "sar20_result_guard",
+          "instance": "u_retirement"
+        },
+        {
+          "module": "ad4080_top",
+          "instance": "u_dsp"
+        }
+      ],
+      "reachable": [
+        "ad4080_dsp_chain",
+        "ad4080_regs",
+        "ad4080_top",
+        "event_detect",
+        "fifo_capture",
+        "gpio_ctrl",
+        "result_fifo",
+        "sar20_ad4080_top",
+        "sar20_result_guard",
+        "sinc1_decim",
+        "sinc5_comp",
+        "sinc5_decim",
+        "spi_slave",
+        "sys_error_corr"
+      ]
+    },
+    "ad4080_peripheral_services": {
+      "direct": [
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_poll_vdd33"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_poll_iovdd"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_poll_control"
+        },
+        {
+          "module": "ad4080_cfg_power_cdc",
+          "instance": "u_power_cdc"
+        },
+        {
+          "module": "ad4080_pwr_supervisor",
+          "instance": "u_power"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_ref_history_qualify"
+        },
+        {
+          "module": "otp_shadow_loader",
+          "instance": "u_otp"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_por_bridge_reset"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_por_csr_ready"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_bist_grant"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_conversion_permission"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_conversion_domain"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_read_permission"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_read_domain"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_fifo_record_io_permission"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_io_domain"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_io_store_contents"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_io_word_permission"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_io_check_permission"
+        },
+        {
+          "module": "result_store_mbist",
+          "instance": "u_mbist"
+        },
+        {
+          "module": "result_store",
+          "instance": "u_result_store"
+        },
+        {
+          "module": "ad4080_ddr_edge_words",
+          "instance": "u_edge_words"
+        }
+      ],
+      "reachable": [
+        "ad4080_cfg_power_cdc",
+        "ad4080_ddr_edge_words",
+        "ad4080_peripheral_services",
+        "ad4080_pwr_reset_sync",
+        "ad4080_pwr_supervisor",
+        "otp_shadow_loader",
+        "result_bank_4k20",
+        "result_store",
+        "result_store_mbist"
+      ]
+    },
+    "ad4080_result_readback_link": {
+      "direct": [
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_local_epoch"
+        },
+        {
+          "module": "ad4080_result_transport",
+          "instance": "u_transport"
+        }
+      ],
+      "reachable": [
+        "ad4080_ddr_edge_words",
+        "ad4080_pwr_reset_sync",
+        "ad4080_result_readback_link",
+        "ad4080_result_transport"
+      ]
+    },
+    "ad4080_fifo_lvds_record_link": {
+      "direct": [
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_io_epoch"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_core_epoch"
+        },
+        {
+          "module": "ad4080_result_readback_link",
+          "instance": "u_readback"
+        },
+        {
+          "module": "ad4080_fifo_record_framer",
+          "instance": "u_framer"
+        },
+        {
+          "module": "ad4080_result_spi_pins",
+          "instance": "u_pins"
+        }
+      ],
+      "reachable": [
+        "ad4080_ddr_edge_words",
+        "ad4080_fifo_lvds_record_link",
+        "ad4080_fifo_record_framer",
+        "ad4080_pwr_reset_sync",
+        "ad4080_result_readback_link",
+        "ad4080_result_spi_pins",
+        "ad4080_result_transport"
+      ]
+    },
+    "ad4080_peripheral_product": {
+      "direct": [
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_cfg_permission"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_cfg_control_permission"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_cfg_poll_permission"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_aon_capture"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_aon_read"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_aon_cfg_eval"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_aon_idle"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_pin_status_reset"
+        },
+        {
+          "module": "cnv_ctrl",
+          "instance": "u_cnv"
+        },
+        {
+          "module": "ad4080_top",
+          "instance": "u_dsp"
+        },
+        {
+          "module": "ad4080_peripheral_services",
+          "instance": "u_services"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_spi_selection"
+        },
+        {
+          "module": "ad4080_product_record_session",
+          "instance": "u_session"
+        },
+        {
+          "module": "ad4080_fifo_lvds_record_link",
+          "instance": "u_record"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_continuous_admission"
+        },
+        {
+          "module": "ad4080_lvds_config_cdc",
+          "instance": "u_stream_config"
+        },
+        {
+          "module": "ad4080_pwr_reset_sync",
+          "instance": "u_stream_epoch"
+        },
+        {
+          "module": "ad4080_continuous_result_cdc",
+          "instance": "u_stream_cdc"
+        },
+        {
+          "module": "ad4080_continuous_lvds",
+          "instance": "u_stream"
+        }
+      ],
+      "reachable": [
+        "ad4080_cfg_power_cdc",
+        "ad4080_continuous_lvds",
+        "ad4080_continuous_result_cdc",
+        "ad4080_ddr_edge_words",
+        "ad4080_dsp_chain",
+        "ad4080_fifo_lvds_record_link",
+        "ad4080_fifo_record_framer",
+        "ad4080_lvds_config_cdc",
+        "ad4080_peripheral_product",
+        "ad4080_peripheral_services",
+        "ad4080_product_record_session",
+        "ad4080_pwr_reset_sync",
+        "ad4080_pwr_supervisor",
+        "ad4080_regs",
+        "ad4080_result_readback_link",
+        "ad4080_result_spi_pins",
+        "ad4080_result_transport",
+        "ad4080_top",
+        "cnv_ctrl",
+        "event_detect",
+        "fifo_capture",
+        "gpio_ctrl",
+        "otp_shadow_loader",
+        "result_bank_4k20",
+        "result_fifo",
+        "result_store",
+        "result_store_mbist",
+        "sinc1_decim",
+        "sinc5_comp",
+        "sinc5_decim",
+        "spi_slave",
+        "sys_error_corr"
+      ]
+    },
+    "ad4080_chip_top": {
+      "direct": [
+        {
+          "module": "adc_digital_ip_v21",
+          "instance": "u_converter"
+        },
+        {
+          "module": "sar20_result_guard",
+          "instance": "u_retirement"
+        },
+        {
+          "module": "ad4080_peripheral_product",
+          "instance": "u_peripheral"
+        }
+      ],
+      "reachable": [
+        "acq_conv_ctx",
+        "ad4080_cfg_power_cdc",
+        "ad4080_chip_top",
+        "ad4080_continuous_lvds",
+        "ad4080_continuous_result_cdc",
+        "ad4080_ddr_edge_words",
+        "ad4080_dsp_chain",
+        "ad4080_fifo_lvds_record_link",
+        "ad4080_fifo_record_framer",
+        "ad4080_lvds_config_cdc",
+        "ad4080_peripheral_product",
+        "ad4080_peripheral_services",
+        "ad4080_product_record_session",
+        "ad4080_pwr_reset_sync",
+        "ad4080_pwr_supervisor",
+        "ad4080_regs",
+        "ad4080_result_readback_link",
+        "ad4080_result_spi_pins",
+        "ad4080_result_transport",
+        "ad4080_top",
+        "adc2_capture",
+        "adc_digital_ip_v21",
+        "cnv_ctrl",
+        "dem_mask_v3",
+        "dither_pre",
+        "event_detect",
+        "fifo_capture",
+        "gpio_ctrl",
+        "otp_shadow_loader",
+        "recip_q60",
+        "recip_rnd_v21",
+        "recon_v21",
+        "result_bank_4k20",
+        "result_fifo",
+        "result_store",
+        "result_store_mbist",
+        "sar20_result_guard",
+        "sar_evt_v21",
+        "sched18",
+        "sinc1_decim",
+        "sinc5_comp",
+        "sinc5_decim",
+        "spi_slave",
+        "sys_error_corr",
+        "wsum_v21"
+      ]
+    }
+  },
+  "sinc5_instance_sites": {
+    "sinc5_comp": [
+      "u_sinc5"
+    ]
+  },
+  "dsp_leaves_outside_its_wrapper": [
+    "cnv_ctrl"
+  ],
+  "scope": "static source closure only; no synthesis or timing claim"
+}

@@ -35,7 +35,7 @@ def rnd(n: int, d: int) -> int:
 
 
 def dut_rnd96(n: int) -> int:
-    """与 rtl/v21/recon_v21.sv 的 rnd96_const 逐字对应的模型。"""
+    """与 rtl/sar_core/recon_v21.sv 的 rnd96_const 逐字对应的模型。"""
     MAGIC = (1 << K3) // S + 1        # ceil(2^34/3)
     s = -1 if n < 0 else 1
     a = abs(n)

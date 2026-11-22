@@ -32,7 +32,7 @@ from adi_model.control.dither import (
     Fig19StaticSpec,
     complete_flash3_sar6_prefix_table,
 )
-from subsys.experiments.fig11 import Fig11Parameters, fig11_model
+from experiments.fig11 import Fig11Parameters, fig11_model
 from adi_model.simulation.config import ConfigError
 from adi_model.simulation.pipeline import run_pipeline
 from adi_model.simulation.slice_pool import PhysicalSlicePool

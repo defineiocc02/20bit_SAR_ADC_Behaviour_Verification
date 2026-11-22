@@ -48,7 +48,7 @@ from adi_model.control.follower import (  # noqa: E402
     run_follower,
     run_trial_sar,
 )
-from subsys.experiments.fig11 import Fig11Parameters  # noqa: E402
+from experiments.fig11 import Fig11Parameters  # noqa: E402
 from adi_model.dem_dither import bridge_swap, post_mask  # noqa: E402
 from adi_model.sched18_rtl import Scheduler18Rtl  # noqa: E402
 from adi_model.simulation.pipeline import run_pipeline  # noqa: E402
@@ -433,7 +433,7 @@ def figure_inl(model, out: Path, *, points: int, repeats: int, dynamic_n: int) -
     """
     from matplotlib.ticker import MaxNLocator
 
-    from subsys.experiments.configs.matrix import ablation_configs
+    from experiments.configs.matrix import ablation_configs
 
     if points < 2 or repeats < 1:
         raise ValueError("the level scan requires at least two levels and one repeat")
@@ -990,7 +990,7 @@ def figure_dynamics(out: Path, *, n: int = 32) -> dict:
     所有时间和带宽来自 _dynamic_config 的工程参数，参考两阶段指数衰减来自同一内核。
     """
     from adi_model.control.dither import complete_flash3_sar6_prefix_table
-    from subsys.experiments.fig11 import _all_signal
+    from experiments.fig11 import _all_signal
 
     # 状态内核在样本间保留节点值；只在记录开头显式置零，所以不另称稳态测试。
     # 这里不用默认随机 DEM，回转片组和已决前缀从两个明确绑定输入。
@@ -1670,7 +1670,7 @@ def figure_system_mechanism(out: Path) -> dict:
         "figure": "M00_signal_flow.png",
         "evidence_type": "architecture drawing from v21 RTL and declared analog boundary",
         "style_reference": "ISSCC 2024 Fig. 9.8.1 and Fig. 9.8.3",
-        "rtl_source": "rtl/v21/adc_digital_ip_v21.sv",
+        "rtl_source": "rtl/sar_core/adc_digital_ip_v21.sv",
     }
 
 
@@ -2197,8 +2197,8 @@ def figure_reconstruction_mechanism(out: Path) -> dict:
         "figure": filename,
         "evidence": "v21 signal connections and nominal integer reference calculation",
         "sources": [
-            "rtl/v21/adc_digital_ip_v21.sv", "rtl/v21/adc2_capture.sv",
-            "rtl/v21/wsum_v21.sv", "rtl/v21/recon_v21.sv",
+            "rtl/sar_core/adc_digital_ip_v21.sv", "rtl/sar_core/adc2_capture.sv",
+            "rtl/sar_core/wsum_v21.sv", "rtl/sar_core/recon_v21.sv",
             "docs/v21/PHYSICAL_INTERFACE.md#8", "tools/recon_oracle.py", "docs/STATUS.md",
         ],
         "adc2_bits": 13, "adc2_input_window_v": [-0.1875, 0.5625],
@@ -2274,7 +2274,7 @@ def _write_manifest(out: Path, produced: list[dict], *, points: int, repeats: in
     # 图与合同行表面使用同一提交，实际却来自不同工作树 profile。
     source_paths = (
         "tools/run_review_figures.py", "tools/run_p4_ablation.py", "tb/vec_r18_sched.txt",
-        "subsys/experiments/fig11.py", "src/adi_model/contracts/profiles.py",
+        "experiments/fig11.py", "src/adi_model/contracts/profiles.py",
         "src/adi_model/control/dem3d.py",
         "src/adi_model/simulation/pipeline_engine.py",
     )

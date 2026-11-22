@@ -363,11 +363,11 @@ def _assert_divider_widths(mirror, table_path):
 
 
 def test_mirror_width_functions_match_actual_rtl_expressions(mirror):
-    _assert_divider_widths(mirror, ROOT / "rtl/core/div_floor.sv")
+    _assert_divider_widths(mirror, ROOT / "archive/rtl_core/div_floor.sv")
     for bits in (1, 2, 6, 12, 20):
         for vb in (8, 24, 64):
             actual = _rtl_int_widths(
-                ROOT / "rtl/core/adc2_dec.sv",
+                ROOT / "archive/rtl_core/adc2_dec.sv",
                 ["K", "W_MUL", "W_SUM"],
                 {"P_ADC2_BITS": bits, "V_BITS": vb},
             )
@@ -388,8 +388,8 @@ def test_reconstruction_and_extracted_mac_share_declared_width_formulas():
         "W_A": 63,
         "W_TOP": 22,
     }
-    mac_path = ROOT / "rtl/core/cal_residue_mac.sv"
-    core_path = ROOT / "rtl/core/recon_core.sv"
+    mac_path = ROOT / "archive/rtl_core/cal_residue_mac.sv"
+    core_path = ROOT / "archive/rtl_core/recon_core.sv"
     assert _rtl_int_widths(mac_path, names, known) == expected
     # core只持有实际跨模块边界；MAC内部宽度不要求复制为无消费者的localparam。
     core = _rtl_int_widths(
@@ -405,7 +405,7 @@ def test_reconstruction_and_extracted_mac_share_declared_width_formulas():
 
 
 def test_width_drift_guard_rejects_both_mirror_and_rtl_mutations(mirror, tmp_path, monkeypatch):
-    source = ROOT / "rtl/core/div_floor.sv"
+    source = ROOT / "archive/rtl_core/div_floor.sv"
     altered = tmp_path / "div_floor_wrong.sv"
     text = source.read_text()
     original = "(P_W_A + P_STAGES - 1) / P_STAGES"

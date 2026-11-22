@@ -54,7 +54,7 @@ function option(name) {
 function loadCards() {
   const index = read(path.join(directory,"README.md"));
   // 仅以本工程的生产清单确定审查范围。它同时是综合与顶层展开使用的输入。
-  const sources = read(path.join(root,"flow/build/filelists/files_adc_v21.f")).split(/\r?\n/)
+  const sources = read(path.join(root,"rtl/filelists/files_adc_v21.f")).split(/\r?\n/)
     .map(s=>s.trim()).filter(s=>s && !s.startsWith("//"));
   assert(sources.length && sources.every(p=>/^rtl\/[A-Za-z0-9_/-]+\.sv$/.test(p)), "invalid production list");
   assert(new Set(sources).size === sources.length, "duplicate production source");
@@ -169,16 +169,24 @@ function bookInputs() {
 function checkAssets(cards) {
   const folder=path.join(directory,"figures");
   const record=JSON.parse(read(path.join(folder,"rendered.json")));
+  // 已发布 PDF 的证据来自明确的 Git 对象。移动源码时仍核验原输入，
+  // 当前导航另由 loadCards 核对。重新渲染产生的清单仍默认绑定当前树。
+  const revision = record.atlas_inputs_revision;
+  assert(!revision || /^[a-f0-9]{40}$/.test(revision), "invalid atlas input revision");
+  const artifactDigest = (file) => sha(revision
+    ? execFileSync("git", ["show", revision + ":" + path.relative(root, file)], {cwd: root, maxBuffer: 128 * 1024 * 1024})
+    : fs.readFileSync(file));
   assert(record.atlas_pdf_sha256===sha(fs.readFileSync(path.join(directory,"digital-ip-atlas.pdf")))
-         && JSON.stringify(record.atlas_inputs)===JSON.stringify(bookInputs())
-         && record.renderer_sha256===sha(fs.readFileSync(fileURLToPath(import.meta.url))),
+         && Object.keys(record.atlas_inputs).join("\n")===Object.keys(bookInputs()).join("\n")
+         && Object.entries(record.atlas_inputs).every(([name, digest]) =>
+           artifactDigest(path.resolve(directory, name))===digest)
+         && record.renderer_sha256===artifactDigest(fileURLToPath(import.meta.url)),
          "published PDF or its inputs differ from the atlas manifest");
   const evidence=JSON.parse(read(path.join(folder,"digital-evidence.json")));
   // “当前效果”绑定这些数字输入。换版后可用纯整数检查重建证据，无须启动 EDA。
   for(const [name,value] of Object.entries(evidence.source_sha256)){
     const file=path.resolve(root,name);
-    assert(file.startsWith(root+path.sep) && fs.existsSync(file)
-           && sha(fs.readFileSync(file))===value,"digital evidence input changed: "+name);
+    assert(file.startsWith(root+path.sep) && artifactDigest(file)===value,"digital evidence input changed: "+name);
   }
   for(const [name,value] of Object.entries(evidence.figures)){
     // Git 中发布 SVG 和预览，PDF 收进本地论文插图包。
@@ -212,7 +220,14 @@ function checkAssets(cards) {
   for (const card of cards) {
     for (const g of card.graphs.filter(graph=>graph.native)) {
       const saved=record.diagrams[g.name];
-      assert(saved.source_format==="svg" && JSON.stringify(saved.inputs)===JSON.stringify(nativeInputs(card)),
+      const native = nativeInputs(card);
+      const live = (name) => name.replace(/^rtl\/v21\//, "rtl/sar_core/")
+        .replace(/^rtl\/(dither_pre|dem_mask_v3|sched18|recip_q60)\.sv$/, "rtl/sar_core/$1.sv");
+      const recordedPaths = Object.keys(saved.inputs ?? {}).map(name => revision ? live(name) : name);
+      assert(saved.source_format==="svg"
+             && JSON.stringify(recordedPaths.sort())===JSON.stringify(Object.keys(native).sort())
+             && Object.entries(saved.inputs ?? {}).every(([name, digest]) =>
+                artifactDigest(path.resolve(root, name))===digest),
              "review native diagram against changed inputs: "+g.name);
     }
   }

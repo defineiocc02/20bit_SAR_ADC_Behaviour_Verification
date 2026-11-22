@@ -8,7 +8,7 @@
 | DEM 的分母与计数 | [使用图](fig/dem_usage.png) · [逐组计数](data/dem_usage.json) |
 | 历史数字诊断 | [诊断摘要](data/rtl_diagnostic.json) · [TP 交接边界](data/tp_chop_mask_boundary.json) |
 | 归档复现 | [原专题固定快照](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/docs/randomization_caaz/README.md) · [当时的复现入口](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/docs/REPRODUCING.md) |
-| 当前工作入口 | [CAAZ 扩展](../../../subsys/extensions/caaz/README.md) · [独立结构核 ABI2](../../audit/components/CURRENT_INTERFACE_AND_ARITHMETIC.md) · [v21 合同](../../CONTRACT_CURRENT.md) |
+| 当前工作入口 | [CAAZ 扩展](../../../experiments/extensions/caaz/README.md) · [独立结构核 ABI2](../../audit/components/CURRENT_INTERFACE_AND_ARITHMETIC.md) · [v21 合同](../../CONTRACT_CURRENT.md) |
 
 以下正文中的「当前」「本轮」和命令均指归档版本。本版工作树已移除 `dither_gen` 及旧组合复现入口。两张旧示意图通过固定提交查看。
 
@@ -38,7 +38,7 @@ DEM 和 dither 有助于减弱误差与输入的相关性，并可配合位权�
 
 DEM 的执行顺序是：先取得本笔实际 slice ID，再按该 bank 的状态推进 SID；主阵列行／列与子阵列生成物理顺序；由合法 RDAC unit code 决定主／子单元数量。可选 bridge 在 sid[8] 有效时给活动 slot 做名义零和 ±1 交换，端码不交换。重构读取实际 mask 和对应物理单元的冻结有效权重；不会因为打开 DEM 就自动得到这些权重。
 
-结构候选的名义守恒是对主／子权值加权后的总电荷，不是把不同权重物理电容的个数直接当作一个码。码176的示例满足4×175+4×177=8×176，但真实失配电荷不因此相等。源码入口是 [dem.py](../../../src/adi_model/control/dem.py)、[slice_pool.py](../../../src/adi_model/simulation/slice_pool.py)和[结构控制](../../../rtl/core/sar_structural_ctrl.sv)。
+结构候选的名义守恒是对主／子权值加权后的总电荷，不是把不同权重物理电容的个数直接当作一个码。码176的示例满足4×175+4×177=8×176，但真实失配电荷不因此相等。源码入口是 [dem.py](../../../src/adi_model/control/dem.py)、[slice_pool.py](../../../src/adi_model/simulation/slice_pool.py)和[结构控制](../../../archive/rtl_core/sar_structural_ctrl.sv)。
 
 还要分别检查使用统计。本轮固定k=10、遍历512个SID时，某个逻辑slot的主单元56使用16次，其余62个主单元各8次；bridge关时子单元各128次，开启后为128/160/128/128/128/96/128/128。63单元嵌入8×8删除缺失格，以及bridge门控和子阵列轮转的相关性，会造成这种偏置。真实随机调度后的物理统计另以实际被选次数作分母，不能拿固定slot计数替代全芯片概率；它也不直接给出校准后的SNDR结论。
 

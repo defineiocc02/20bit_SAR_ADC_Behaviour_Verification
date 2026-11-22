@@ -151,7 +151,7 @@ def _code_line(rel, needle):
     ("rel", "source", "source_line", "term", "expect_line"),
     [
         pytest.param(
-            "rtl/core/weight_store.sv",
+            "archive/rtl_core/weight_store.sv",
             "module documented_capacity_guard(\n"
             "    input wire wr_en, clear_load, cfg_ready, idx_ok, w_ok,\n"
             "    input wire [63:0] sum_new, SUM_MAX,\n"
@@ -165,7 +165,7 @@ def _code_line(rel, needle):
             id="frozen_documented_capacity_guard",
         ),
         pytest.param(
-            "rtl/core/status_regs.sv",
+            "archive/rtl_core/status_regs.sv",
             "module documented_sticky_guard(\n"
             "    input wire clk, ev_acc_ovf,\n"
             "    output logic acc_ovf_sticky\n"
@@ -190,10 +190,9 @@ def test_expr_delete_reproduces_documented_mutants(
     STATIC_SUM_SAFE。因此这里仅用历史完整单行形态，约束连接词删除与末尾分号保留，
     不将当前排版行号视为注入合同。
     """
-    rtl_root = tmp_path / "documented_fixture" / "rtl"
-    for sub in ("core", "top"):
-        (rtl_root / sub).mkdir(parents=True)
+    rtl_root = tmp_path / "documented_fixture" / "archive"
     original = rtl_root.parent / rel
+    original.parent.mkdir(parents=True)
     original.write_bytes(source.encode("utf-8"))
     assert source.splitlines().count(source_line) == 1
     line = source.splitlines().index(source_line) + 1
@@ -215,27 +214,30 @@ def test_expr_delete_reproduces_documented_mutants(
     assert original.read_bytes() == source.encode("utf-8")
 
 
+ARCHIVE_ROOT = mrt.RTL_ROOT.parent / "archive"
+
+
 def test_expr_delete_removes_current_sticky_self_hold(tmp_path, declared_headers):
-    """当前生产状态寄存器仍支持单行自保持删除，按符号定位而不绑定旧行号。"""
-    rel = "rtl/core/status_regs.sv"
+    """归档状态寄存器仍支持单行自保持删除，按符号定位而不绑定旧行号。"""
+    rel = "archive/rtl_core/status_regs.sv"
     line = _code_line(rel, "<= acc_ovf_sticky")
     sites = [
         site
-        for site in mrt.enumerate_sites(mrt.RTL_ROOT)
+        for site in mrt.enumerate_sites(ARCHIVE_ROOT)
         if site.op == "ExprDelete" and site.rel == rel and site.line == line
     ]
     assert len(sites) == 2
-    before = _hash_tree(mrt.RTL_ROOT)
+    before = _hash_tree(ARCHIVE_ROOT)
     destination = mrt.inject(
         sites=[sites[0]],
         name="t",
         out_root=tmp_path,
-        rtl_root=mrt.RTL_ROOT,
+        rtl_root=ARCHIVE_ROOT,
         headers=declared_headers,
     )
     got = (destination / rel).read_text(encoding="utf-8").splitlines()
     assert got[line - 1] == "        acc_ovf_sticky    <= ev_acc_ovf;"
-    assert _hash_tree(mrt.RTL_ROOT) == before
+    assert _hash_tree(ARCHIVE_ROOT) == before
 
 
 def test_injection_is_byte_faithful_outside_the_site(tmp_path, declared_headers):
@@ -244,27 +246,27 @@ def test_injection_is_byte_faithful_outside_the_site(tmp_path, declared_headers)
     检出策略可产生 LF，旧工作树也可能保留 CRLF；本断言不选择哪一种正确，只要求
     注入不改变来源换行。仅比较归一化后的文本不能证明该约束。
     """
-    before = _hash_tree(mrt.RTL_ROOT)
+    before = _hash_tree(ARCHIVE_ROOT)
     site = next(
         s
-        for s in mrt.enumerate_sites(mrt.RTL_ROOT)
+        for s in mrt.enumerate_sites(ARCHIVE_ROOT)
         if s.op == "ExprDelete"
-        and s.rel == "rtl/core/weight_store.sv"
-        and s.line == _code_line("rtl/core/weight_store.sv", "assign w_ok")
+        and s.rel == "archive/rtl_core/weight_store.sv"
+        and s.line == _code_line("archive/rtl_core/weight_store.sv", "assign w_ok")
     )
     dst = mrt.inject(
-        sites=[site], name="t", out_root=tmp_path, rtl_root=mrt.RTL_ROOT, headers=declared_headers
+        sites=[site], name="t", out_root=tmp_path, rtl_root=ARCHIVE_ROOT, headers=declared_headers
     )
 
     changed = []
     for rel, h in before.items():
-        got = hashlib.sha256((dst / "rtl" / rel).read_bytes()).hexdigest()
+        got = hashlib.sha256((dst / "archive" / rel).read_bytes()).hexdigest()
         if got != h:
             changed.append(rel)
-    assert changed == ["core/weight_store.sv"]
+    assert changed == ["rtl_core/weight_store.sv"]
 
-    src_lines = (mrt.RTL_ROOT / "core" / "weight_store.sv").read_bytes().splitlines(keepends=True)
-    new_lines = (dst / "rtl/core/weight_store.sv").read_bytes().splitlines(keepends=True)
+    src_lines = (ARCHIVE_ROOT / "rtl_core" / "weight_store.sv").read_bytes().splitlines(keepends=True)
+    new_lines = (dst / "archive/rtl_core/weight_store.sv").read_bytes().splitlines(keepends=True)
     assert len(src_lines) == len(new_lines)
     for i, (a, b) in enumerate(zip(src_lines, new_lines, strict=False)):
         if i == site.line - 1:
@@ -275,7 +277,7 @@ def test_injection_is_byte_faithful_outside_the_site(tmp_path, declared_headers)
             assert a_eol in (b"\n", b"\r\n"), f"意外的行尾：{a_eol!r}"
         else:
             assert a == b, f"第 {i + 1} 行被顺手改了"
-    assert _hash_tree(mrt.RTL_ROOT) == before
+    assert _hash_tree(ARCHIVE_ROOT) == before
 
 
 def test_injection_never_touches_the_original_rtl(tmp_path, declared_headers):

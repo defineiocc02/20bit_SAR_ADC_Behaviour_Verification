@@ -12,7 +12,7 @@ import numpy as np
 
 from adi_model.behavioral.ra_az import OrdinaryAZConfig
 from adi_model.behavioral.sampler import sine_input
-from subsys.experiments.fig11 import fig11_model
+from experiments.fig11 import fig11_model
 
 
 # 普通 AZ 是显式 Fig.11 外部模拟实验，在生产数字端没有隐式入口。

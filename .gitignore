@@ -4,11 +4,8 @@ __pycache__/
 *$py.class
 *.so
 .Python
-# 构建与验证暂存忽略。只放行 flow/build/filelists/ 的手写编译清单。
+# 构建与验证产物。手写编译清单存放于 rtl/filelists/。
 build/
-!/flow/build/
-/flow/build/*
-!/flow/build/filelists/
 dist/
 *.egg-info/
 .eggs/

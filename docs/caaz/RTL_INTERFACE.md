@@ -1,6 +1,6 @@
 # CAAZ 历史数字接口与 40 MS/s 预算
 
-本页记录 2026-11-05 的旧结构核实验。其时钟、端口和通过计数属于原数字样本域试验。当前 CAAZ 的独立组件见 [代码与验证](../../subsys/extensions/caaz/README.md)，集成 ADC 的范围见 [v21 项目状态](../STATUS.md)。
+本页记录 2026-11-05 的旧结构核实验。其时钟、端口和通过计数属于原数字样本域试验。当前 CAAZ 的独立组件见 [代码与验证](../../experiments/extensions/caaz/README.md)，集成 ADC 的范围见 [v21 项目状态](../STATUS.md)。
 
 该轮采用可选、默认关闭的数字样本域机制。来源为`PKU_VLSI2025_C32_1_PAPER`（PDF/印刷第2页Fig.5/6）及`PKU_VLSI2025_C32_1_SLIDES`（PDF28–35页，页脚Slide27–34）。源图把chopper放在整个ADC输入之前，even更新CBIAS的AZ存储，odd保持同一状态；完整码合并/位权校准之后再作偶减奇。源文的6MS/s与raw/pair分母未充分披露，本工程选raw40/pair20，不声称复刻其物理ODR。
 

@@ -29,7 +29,7 @@ set DC_DIR [v21::dc_dir]
 v21::check_dc $DC_DIR $DESIGN
 puts "STEP_INPUTS_OK"
 
-set_app_var search_path [list . $RTLDIR $RTLDIR/rtl $RTLDIR/rtl/v21]
+set_app_var search_path [list . $RTLDIR $RTLDIR/rtl $RTLDIR/rtl/sar_core]
 
 read_db $DB
 puts "STEP_DB_OK"

@@ -10,7 +10,7 @@
 
 ## 整核只读取本次检出的生产清单
 
-DC、FC、Formality 的参考端通过同一个 [Tcl 读取器](v21/design_inputs.tcl) 解析[生产清单](../build/filelists/files_adc_v21.f)，路径相对读取器所在的检出。仿真侧用 `-f` 引入同一份清单后再加测试台。独立 `sched18` 试验只读该模块，派生 LEF 的 `sched18` 试验读取仓内的 `tsmc28_tech_derived.lef` 和 `min_single_domain.upf`。其记录只覆盖该叶子及当次工艺输入。
+DC、FC、Formality 的参考端通过同一个 [Tcl 读取器](v21/design_inputs.tcl) 解析[生产清单](../../rtl/filelists/files_adc_v21.f)，路径相对读取器所在的检出。仿真侧用 `-f` 引入同一份清单后再加测试台。独立 `sched18` 试验只读该模块，派生 LEF 的 `sched18` 试验读取仓内的 `tsmc28_tech_derived.lef` 和 `min_single_domain.upf`。其记录只覆盖该叶子及当次工艺输入。
 
 从仓库根运行下面的静态命令即可列出实际源文件及顺序。它不加载 PDK 或 EDA。
 
@@ -30,7 +30,7 @@ tclsh flow/synth/v21/design_inputs.tcl --check-dc "$V21_DC_DIR"
 
 ## 通用本机封装
 
-[run_synth.py](run_synth.py) 与 [run_synth.sh](run_synth.sh) 接收调用者声明的工具、顶层、时钟、库、SDC 和编译方式。它们使用 JSON 文件清单，与 [RTL 的 .f 清单](../build/filelists/README.md) 用途有别。JSON 必须提供 `sources`、`include_dirs`、`headers`、`defines` 四个列表。相对路径从 JSON 文件所在目录解析。`--out` 指向一个尚不存在的仓库外目录。
+[run_synth.py](run_synth.py) 与 [run_synth.sh](run_synth.sh) 接收调用者声明的工具、顶层、时钟、库、SDC 和编译方式。它们使用 JSON 文件清单，与 [RTL 的 .f 清单](../../rtl/filelists/README.md) 用途有别。JSON 必须提供 `sources`、`include_dirs`、`headers`、`defines` 四个列表。相对路径从 JSON 文件所在目录解析。`--out` 指向一个尚不存在的仓库外目录。
 
 ```bash
 python3 flow/synth/run_synth.py --help

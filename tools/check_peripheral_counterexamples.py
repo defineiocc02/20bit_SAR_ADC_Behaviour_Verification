@@ -13,8 +13,8 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PERIPH = ROOT / "subsys/ad4080_peripherals"
-DSP = ROOT / "subsys/ad4080_dsp"
+PERIPH = ROOT / "rtl/ad4080_periph"
+DSP = ROOT / "rtl/ad4080_dsp"
 POR_ANCHOR = '        $display("PASS REFIN loss freezes new writes and retains prior readable result");'
 POR_PROBE = '''
         // 确保本次检测前的事件令牌为 1，而且核心已经确认该令牌。
@@ -55,7 +55,7 @@ def main():
         parser.error("output must be outside checkout")
     out.mkdir(parents=True)
     run(["iverilog", "-g2012", "-Wall", "-s", "sys_error_corr_contract_tb", "-o", "gain.vvp",
-         DSP / "rtl/sys_error_corr.sv", DSP / "sim/tb/sys_error_corr_contract_tb.sv"], out, "gain-compile.log")
+         DSP / "sys_error_corr.sv", DSP / "sim/tb/sys_error_corr_contract_tb.sv"], out, "gain-compile.log")
     gain = run(["vvp", "-N", "gain.vvp"], out, "gain.log")
     outcome = next(line for line in gain.splitlines() if line.startswith("SYS_ERROR_CORR_CONTRACT_COMPLETE"))
     print(outcome)

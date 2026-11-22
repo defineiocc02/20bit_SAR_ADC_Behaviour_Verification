@@ -234,13 +234,13 @@ def test_reviewed_production_file_inventory_includes_baseline_and_extension():
         if (name.startswith("src/adi_model/") and name.endswith(".py"))
         or (name.startswith("rtl/") and name.endswith(".sv"))
         # 注意：baseline_commit（d1e1f87，2026-11-05）的树里 DSP 路径是
-        # ad4080_dsp/rtl/，而当前工作树是 subsys/ad4080_dsp/rtl/。
+        # ad4080_dsp/rtl/，而当前工作树是 rtl/ad4080_dsp/。
         # 本断言比对的是**历史树**，因此必须按历史布局匹配；
         # 只认 subsys/ 前缀会让 baseline 的 17 个 DSP 文件全部漏掉。
         or (
             (
                 name.startswith("ad4080_dsp/rtl/")
-                or name.startswith("subsys/ad4080_dsp/rtl/")
+                or name.startswith("rtl/ad4080_dsp/")
             )
             and name.endswith(".sv")
         )
@@ -341,12 +341,12 @@ def test_current_runtime_source_set_has_current_imports_and_explicit_rtl_manifes
         p.relative_to(ROOT).as_posix() for p in current_python.values()
     }
     current_production |= {
-        p.relative_to(ROOT).as_posix() for p in (ROOT / "subsys/ad4080_dsp/rtl").glob("*.sv")
+        p.relative_to(ROOT).as_posix() for p in (ROOT / "rtl/ad4080_dsp").glob("*.sv")
     }
     referenced = {
         name
         for row in inventory["mechanisms"]
         for name in row["code"]
-        if name.startswith(("src/adi_model/", "rtl/", "subsys/ad4080_dsp/rtl/"))
+        if name.startswith(("src/adi_model/", "rtl/", "rtl/ad4080_dsp/"))
     }
     assert referenced <= current_production

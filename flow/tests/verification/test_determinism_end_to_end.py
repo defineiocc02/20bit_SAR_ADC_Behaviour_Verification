@@ -43,7 +43,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from subsys.experiments.fig11 import Fig11Model, Fig11Parameters
+from experiments.fig11 import Fig11Model, Fig11Parameters
 
 # 测试位于 flow/tests/verification，子进程从仓库根加载同一份源码。
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -77,7 +77,7 @@ def test_hash_seed_does_not_change_the_output(hash_seed):
     """换 `PYTHONHASHSEED` 不得改变输出（否则会依赖集合/字典的遍历顺序）。"""
     script = (
         "import hashlib, numpy as np\n"
-        "from subsys.experiments.fig11 import Fig11Model, Fig11Parameters\n"
+        "from experiments.fig11 import Fig11Model, Fig11Parameters\n"
         f"m = Fig11Model(seed={SEED}, parameters=Fig11Parameters(), config_overrides=None)\n"
         f"r = m.simulate(lambda t: 0.5*np.sin(2*np.pi*{TONE_HZ}*np.atleast_1d(t)), {N_SAMPLES})\n"
         "print(hashlib.sha256(np.ascontiguousarray(r.codes.code).tobytes()).hexdigest()[:16])\n"

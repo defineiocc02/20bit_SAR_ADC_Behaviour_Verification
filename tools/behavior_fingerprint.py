@@ -97,7 +97,7 @@ def main() -> int:
     # 失配 σ 不写死：取 Fig11Parameters 的唯一真源（由论文两指标反解，见
     # docs/mechanisms/paper_metrics_calibration.md）。写死 1e-3 会在参数调整后
     # 让指纹基线悄悄脱离实际模型。
-    from subsys.experiments.fig11 import Fig11Parameters as _DefaultParameters
+    from experiments.fig11 import Fig11Parameters as _DefaultParameters
 
     mismatch_std = _DefaultParameters().unit_mismatch_std
     model = _build_model(mismatch_std, True)

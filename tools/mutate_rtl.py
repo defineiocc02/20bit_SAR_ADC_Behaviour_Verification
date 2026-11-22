@@ -726,7 +726,7 @@ def _edge_delete(rel: str, lines: list[str]) -> list[Site]:
             continue
         if " or " not in inner:
             continue
-        i = code.index(inner) + inner.index(" or ")
+        i = code.index(inner) + inner.rindex(" or ")
         out.append(
             Site(
                 "EdgeDelete",

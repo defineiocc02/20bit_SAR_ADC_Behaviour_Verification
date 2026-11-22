@@ -48,9 +48,9 @@
   },
   "source_sha256": {
     "rtl/control/caaz_cycle_ctrl.sv": "6aa51fe51ec29291052e6b59bb51dc16d65f5bb57bf96ad50c4eab96bc54fbd8",
-    "rtl/core/analog_phase_ctrl.sv": "b8b94e42ee9e112e5922945f71d2f6f1eff71688913e47e7eee491f244832d46",
-    "rtl/core/sar_structural_ctrl.sv": "d95e1e41ebc8e2bbfd84f0f770edc77c42b77d1105d8276db44f17ecfcc18121",
-    "rtl/core/slice_pool_ctrl.sv": "518efe1c50f15cf61c86453932bfc183c3933916dce9ccabeb35279343697041",
+    "archive/rtl_core/analog_phase_ctrl.sv": "b8b94e42ee9e112e5922945f71d2f6f1eff71688913e47e7eee491f244832d46",
+    "archive/rtl_core/sar_structural_ctrl.sv": "d95e1e41ebc8e2bbfd84f0f770edc77c42b77d1105d8276db44f17ecfcc18121",
+    "archive/rtl_core/slice_pool_ctrl.sv": "518efe1c50f15cf61c86453932bfc183c3933916dce9ccabeb35279343697041",
     "rtl/top/sar20_digital_core.sv": "debf0b5734c7e9ab30ed4fefa33c9b5d8d60c4b765ea507229c4b9f6a121a541"
   },
   "bench_sha256": "b5ff4645457e7d57d8b8bf1a3e0185f648ea7ed7238ad8b6aed7fb2ffc6e6ad8",

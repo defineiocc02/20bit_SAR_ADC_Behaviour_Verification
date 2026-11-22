@@ -80,7 +80,7 @@ packages = ["src/adi_model"]
 [tool.hatch.build.targets.sdist]
 exclude = [
   # 独立芯片外围工作包通过自己的 RTL 文件清单交付。
-  "subsys/ad4080_peripherals/**",
+  "rtl/ad4080_periph/**",
   # 必须是“文件级通配”（/**），不能只写目录名。实测（2026-09-25）：
   # hatchling 的 path_is_excluded 对**文件路径**调用 GitIgnoreSpec.match_file，
   # 而 gitignore 的“目录型模式”（dir 或 dir/）在文件路径上匹配为 False

@@ -45,7 +45,7 @@
       "figure": "M00_signal_flow.png",
       "evidence_type": "architecture drawing from v21 RTL and declared analog boundary",
       "style_reference": "ISSCC 2024 Fig. 9.8.1 and Fig. 9.8.3",
-      "rtl_source": "rtl/v21/adc_digital_ip_v21.sv"
+      "rtl_source": "rtl/sar_core/adc_digital_ip_v21.sv"
     },
     {
       "figure": "M01_interleaving_follower.png",
@@ -201,10 +201,10 @@
       "figure": "M03_capture_reconstruction.png",
       "evidence": "v21 signal connections and nominal integer reference calculation",
       "sources": [
-        "rtl/v21/adc_digital_ip_v21.sv",
-        "rtl/v21/adc2_capture.sv",
-        "rtl/v21/wsum_v21.sv",
-        "rtl/v21/recon_v21.sv",
+        "rtl/sar_core/adc_digital_ip_v21.sv",
+        "rtl/sar_core/adc2_capture.sv",
+        "rtl/sar_core/wsum_v21.sv",
+        "rtl/sar_core/recon_v21.sv",
         "docs/ISSCC2024_ONCHIP_CONTRACT_v2.md#8",
         "tools/recon_oracle.py",
         "docs/STATUS.md"

@@ -40,8 +40,8 @@ else
   fail "运行目录须为没有空格的绝对路径"
 fi
 echo "=== 准备 $WORK ==="
-run "mkdir -p $WORK/rtl/v21 $WORK/tb/v21 $WORK/tools" || fail "创建目录失败"
-for f in rtl/recip_q60.sv rtl/v21/recip_rnd_v21.sv rtl/v21/recon_v21.sv \
+run "mkdir -p $WORK/rtl/sar_core $WORK/tb/v21 $WORK/tools" || fail "创建目录失败"
+for f in rtl/sar_core/recip_q60.sv rtl/sar_core/recip_rnd_v21.sv rtl/sar_core/recon_v21.sv \
          tb/v21/tb_recon_stream.sv tools/recon_oracle.py; do
   if [ -n "$RUNNER" ]; then scp -q "$ROOT/$f" "$RUNNER:$WORK/$f" || fail "传 $f 失败"
   else cp "$ROOT/$f" "$WORK/$f"; fi
@@ -57,7 +57,7 @@ echo "  vec $n 行"
 
 echo
 echo "=== 2. 编译 RTL + 连续输入 TB ==="
-run "$SETUP; cd $WORK && vcs -full64 -sverilog -timescale=1ns/1ps rtl/recip_q60.sv rtl/v21/recip_rnd_v21.sv rtl/v21/recon_v21.sv tb/v21/tb_recon_stream.sv -o sstr > c.log 2>&1" \
+run "$SETUP; cd $WORK && vcs -full64 -sverilog -timescale=1ns/1ps rtl/sar_core/recip_q60.sv rtl/sar_core/recip_rnd_v21.sv rtl/sar_core/recon_v21.sv tb/v21/tb_recon_stream.sv -o sstr > c.log 2>&1" \
   || fail "编译失败"
 
 echo

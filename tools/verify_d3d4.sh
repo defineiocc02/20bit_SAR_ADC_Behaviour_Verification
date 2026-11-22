@@ -33,24 +33,24 @@ echo "== D3/D4 验证  SHA=$SHA  SIM=$SIM =="
 
 if [ -n "$RUNNER" ]; then
   run "mkdir -p $WORKDIR/rtl $WORKDIR/tb" || { echo "FAIL: 建目录"; exit 1; }
-  scp -q rtl/dem_mask_v3.sv rtl/dither_pre.sv "$HOST:$WORKDIR/rtl/" \
+  scp -q rtl/sar_core/dem_mask_v3.sv rtl/sar_core/dither_pre.sv "$HOST:$WORKDIR/rtl/" \
       || { echo "FAIL: 拷贝 rtl"; exit 1; }
   scp -q tb/tb_dem_dither.sv "$HOST:$WORKDIR/tb/" || { echo "FAIL: 拷贝 tb"; exit 1; }
-  scp -q flow/build/filelists/files_d3d4.f "$HOST:$WORKDIR/" || { echo "FAIL: 拷贝清单"; exit 1; }
+  scp -q rtl/filelists/files_d3d4.f "$HOST:$WORKDIR/" || { echo "FAIL: 拷贝清单"; exit 1; }
 fi
 
 case "$SIM" in
   vcs)
     # 远端：清单已拷到 $WORKDIR 根，所以用文件名而不是本地那个带目录的路径。
-    # 本地：清单在 flow/build/filelists/ 下，用完整相对路径。
-    if [ -n "$RUNNER" ]; then FL="files_d3d4.f"; else FL="flow/build/filelists/files_d3d4.f"; fi
+    # 本地：清单在 rtl/filelists/ 下，用完整相对路径。
+    if [ -n "$RUNNER" ]; then FL="files_d3d4.f"; else FL="rtl/filelists/files_d3d4.f"; fi
     run "$SETUP; cd $WORKDIR && vcs -full64 -sverilog -timescale=1ns/1ps \
          -f $FL -o simv_d3d4 > vcs.log 2>&1" \
       || { echo "FAIL: 编译失败"; exit 1; }
     run "$SETUP; cd $WORKDIR && ./simv_d3d4 > d3d4_mout.txt 2>&1" \
       || { echo "FAIL: 仿真失败"; exit 1; } ;;
   iverilog)
-    if [ -n "$RUNNER" ]; then FL="files_d3d4.f"; else FL="flow/build/filelists/files_d3d4.f"; fi
+    if [ -n "$RUNNER" ]; then FL="files_d3d4.f"; else FL="rtl/filelists/files_d3d4.f"; fi
     run "$SETUP; cd $WORKDIR && iverilog -g2012 -o simv_d3d4 -f $FL > iv.log 2>&1" \
       || { echo "FAIL: 编译失败"; exit 1; }
     run "cd $WORKDIR && vvp simv_d3d4 > d3d4_mout.txt 2>&1" \

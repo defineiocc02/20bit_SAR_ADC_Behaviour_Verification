@@ -39,7 +39,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from subsys.experiments.fig11 import Fig11Model, Fig11Parameters
+from experiments.fig11 import Fig11Model, Fig11Parameters
 from adi_model.metrics.metrics import sine_fit_metrics
 
 FS_HZ = 40e6

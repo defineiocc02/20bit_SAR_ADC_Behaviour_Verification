@@ -7,7 +7,7 @@
 时序驱动优化不收敛（见 docs/v21/CHECKPOINT_I5_SYNTH_v4.md 的对照实验：
 除数换常数后秒级收敛，4578 cells / 3468 µm²）。
 
-`rtl/recip_q60.sv` 用「归一化 + 64 项 LUT + 两次 Newton」求倒数，输出是
+`rtl/sar_core/recip_q60.sv` 用「归一化 + 64 项 LUT + 两次 Newton」求倒数，输出是
 **近似值**。本脚本回答两个问题：
   1. 近似误差有多大？（必须是可修正的有界误差）
   2. 能不能用「真实 G 算余数 + 一步修正」把它抬成精确的 RND？
@@ -28,7 +28,7 @@ import pathlib
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-RTL = ROOT / 'rtl' / 'recip_q60.sv'
+RTL = ROOT / "rtl" / "sar_core" / "recip_q60.sv"
 
 ONE30 = 1 << 30
 TWO60 = 1 << 60
@@ -47,7 +47,7 @@ def load_lut():
 
 
 def recip(g, lut):
-    """逐字复现 rtl/recip_q60.sv 的算法（33 位有符号误差项）。"""
+    """逐字复现 rtl/sar_core/recip_q60.sv 的算法（33 位有符号误差项）。"""
     b = g.bit_length()
     if b <= 36:
         m36 = (g << (36 - b)) & ((1 << 36) - 1)

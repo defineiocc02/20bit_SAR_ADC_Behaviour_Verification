@@ -10,4 +10,4 @@
 | 数字校正与出码 | 片内加载表按同一组物理片号寻址，计算 G、Wm、Wp。使用 Q24 码箱中心和整数倒数，末级按有符号最近、恰半离零取 20 位码。数字表与实际器件表可以独立提供。[默认模型](../../src/adi_model/defaults.py) |
 | 逐拍验证 | 稳态吞吐、反压、双槽同时交接、寄存延迟和排空由真实 RTL 在引脚上检查；事务层比较的是同一笔的功能和值。[逐笔对拍入口](QUICKSTART.md) · [接口回归](../../flow/sim/README.md) |
 
-研究工具仍可使用 [Fig.11 电容研究模型](../../subsys/experiments/fig11.py)、[显式模拟装配](../../src/adi_model/simulation/README.md)和[校准研究组件](../../src/adi_model/calibration/README.md)复算原有实验。冻结的研究图保留其模拟条件。[原文与工程差异](../audit/AUDIT_ALGO_VS_SOURCE.md)
+研究工具仍可使用 [Fig.11 电容研究模型](../../experiments/fig11.py)、[显式模拟装配](../../src/adi_model/simulation/README.md)和[校准研究组件](../../src/adi_model/calibration/README.md)复算原有实验。冻结的研究图保留其模拟条件。[原文与工程差异](../audit/AUDIT_ALGO_VS_SOURCE.md)

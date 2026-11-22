@@ -12,18 +12,18 @@
 <a id="follower"></a>
 ## 逐事件跟随
 
-SADC 和 RDAC 在论文架构中分开，[A]。`follower.py` 接收指定的已决前缀，验证事件输出不会随未来位改变，并计算同一终态的参考电荷。轨电压、实际片组、初态和事件时间属于试验条件。净电荷比较与参考轨峰值负载是不同量。Python 管线中需要调用者提供逐事件码表的路径使用 [Mapper](../topology/mapper.py)。v21 的事务事件由 [sar_evt_v21.sv](../../../rtl/v21/sar_evt_v21.sv) 独立处理。 [跟随模型](follower.py) · [图中算例与数据](../../../docs/figures/behavioral/README.md)
+SADC 和 RDAC 在论文架构中分开，[A]。`follower.py` 接收指定的已决前缀，验证事件输出不会随未来位改变，并计算同一终态的参考电荷。轨电压、实际片组、初态和事件时间属于试验条件。净电荷比较与参考轨峰值负载是不同量。Python 管线中需要调用者提供逐事件码表的路径使用 [Mapper](../topology/mapper.py)。v21 的事务事件由 [sar_evt_v21.sv](../../../rtl/sar_core/sar_evt_v21.sv) 独立处理。 [跟随模型](follower.py) · [图中算例与数据](../../../docs/figures/behavioral/README.md)
 
 <a id="dem"></a>
 ## 阵列映射与 DEM
 
 - `fig11_dem.map_fig11` 是受限映射例，`dem3d.fig11_masks` 接收批次、相位与片身份。Fig.11 研究夹具以 17 主位／5 子位装配后者。公共生产入口默认开启二维 DEM，使用 16 主位／4 子位以及[生产掩码参考](../dem_dither.py)。 [单笔映射](fig11_dem.py) · [批次掩码](dem3d.py) · [默认配置](../defaults.py)
 - `reserved_column.py`、`shuffle_gate.py` 和 `cross_slice_mux.py` 提供对专利 Fig.19–21 的保留列、信号门及跨片列分配的分立计算。三个算子用于对应图的独立实验。覆盖率只能说明本轮访问到哪些元件，噪声整形需要频谱和相关性证据。 [专利机制对照](../../../docs/mechanisms/README.md)
-- 生产路径由 `digital_conversion.conversion_mask` 先调用 `post_mask` 译码，再调用 `bridge_swap` 交换选定开关；两步都在 `adi_model.dem_dither` 中实现。 [整数参考](../dem_dither.py) · [RTL](../../../rtl/dem_mask_v3.sv)
+- 生产路径由 `digital_conversion.conversion_mask` 先调用 `post_mask` 译码，再调用 `bridge_swap` 交换选定开关；两步都在 `adi_model.dem_dither` 中实现。 [整数参考](../dem_dither.py) · [RTL](../../../rtl/sar_core/dem_mask_v3.sv)
 
 <a id="dither"></a>
 ## 分路扰动
 
 生产数字参考用 [DitherWordGenerator](dither_word.py) 在每个受理沿从片内序列取字。所选 SADC 获取低段，八槽 RDAC 得到完整预置；SAR 将 U 加到已决前缀，末级只扣同一笔的实际 Wp。[开关译码](../dem_dither.py) · [数字事务](../defaults.py)
 
-`dither.py` 与 `dither_port.py` 是专利研究使用的单独算子。它们的七片分数权及减码语义由 [Fig.11 研究夹具](../../../subsys/experiments/fig11.py)显式绑定。[原文对照与实测](../../../docs/audit/AUDIT_ALGO_VS_SOURCE.md)
+`dither.py` 与 `dither_port.py` 是专利研究使用的单独算子。它们的七片分数权及减码语义由 [Fig.11 研究夹具](../../../experiments/fig11.py)显式绑定。[原文对照与实测](../../../docs/audit/AUDIT_ALGO_VS_SOURCE.md)

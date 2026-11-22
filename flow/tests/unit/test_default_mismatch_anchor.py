@@ -41,7 +41,7 @@ import pytest
 
 ROOT = __import__("pathlib").Path(__file__).resolve().parents[3]
 
-from subsys.experiments.fig11 import Fig11Model, Fig11Parameters, fig11_model
+from experiments.fig11 import Fig11Model, Fig11Parameters, fig11_model
 
 
 def test_default_unit_mismatch_is_the_back_solved_value():
@@ -101,7 +101,7 @@ def test_ra_clip_is_never_reached_and_that_is_recorded():
     """
     import numpy as np
 
-    from subsys.experiments.fig11 import Fig11Model, Fig11Parameters
+    from experiments.fig11 import Fig11Model, Fig11Parameters
 
     worst = 0.0
     for voltage in (-3.0, -2.99, 0.0, 2.99, 3.0):
@@ -150,7 +150,7 @@ def test_nominal_gain_is_the_physical_gain_and_the_fixed_point_sum_is_separate()
     """
     import numpy as np
 
-    from subsys.experiments.fig11 import Fig11Parameters, fig11_model
+    from experiments.fig11 import Fig11Parameters, fig11_model
 
     model = fig11_model()
     assert model.cfg.g0 == pytest.approx(32.0, abs=0)

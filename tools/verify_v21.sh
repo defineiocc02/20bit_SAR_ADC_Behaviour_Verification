@@ -29,12 +29,12 @@ while IFS= read -r source || [ -n "$source" ]; do
         exit 1
     fi
     SOURCES+=("$source")
-done < "$ROOT/flow/build/filelists/files_adc_v21.f"
+done < "$ROOT/rtl/filelists/files_adc_v21.f"
 if [ "${#SOURCES[@]}" -eq 0 ]; then
     printf 'The v21 production list is empty.\n' >&2
     exit 1
 fi
-SOURCES+=(rtl/v21/adc2_node_macro.sv)
+SOURCES+=(rtl/sar_core/adc2_node_macro.sv)
 if [ ! -f "$ROOT/${SOURCES[${#SOURCES[@]}-1]}" ]; then
     printf 'The v21 ADC2 test macro is missing.\n' >&2
     exit 1
@@ -110,7 +110,7 @@ if [[ ! "$WORK" =~ ^/[[:alnum:]_./-]+$ ]]; then
 fi
 
 echo "=== 准备 $WORK ==="
-run "mkdir -p -- $WORK/rtl/v21 $WORK/tb/v21 $WORK/tools" || exit 1
+run "mkdir -p -- $WORK/rtl/sar_core $WORK/tb/v21 $WORK/tools" || exit 1
 # scp 逐文件传输让 RTL 与测试台的相对路径在两端严格一致。
 FILES=("${SOURCES[@]}" tb/v21/tb_e2e_decl.svh tb/v21/tb_e2e_body.svh \
        tb/vec_r18_recip.txt tb/v21/vec_recip_rnd.txt tb/v21/vec_i4_recon.txt \
@@ -136,19 +136,19 @@ for t in "${TESTS[@]}"; do
   # tb_acq_ctx_fixed 只实例化 acq_conv_ctx + dither_pre（对照审查的最小反例）
   case "$bf" in
     tb_acq_ctx_fixed.sv)
-      SRC_USE="rtl/dither_pre.sv rtl/v21/acq_conv_ctx.sv" ;;
+      SRC_USE="rtl/sar_core/dither_pre.sv rtl/sar_core/acq_conv_ctx.sv" ;;
     tb_recip_q60.sv)
-      SRC_USE="rtl/recip_q60.sv" ;;
+      SRC_USE="rtl/sar_core/recip_q60.sv" ;;
     tb_recip_rnd.sv)
-      SRC_USE="rtl/recip_q60.sv rtl/v21/recip_rnd_v21.sv" ;;
+      SRC_USE="rtl/sar_core/recip_q60.sv rtl/sar_core/recip_rnd_v21.sv" ;;
     tb_analog_if.sv)
       SRC_USE="$SRC_REL" ;;
     tb_cfg_lifecycle.sv)
-      SRC_USE="rtl/v21/wsum_v21.sv" ;;
+      SRC_USE="rtl/sar_core/wsum_v21.sv" ;;
     # 两个测试台共用发布的倒数链和重构器；一个按冻结码验收，
     # 一个跟踪跨拍的 N、I、X 和标签，均不需要 ADC2 行为宏。
     tb_i4_recon.sv|tb_recon_stream.sv)
-      SRC_USE="rtl/recip_q60.sv rtl/v21/recip_rnd_v21.sv rtl/v21/recon_v21.sv" ;;
+      SRC_USE="rtl/sar_core/recip_q60.sv rtl/sar_core/recip_rnd_v21.sv rtl/sar_core/recon_v21.sv" ;;
     *) SRC_USE="$SRC_REL" ;;
   esac
   run "$SETUP; cd $WORK && vcs -full64 -sverilog -timescale=1ns/1ps $SRC_USE $f -o $bin > ${bin}_c.log 2>&1" \

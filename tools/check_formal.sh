@@ -45,7 +45,7 @@ WORK=$(on_host 'set -eu
         mktemp -d "${TMPDIR:-/tmp}/v21-fm.XXXXXXXX"
     fi' "$DC_DIR" "$REQUESTED")
 printf 'Formality work directory: %s\n' "$WORK"
-manifest=flow/build/filelists/files_adc_v21.f
+manifest=rtl/filelists/files_adc_v21.f
 helper=flow/synth/v21/design_inputs.tcl
 inputs=$(tclsh "$ROOT/$helper" --list)
 files=("$manifest" "$helper" flow/synth/v21/fm_equiv.tcl)

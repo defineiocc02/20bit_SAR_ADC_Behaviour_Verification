@@ -525,11 +525,11 @@ def main():
         draw_dem(coverage, out)
         draw_schedule(results["scheduler"], out)
     # 绑定整核的真实 RTL 输入以定位图对应的版本，不从报告文件名推断版本。
-    production = ROOT / "flow/build/filelists/files_adc_v21.f"
+    production = ROOT / "rtl/filelists/files_adc_v21.f"
     sources = [line for line in production.read_text().splitlines() if line.startswith("rtl/")]
     files = [
         *sources,
-        "flow/build/filelists/files_adc_v21.f",
+        "rtl/filelists/files_adc_v21.f",
         "tools/verify_v21_algorithms.py",
         "tools/adc_figure_plates.py",
         "tb/v21/sample_cadence.csv",

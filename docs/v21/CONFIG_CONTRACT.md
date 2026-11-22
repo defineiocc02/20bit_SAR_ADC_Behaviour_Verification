@@ -1,6 +1,6 @@
 # 怎样装载和更换片上权重
 
-每个物理片有 16 个主单元和 4 个子单元。上电后需要写满 18 片共 **360 个不同地址**，然后用单独一个时钟沿提交。`w_cfg_valid` 拉高后，顶层才能受理第一笔采样。权重的物理单位是 `Ceff/Cf`，以 Q30 存储。装载协议、位宽和范围均由本工程确定。[权重 RTL](../../rtl/v21/wsum_v21.sv) · [配置状态图](../algorithms/digital.md#config)
+每个物理片有 16 个主单元和 4 个子单元。上电后需要写满 18 片共 **360 个不同地址**，然后用单独一个时钟沿提交。`w_cfg_valid` 拉高后，顶层才能受理第一笔采样。权重的物理单位是 `Ceff/Cf`，以 Q30 存储。装载协议、位宽和范围均由本工程确定。[权重 RTL](../../rtl/sar_core/wsum_v21.sv) · [配置状态图](../algorithms/digital.md#config)
 
 ## 1. 外部接口
 
@@ -11,7 +11,7 @@
 | `w_cfg_data` | 40 位 | 无符号权重。以上五个写入字段合计 52 位。 |
 | `w_cfg_commit`, `w_cfg_reload` | 各 1 位 | 提交完整表，或开始重装。两者都在上升沿采样。 |
 | `w_cfg_valid`, `w_cfg_busy`, `w_cfg_range_err` | 各 1 位 | 已生效；已写至少一个地址且尚未生效；自复位或上次重装以来出现过越界子权重。 |
-| `cfg_epoch`, `b_q24_cfg` | 8 位、带符号 27 位 | 分别是外部提供的系数代号和偏置。系统在排空后切换，并在新一批事务期间保持稳定。[顶层接线](../../rtl/v21/adc_digital_ip_v21.sv) |
+| `cfg_epoch`, `b_q24_cfg` | 8 位、带符号 27 位 | 分别是外部提供的系数代号和偏置。系统在排空后切换，并在新一批事务期间保持稳定。[顶层接线](../../rtl/sar_core/adc_digital_ip_v21.sv) |
 
 ## 2. 状态与受理
 
@@ -36,6 +36,6 @@
 
 ## 6. 每笔重构的算术范围
 
-从同笔实际片号与开关计算 `G/Wm/Wp`。重构入口逐笔要求 `16×2³⁰ ≤ G ≤ 64×2³⁰`、`Wp ≤ 128×2³⁰`、`Wm ≤ G+128×2³⁰`。捕获时随 ADC2 所有者保存的 `epoch` 必须等于重构入口看到的 `cfg_epoch`。越域或代号错配的已受理事务按原 tag 输出 `out_valid=1, out_err=1`。配置无效时，新的 prepare 等待，不建立 tag。[受理门控](../../rtl/v21/acq_conv_ctx.sv) · [ADC2 归属](../../rtl/v21/adc2_capture.sv) · [定点重构](../../rtl/v21/recon_v21.sv)
+从同笔实际片号与开关计算 `G/Wm/Wp`。重构入口逐笔要求 `16×2³⁰ ≤ G ≤ 64×2³⁰`、`Wp ≤ 128×2³⁰`、`Wm ≤ G+128×2³⁰`。捕获时随 ADC2 所有者保存的 `epoch` 必须等于重构入口看到的 `cfg_epoch`。越域或代号错配的已受理事务按原 tag 输出 `out_valid=1, out_err=1`。配置无效时，新的 prepare 等待，不建立 tag。[受理门控](../../rtl/sar_core/acq_conv_ctx.sv) · [ADC2 归属](../../rtl/sar_core/adc2_capture.sv) · [定点重构](../../rtl/sar_core/recon_v21.sv)
 
 现有用例对缺字、重复地址、非法地址、子权重上限加一、最后一字同沿提交、锁写和重装共作 20 项检查。[配置测试台](../../tb/v21/tb_cfg_lifecycle.sv) · [运行记录（d97afa1）](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/44500594977)

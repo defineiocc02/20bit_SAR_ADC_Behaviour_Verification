@@ -1,6 +1,6 @@
 # Python 仿真入口与状态归属
 
-这里是显式模拟实验的装配与采集组件。生产入口从 [default_model](../defaults.py) 逐笔计算数字 IP，Figure 11 研究由[源码实验夹具](../../../subsys/experiments/fig11.py)装配。[使用指南](../../../docs/guide/QUICKSTART.md)
+这里是显式模拟实验的装配与采集组件。生产入口从 [default_model](../defaults.py) 逐笔计算数字 IP，Figure 11 研究由[源码实验夹具](../../../experiments/fig11.py)装配。[使用指南](../../../docs/guide/QUICKSTART.md)
 
 | 阶段 | 同一笔记录中的数据 |
 | --- | --- |

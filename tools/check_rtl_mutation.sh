@@ -22,7 +22,7 @@ if [ "${1:-}" = "--core-only" ]; then
 fi
 RUNNER=${D3D4_RUNNER:-}
 WORK=${D3D4_WORKDIR:-}
-RTL_REL=rtl/v21/recon_v21.sv
+RTL_REL=rtl/sar_core/recon_v21.sv
 
 run() { if [ -n "$RUNNER" ]; then ssh "$RUNNER" "$1"; else bash -c "$1"; fi; }
 
@@ -33,7 +33,7 @@ else
   run "mkdir -- '$WORK'" || exit 1
 fi
 echo "=== 准备 $WORK ==="
-run "mkdir -p -- '$WORK/rtl/v21' '$WORK/tools'" || exit 1
+run "mkdir -p -- '$WORK/rtl/sar_core' '$WORK/tools'" || exit 1
 if [ -n "$RUNNER" ]; then
   scp -q "$ROOT/$RTL_REL"    "$RUNNER:$WORK/$RTL_REL"
   scp -q "$ROOT/tools/check_rtl_rnd96.py" "$RUNNER:$WORK/tools/"

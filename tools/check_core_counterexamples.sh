@@ -22,7 +22,7 @@ verify() {
     local variant=$out/$label
     # 三个候选都从同一份原源码开始，在各自工件目录独立操作。
     mkdir "$variant"
-    cp "$root/rtl/dem_mask_v3.sv" "$root/rtl/sched18.sv" "$variant/"
+    cp "$root/rtl/sar_core/dem_mask_v3.sv" "$root/rtl/sar_core/sched18.sv" "$variant/"
     python3 - "$label" "$variant" <<'PY'
 from pathlib import Path
 import sys

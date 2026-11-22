@@ -11,7 +11,7 @@ import pytest
 
 from adi_model.behavioral.sampler import dc_input, sine_input
 from adi_model.defaults import simulate
-from subsys.experiments.fig11 import Fig11Parameters, fig11_model, simulate_fig11
+from experiments.fig11 import Fig11Parameters, fig11_model, simulate_fig11
 from adi_model.simulation.config import Config, ConfigError
 
 

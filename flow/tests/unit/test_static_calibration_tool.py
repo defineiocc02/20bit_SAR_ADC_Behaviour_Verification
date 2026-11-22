@@ -10,7 +10,7 @@ import pytest
 from _rtl_test_support import invoke, load_tool
 
 from adi_model.contracts.fixed_point import CodeStream
-from subsys.experiments.fig11 import Fig11Parameters
+from experiments.fig11 import Fig11Parameters
 
 
 # 该工具使用带 Fig.11 几何的物理模型。

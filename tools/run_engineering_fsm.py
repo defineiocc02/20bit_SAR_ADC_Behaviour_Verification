@@ -363,14 +363,14 @@ FIXTURE_VALUES = {
     "recon_stages": 7,
 }
 SOURCES = (
-    "rtl/core/analog_phase_ctrl.sv",
-    "rtl/core/sar_trial_ctrl.sv",
-    "rtl/core/cal_weight_reduce.sv",
-    "rtl/core/adc2_dec.sv",
-    "rtl/core/cal_residue_mac.sv",
-    "rtl/core/div_floor.sv",
-    "rtl/core/cal_output_stage.sv",
-    "rtl/core/recon_core.sv",
+    "archive/rtl_core/analog_phase_ctrl.sv",
+    "archive/rtl_core/sar_trial_ctrl.sv",
+    "archive/rtl_core/cal_weight_reduce.sv",
+    "archive/rtl_core/adc2_dec.sv",
+    "archive/rtl_core/cal_residue_mac.sv",
+    "archive/rtl_core/div_floor.sv",
+    "archive/rtl_core/cal_output_stage.sv",
+    "archive/rtl_core/recon_core.sv",
     "flow/sim/tb/engineering_fsm_tb.sv",
 )
 

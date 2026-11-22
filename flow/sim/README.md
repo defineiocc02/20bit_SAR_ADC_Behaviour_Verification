@@ -1,6 +1,6 @@
 # RTL 仿真入口
 
-当前集成 ADC 为 [v21](../../rtl/v21/adc_digital_ip_v21.sv)，ADC2 为 13 位、0.75 V。整链回归从仓库根调用 [verify_v21.sh](../../tools/verify_v21.sh)。仿真环境、运行目录与源文件选择分别见[环境说明](../../docs/v21/I5_ENVIRONMENT.md)、[工作目录规范](../../docs/audit/REMOTE_WORKDIR_POLICY.md)和[编译清单](../build/filelists/README.md)。
+当前集成 ADC 为 [v21](../../rtl/sar_core/adc_digital_ip_v21.sv)，ADC2 为 13 位、0.75 V。整链回归从仓库根调用 [verify_v21.sh](../../tools/verify_v21.sh)。仿真环境、运行目录与源文件选择分别见[环境说明](../../docs/v21/I5_ENVIRONMENT.md)、[工作目录规范](../../docs/audit/REMOTE_WORKDIR_POLICY.md)和[编译清单](../../rtl/filelists/README.md)。
 
 | 检查对象 | 入口与范围 |
 | --- | --- |

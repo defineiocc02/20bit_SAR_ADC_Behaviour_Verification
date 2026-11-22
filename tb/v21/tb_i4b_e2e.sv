@@ -25,6 +25,7 @@ module tb_i4b_e2e;
 
     // ---------------------------------------------------------------- DUT 与权重配置
     adc_digital_ip_v21 dut (
+        .alpha_q30_cfg(32'd1073741824), // 名义增益与冻结向量一致。
         .clk(clk), .rst_n(rst_n),
         .prepare_valid(prepare_valid), .prepare_ready(prepare_ready),
         .dither_force_i(1'b1), .sadc_pre_state_o(), .sadc_pre_wr_o(),

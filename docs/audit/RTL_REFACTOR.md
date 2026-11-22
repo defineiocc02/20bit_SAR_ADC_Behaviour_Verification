@@ -37,4 +37,16 @@
 | `yowasp-yosys -p 'read_verilog -sv rtl/dem_mask_v3.sv; hierarchy -check -top dem_mask_v3; proc; opt; check -assert; select -assert-none t:$dlatch'` | DEM 通用结构报告 0 问题，0 锁存器。 |
 | `dc_shell -f` 读取 v21 生产清单，执行 `analyze`、`elaborate`、`link`、`check_design` | 展开生产顶层成功，通用层级 latch 名称计数为 0。目标库映射和等价留待后续独立门禁。 |
 
-Phase 3 的全库严格 Lint 尚未放行。原始 Phase 1 盘点发现空引脚连接和变量遮蔽告警，生产源仍存在四态比较。Phase 4 的目标目录和统一顶层在 Phase 3 验收后进入。实物依赖、CRC24 和 ROM/OTP 状态继续由[实物待办](../../subsys/ad4080_peripherals/evidence/peripheral_open_items.csv)跟踪。
+## Phase 2 模型、定点与窗口边界
+
+- 重构 S1a 原先已将 27 位偏移符号扩展至 64 位并与 32 位量化结果相减。保持此数据通路。生产顶层开放 `alpha_q30_cfg`，默认 `2^30` 表示单位增益，在重构受理沿与输入标签同时锁存。合法范围由原重构模块检查，默认码流和 IEEE 有符号运算保持一致。
+- 权重表未锁定时，读出的主／子权重对求和树为零。移除倒数链未使用的寄存器。ADC2 捕获批准和登记共享原 `can_accept` 判据，同沿旧码返回优先处理旧 owner。
+- SINC1、SINC5、PF1 在本次抽取消费的输入窗口按 OR 保存正负限幅，再随各自有效结果发布。VCS 对三路分别实测两扇窗口。直接 PF1 叶在应用非法配置时给出诊断，依表 62 使用最大档位的行为仍参加数值对拍。
+- 四态 Icarus 对相同 FIFO 台架实测。旧版读有效在第一个核心沿之前未清，修订后读有效异步清，队列清除同时清除 overflow 和 underflow，并继续逐字比较物理快照。结果 `checks=2726`。读回链在线资格撤销时弃掉未返回的读预留。
+- Python 处理保护命令 520 时仍得到饱和掩码，拒绝超出物理命令范围，bridge 的两条路径都返回独立副本。零倒数与 RTL 一致。样本预算可用 `direction="worst"` 约束最小奇异值方向。可选 `cf_slices` 接受 18 个有限正反馈电容，使用与名义 Cf=16 一致的相对电容单位。
+
+Phase 2 在同一 VM 上通过 11 项 VCS、五组 Verilator 专项、1,943 项 pytest 及 38 项外围验收。默认 Python/RTL 重新逐笔核对 1,792 笔与每笔 36 个字段。原始手册测试的数学数据与厂商接口边界仍从冻结资料读取，新 DSP 源以[当前锁定对象](../../subsys/ad4080_peripherals/evidence/dsp-revision.txt)为准。
+
+## 后续门禁
+
+Phase 3 的全库严格 Lint 尚待放行。原始盘点发现空引脚连接和变量遮蔽告警，生产源仍存在四态比较。Phase 4 的目标目录和统一顶层在 Phase 3 验收后进入。实物依赖、CRC24 和 ROM/OTP 状态继续由[实物待办](../../subsys/ad4080_peripherals/evidence/peripheral_open_items.csv)跟踪。

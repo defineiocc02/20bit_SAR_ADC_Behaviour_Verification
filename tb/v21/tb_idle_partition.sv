@@ -34,6 +34,7 @@ module tb_idle_partition;
   logic [39:0] w_main [0:17][0:15]; logic [39:0] w_sub [0:17][0:3];
 
   adc_digital_ip_v21 dut (
+        .alpha_q30_cfg(32'd1073741824), // 名义增益与冻结向量一致。
     .clk(clk), .rst_n(rst_n),
     .prepare_valid(prepare_valid), .prepare_ready(),
     .prepare_tag(prepare_tag), .prepare_word(prepare_word),

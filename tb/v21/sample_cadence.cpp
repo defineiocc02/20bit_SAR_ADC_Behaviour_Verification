@@ -389,6 +389,7 @@ Counts run(const Scenario &s, std::ofstream &trace) {
     VerilatedContext context;
     context.randReset(0);
     Vadc_digital_ip_v21 d(&context);
+    d.alpha_q30_cfg = 1u << 30;  // 保持默认 Python 合同的单位增益。
     Clock clk{context, d, s.clock_fs};
     configure(clk, s.words == WordTest::CorrectedTable, s.words != WordTest::Internal);
     if (s.words == WordTest::Mixed) {

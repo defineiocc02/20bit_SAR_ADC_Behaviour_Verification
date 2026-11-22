@@ -29,7 +29,7 @@ module ad4080_dsp_chain #(
     input logic filter_sync,                    // 同沿撤销有效流水优先于接受新数据。
     // --- 数值及校正诊断 ---
     output logic [IN_W-1:0] y,                  // 仍为二补码，FIFO 码制转换在外部。
-    output logic valid_out, clip_low, clip_high, // clip 属于校正流水，不能当作滤波结果标签。
+    output logic valid_out, clip_low, clip_high, // clip 随本次抽取输入窗口输出。
     output logic processing_reject             // 非单位增益映射缺失的诊断。
 );
     // =========================================================================
@@ -37,12 +37,12 @@ module ad4080_dsp_chain #(
     // =========================================================================
     logic [IN_W-1:0] corrected, s1_data, s5_data, comp_data;
     logic corrected_valid, s1_valid, s5_valid, comp_valid;
-    logic gain_reject;
+    logic gain_reject, comp_reject, corr_clip_low, corr_clip_high;
     sys_error_corr #(.IN_W(IN_W), .P_GAIN_MAP_VALID(P_GAIN_MAP_VALID),
         .K_GAIN(K_GAIN), .SHIFT(SHIFT), .P_GAIN_CODE0_SUPPORTED(P_GAIN_CODE0_SUPPORTED)) u_corr (
         .clk(clk), .rst_n(rst_n), .valid_in(valid_in), .cancel(filter_sync), .x(x),
         .offset_code(offset_code), .gain_code(gain_code),
-        .y(corrected), .valid_out(corrected_valid), .clip_low(clip_low), .clip_high(clip_high),
+        .y(corrected), .valid_out(corrected_valid), .clip_low(corr_clip_low), .clip_high(corr_clip_high),
         .processing_reject(gain_reject)
     );
     sinc1_decim #(.IN_W(IN_W)) u_sinc1 (
@@ -59,15 +59,70 @@ module ad4080_dsp_chain #(
         .clk(clk), .rst_n(rst_n), .filter_sync(filter_sync),
         .valid_in(corrected_valid && filter_sel[1]), .data_in(corrected), .dec_sel(dec_sel),
         .pf1_enable_i(filter_sel==2'd3), .sinc5_data_o(s5_data), .sinc5_valid_o(s5_valid),
-        .data_out(comp_data), .valid_out(comp_valid), .processing_reject()
+        .data_out(comp_data), .valid_out(comp_valid), .processing_reject(comp_reject)
     );
-    assign processing_reject = gain_reject;
+    assign processing_reject = gain_reject || comp_reject;
+
+    // =========================================================================
+    // 3. 限幅诊断按抽取令牌传递
+    // =========================================================================
+    // 所谓窗口指本次抽取消费的输入数，不包含 FIR 的重叠历史。
+    // 最后一字进入计算时冻结 OR 标志，再对齐三条实际数值流水。
+    function automatic logic [10:0] group_size(input logic [1:0] mode, input logic [3:0] rate);
+        logic [3:0] max_rate, active_rate;
+        max_rate = mode == 2'd1 ? 4'd9 : 4'd7;
+        active_rate = rate > max_rate ? max_rate : rate;
+        group_size = 11'd1 << (active_rate + (mode == 2'd3 ? 4'd2 : 4'd1));
+    endfunction
+
+    logic [10:0] clip_group_q, clip_count_q;
+    logic [1:0] accumulated_clip_q;
+    logic [6:0] delayed_low_q, delayed_high_q;
+    wire filtered_sample = corrected_valid && filter_sel != 0;
+    wire last_in_group = filtered_sample && clip_count_q == clip_group_q - 11'd1;
+    wire [1:0] current_clip = accumulated_clip_q | {corr_clip_high, corr_clip_low};
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            clip_group_q <= 11'd2;
+            clip_count_q <= '0;
+            accumulated_clip_q <= '0;
+            delayed_low_q <= '0;
+            delayed_high_q <= '0;
+        end else if (filter_sync) begin
+            clip_group_q <= group_size(filter_sel, dec_sel);
+            clip_count_q <= '0;
+            accumulated_clip_q <= '0;
+            delayed_low_q <= '0;
+            delayed_high_q <= '0;
+        end else begin
+            delayed_low_q <= {delayed_low_q[5:0], last_in_group && current_clip[0]};
+            delayed_high_q <= {delayed_high_q[5:0], last_in_group && current_clip[1]};
+            if (filtered_sample) begin
+                clip_count_q <= last_in_group ? 11'd0 : clip_count_q + 11'd1;
+                accumulated_clip_q <= last_in_group ? 2'd0 : current_clip;
+                // SINC1 在块末锁存下一块的配置，其余路径在 SYNC 锁存。
+                if (last_in_group && filter_sel == 2'd1) clip_group_q <= group_size(filter_sel, dec_sel);
+            end
+        end
+    end
     always_comb begin
         case (filter_sel)
-            2'd1: begin y=s1_data; valid_out=s1_valid; end
-            2'd2: begin y=s5_data; valid_out=s5_valid; end
-            2'd3: begin y=comp_data; valid_out=comp_valid; end
-            default: begin y=corrected; valid_out=corrected_valid; end
+            2'd1: begin
+                y=s1_data; valid_out=s1_valid;
+                clip_low=s1_valid && delayed_low_q[1]; clip_high=s1_valid && delayed_high_q[1];
+            end
+            2'd2: begin
+                y=s5_data; valid_out=s5_valid;
+                clip_low=s5_valid && delayed_low_q[4]; clip_high=s5_valid && delayed_high_q[4];
+            end
+            2'd3: begin
+                y=comp_data; valid_out=comp_valid;
+                clip_low=comp_valid && delayed_low_q[6]; clip_high=comp_valid && delayed_high_q[6];
+            end
+            default: begin
+                y=corrected; valid_out=corrected_valid;
+                clip_low=corr_clip_low; clip_high=corr_clip_high;
+            end
         endcase
     end
 endmodule

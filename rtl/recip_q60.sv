@@ -206,16 +206,15 @@ module recip_q60 (
     end
 
     // g 的两级延迟，与 v1/v2 完全同步
-    logic [43:0] g_s1, g_s2;
+    logic [43:0] g_s1;
 
     logic v2, g0_d, ovf_d;
     always_ff @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             v2 <= 1'b0; g0_d <= 1'b0; ovf_d <= 1'b0; inv_q60 <= 27'd0;
-            g_s1 <= 44'd0; g_s2 <= 44'd0;
+            g_s1 <= 44'd0;
         end else begin
             g_s1    <= g_q30;
-            g_s2    <= g_s1;
             // **g_q30_o 必须与 inv_q60 同一拍就绪**。
             // inv_q60 在 v2 那一拍更新，而 v2 <= v1 <= valid_i，
             // 即 inv 对应的是 2 拍前采入的 g_q30。

@@ -128,6 +128,7 @@ module tb_i3_full;
     logic [12:0] adc2_rsp_raw;
 
     adc_digital_ip_v21 dut (
+        .alpha_q30_cfg(32'd1073741824), // 名义增益与冻结向量一致。
         .w_cfg_we(t_cfg_we), .w_cfg_sel(t_cfg_sel),
         .w_cfg_sid(t_cfg_sid), .w_cfg_idx(t_cfg_idx), .w_cfg_data(t_cfg_data),
         .w_cfg_commit(t_cfg_commit), .w_cfg_reload(t_cfg_reload),

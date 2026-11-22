@@ -102,6 +102,7 @@ def required_samples(
     *,
     oversample: float,
     sample_rate_hz: float,
+    direction: str = "rms",
 ) -> dict:
     """估计重复独立线性测量所需的样本预算。
 
@@ -109,8 +110,11 @@ def required_samples(
     target_parameter_std 使用 theta 的单位；全部参数列须共享声明的目标尺度。
     噪声估计假设误差独立、等方差，并重复同一设计矩阵。oversample 是显式选择的冗余裕量，
     不是物理下限；时长假设每个样本均以 sample_rate_hz [Hz] 观测。
+    direction="rms" 保留原预算，"worst" 约束最小奇异值所对应的最弱方向。
     """
     matrix = _matrix(U)
+    if direction not in ("rms", "worst"):
+        raise ValueError("direction must be 'rms' or 'worst'")
     if not np.isfinite(noise_std) or noise_std < 0:
         raise ValueError("measurement noise standard deviation must be finite and nonnegative")
     if not np.isfinite(target_parameter_std) or target_parameter_std <= 0:
@@ -132,7 +136,8 @@ def required_samples(
         }
     # 同一矩阵重复 k 次时，最小二乘协方差缩小为原来的 1/k。
     relative_std = noise_std / info.svals / target_parameter_std
-    noise_samples = float(n_rows * np.mean(relative_std**2))
+    variance = relative_std**2
+    noise_samples = float(n_rows * (np.max(variance) if direction == "worst" else np.mean(variance)))
     redundancy_samples = float(oversample * n_parameters)
     recommended = max(noise_samples, redundancy_samples)
     return {

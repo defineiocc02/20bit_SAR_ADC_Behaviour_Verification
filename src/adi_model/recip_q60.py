@@ -83,9 +83,11 @@ def recip_exact_round(g: int) -> int:
 def recip_exact_floor(g: int) -> int:
     """按整数除法返回 floor(2^60 / g)，供正增益码 g 的定点参考比较。
 
-    该参考不使用查表或迭代。零分母由 Python 的除零异常明确报告；
-    运行时 RTL 零增益返回值由调用处单独核验。
+    该参考不使用查表或迭代。非正增益用与 RTL 近似实现一致的零倒数，
+    交易是否错误仍由调用方依照增益合同报告。
     """
+    if g <= 0:
+        return 0
     return (1 << 60) // g
 
 

@@ -110,7 +110,10 @@ module ad4080_result_readback_link #(
         if (!core_epoch_no) begin
             read_pending_q <= 1'b0;
             read_protocol_error_core_o <= 1'b0;
-        end else if (link_online_core_o) begin
+        end else if (!link_online_core_o) begin
+            // 搬运先撤上线许可时丢弃该笔预留。以后同一域恢复在线才重开读。
+            read_pending_q <= 1'b0;
+        end else begin
             if (read_pending_q) begin
                 read_pending_q <= 1'b0;
                 if (!transport_accept) read_protocol_error_core_o <= 1'b1;

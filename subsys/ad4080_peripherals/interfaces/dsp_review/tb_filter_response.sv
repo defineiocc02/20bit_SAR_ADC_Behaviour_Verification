@@ -58,8 +58,11 @@ module tb_filter_response;
             input_count++;
         end
         #0.1;
+        // 超界 PF1 只在应用配置的 SYNC 沿报告一次。下面的数值对拍仍
+        // 验证档 7 的真实抽取率和波形，不跳过该配置的独立期望。
+        if (rst_n && rejected !== (filter_sync && selected_mode==2'd3 && dec_sel>4'd7))
+            $fatal(1, "unexpected PF1 range diagnostic code=%0d sync=%b",dec_sel,filter_sync);
         if (active) begin
-            if (rejected) $fatal(1, "unexpected filter numerical rejection");
             if (out_valid) begin
                 output_count++;
                 if (output_count > discarded_outputs)

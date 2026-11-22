@@ -31,6 +31,8 @@ def sar_conversion(voltage: float, lower: float, upper: int) -> tuple[int, tuple
 
     lower 的单位是粗码步。Flash 在普通 64 码区间选前缀。最高区先试 512；
     拒绝时保留 448，返回 bit5，本比较以 −1 表示写门关闭。
+    SADC 前缀最多为 519。加上 U 后的 RDAC 命令恰为 520 时仍是有效保护码，
+    更大的命令由事务层按拒绝记录，不能改写成一个合法的写门事件。
     """
     # 外部量化器只看到 Vin 和低段。每一次 RDAC 提交只含当时已决的位。
     # 把极端越量程输入约束到可比较的物理门限，不把 519 截成九位。

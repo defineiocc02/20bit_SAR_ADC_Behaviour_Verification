@@ -19,7 +19,7 @@ from numpy.typing import ArrayLike
 
 from adi_model._arrays import readonly
 from adi_model.control.dither_word import DEFAULT_DITHER_SEED, DitherWordGenerator
-from adi_model.dem_dither import SUB, pre
+from adi_model.dem_dither import CF, POST_MASK_LIMIT, SUB, pre
 from adi_model.digital_conversion import (
     ADC2_MIN,
     ADC2_SPAN,
@@ -90,6 +90,7 @@ class DefaultParameters:
     dither_enable: bool = True
     device_weights: ArrayLike | None = None
     weights_q30: ArrayLike | None = None
+    cf_slices: ArrayLike | None = None
 
     def __post_init__(self):
         # 这些值对应生产引脚和配置地址宽度；不同几何需要自己的物理研究。
@@ -124,6 +125,15 @@ class DefaultParameters:
             object.__setattr__(self, key, _finite(getattr(self, key), key))
         if self.ra_clip_v is not None:
             object.__setattr__(self, "ra_clip_v", _finite(self.ra_clip_v, "ra_clip_v", positive=True))
+        if self.cf_slices is not None:
+            # 使用与 CDAC Ceff 相同的归一电容单位。显式逐片值不能重复施加反馈失配。
+            caps = np.asarray(self.cf_slices)
+            if (caps.shape != (18,) or caps.dtype.kind not in "fiu" or
+                    not np.all(np.isfinite(caps)) or np.any(caps <= 0)):
+                raise ConfigError("cf_slices requires 18 finite positive feedback capacitances")
+            if self.device_weights is not None or self.feedback_mismatch_std:
+                raise ConfigError("cf_slices cannot be combined with device_weights or feedback_mismatch_std")
+            object.__setattr__(self, "cf_slices", readonly(caps, float))
         for key in ("enable_sampling_noise", "ra_enable_noise", "dem_enable", "dither_enable"):
             if type(getattr(self, key)) is not bool:
                 raise ConfigError(f"{key} must be a boolean")
@@ -158,14 +168,16 @@ def _weights(p: DefaultParameters, seed: int) -> tuple[np.ndarray, np.ndarray]:
         if a.shape != (18, 20) or a.dtype.kind not in "fiu":
             raise ConfigError("device_weights requires 18x20 physical Ceff/Cf values")
         physical = np.asarray(a, dtype=float)
-    elif any(mismatch):
+    elif any(mismatch) or p.cf_slices is not None:
         # 先制造实际电容，再由同一片的桥和子阵列计算 beta。数字加载表独立保存。
         rand = np.random.default_rng(np.random.SeedSequence([seed, 0]))
-        cf = 16 * (1 + rand.normal(0, p.feedback_mismatch_std))
+        # 逐片向量沿 20 个权重列广播，标量旧用例仍消耗相同的随机序列。
+        cf = (CF * (1 + rand.normal(0, p.feedback_mismatch_std)) if p.cf_slices is None
+              else np.asarray(p.cf_slices)[:, None])
         main = 4 * (1 + rand.normal(0, p.unit_mismatch_std, (18, 16)))
         sub = np.asarray(SUB) * (1 + rand.normal(0, p.unit_mismatch_std, (18, 4)))
         cb = (8 / 7) * (1 + rand.normal(0, p.bridge_mismatch_std, (18, 1)))
-        if cf <= 0 or np.any(main <= 0) or np.any(sub <= 0) or np.any(cb <= 0):
+        if np.any(cf <= 0) or np.any(main <= 0) or np.any(sub <= 0) or np.any(cb <= 0):
             raise ConfigError("sampled nonpositive physical capacitance")
         physical = np.column_stack((main, sub * cb / (cb + sub.sum(axis=1, keepdims=True)))) / cf
     if not np.all(np.isfinite(physical)) or np.any(physical <= 0):
@@ -382,7 +394,7 @@ class DefaultModel:
             c, events = sar_conversion(float(sampled[i]), lower, upper)
             k = c + upper
             # 仅对范围内的实际命令记录写门。超过 520 会置事件错误，后续递增的前缀也不能写。
-            arr["event_k"][i, : len(events)] = [e if e <= 520 else -1 for e in events]
+            arr["event_k"][i, : len(events)] = [e if e <= POST_MASK_LIMIT else -1 for e in events]
             for key, value in (
                 ("word", word),
                 ("h", h),
@@ -400,7 +412,7 @@ class DefaultModel:
             arr["acquisition_ids"][i] = ids
             arr["pre_slots"][i] = pre_mask @ pack_pre
             arr["sadc_over"][i] = sampled[i] < -VFS or sampled[i] >= VFS
-            if k > 520:
+            if k > POST_MASK_LIMIT:
                 # 前级非法事件关闭物理写门，本笔无最终快照、ADC2 或退休码。
                 arr["rdac_over"][i] = True
                 continue
@@ -534,6 +546,7 @@ class DefaultModel:
                 "unit_mismatch_std": cfg.unit_mismatch_std,
                 "bridge_mismatch_std": cfg.bridge_mismatch_std,
                 "feedback_mismatch_std": cfg.feedback_mismatch_std,
+                **({"cf_slices": np.asarray(cfg.cf_slices).tolist()} if cfg.cf_slices is not None else {}),
                 "ra_clip_v": cfg.ra_clip_v,
                 "sample_noise_rms_v": cfg.sampling_noise_rms_v
                 if cfg.enable_sampling_noise

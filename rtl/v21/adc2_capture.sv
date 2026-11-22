@@ -110,11 +110,11 @@ module adc2_capture (
     // arm 直接输出沿前授权，且只在 owner 槽可接收时才授权
     // （没有空位就别让宏白跑一次捕获）。
     assign rsp_epoch_o = owner_epoch_q;
-    assign adc2_capture_arm_o = capture_arm_req & (~owner_valid_q | adc2_valid_i);
 
     // ready：只有在 owner 槽空、或本拍正好消费掉旧 owner 时才为 1。
     // 方案 §4.2 初版限制"同一时刻最多一个已捕获但尚未返回 raw 的 owner"。
     wire can_accept = ~owner_valid_q | adc2_valid_i;   // 本拍消费旧 owner 则空出
+    assign adc2_capture_arm_o = capture_arm_req & can_accept;
     assign adc2_ready_o = can_accept;
 
     wire take_raw = adc2_valid_i & adc2_ready_o;
@@ -161,7 +161,7 @@ module adc2_capture (
             // ---- 捕获登记：覆盖 owner（若本拍刚消费掉旧 owner）----
             // 用沿后的 capture_reg_req，不是沿前的授权。
             if (capture_reg_req) begin
-                if (owner_valid_q && !take_raw) begin
+                if (!can_accept) begin
                     // 旧 owner 既没返回又要登记新捕获 -> 违反"最多一个 owner"。
                     // 记错误但不丢旧 owner（旧数据不能让位给新数据）。
                     late_err_q <= 1'b1;

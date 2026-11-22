@@ -11,6 +11,7 @@
 """
 CF = 16.0
 SUB = (4, 2, 1, 1)
+POST_MASK_LIMIT = 520
 
 
 # 1. 转换期先形成基础掩码，再按硬件接线交换一对等名义权重的支路。
@@ -19,6 +20,8 @@ def post_mask(k, h, v):
 
     k<512：k = 64H+8V+L；k>=512 走 guard（主阵列全选 + 子阵列）。
     """
+    if not 0 <= k <= POST_MASK_LIMIT:
+        raise ValueError(f"physical conversion command must be in 0..{POST_MASK_LIMIT}")
     m = [[0] * 20 for _ in range(8)]
     if k >= 512:
         r = k - 512
@@ -42,13 +45,14 @@ def post_mask(k, h, v):
 
 def bridge_swap(m, h, v, acq_seq, coin):
     """D3：按照开关规则 B5 交换主半单元与八片子支路。"""
+    # 两条路径都返回独占掩码，后续单元赋值不能改到原相位的结果。
+    o = [r[:] for r in m]
     if not coin:
-        return m
+        return o
     res = (7 + h) % 8
     slot = v % 8
     j = 2 * res + ((acq_seq >> 3) & 1)
     a, b4 = m[slot][j], m[0][16]
-    o = [r[:] for r in m]
     o[slot][j] = b4
     for s in range(8):
         o[s][16] = a

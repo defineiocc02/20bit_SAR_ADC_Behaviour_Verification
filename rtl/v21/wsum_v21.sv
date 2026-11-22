@@ -187,9 +187,9 @@ module wsum_v21 (
     always_comb begin
         for (int s = 0; s < 8; s++) begin
             for (int j = 0; j < 16; j++)
-                cur_main[s][j] = wt_main[ids_i[s*5 +: 5]][j];
+                cur_main[s][j] = locked_q ? wt_main[ids_i[s*5 +: 5]][j] : 40'd0;
             for (int j = 0; j < 4; j++)
-                cur_sub[s][j] = wt_sub[ids_i[s*5 +: 5]][j];
+                cur_sub[s][j] = locked_q ? wt_sub[ids_i[s*5 +: 5]][j] : 40'd0;
         end
     end
 

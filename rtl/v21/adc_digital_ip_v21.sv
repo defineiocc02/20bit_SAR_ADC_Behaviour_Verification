@@ -149,7 +149,8 @@ module adc_digital_ip_v21 (
     // ---- D4 扰动注入（新增引脚放在端口表末尾，原有引脚次序保留）----
     input  logic         dither_force_i,    // 生产接 0；定向重放接 1，使用 prepare_word/U
     output logic [13:0]  sadc_pre_state_o, // qid0 位 [6:0]，qid1 位 [13:7]，高有效采样预置
-    output logic [1:0]   sadc_pre_wr_o     // 受理沿后一个时钟周期有效，只写该笔 qid
+    output logic [1:0]   sadc_pre_wr_o,    // 受理沿后一个时钟周期有效，只写该笔 qid
+    input  logic [31:0]  alpha_q30_cfg = 32'd1073741824 // 重构受理沿采纳，默认 Q30 单位增益。
 );
 
     // ---------------------------------------------------------------- 两笔上下文
@@ -659,7 +660,7 @@ module adc_digital_ip_v21 (
         .in_valid(rsp_valid),
         .adc2_raw(rsp_raw),
         .Wm_q30(rsp_Wm), .G_q30(rsp_G), .Wp_q30(rsp_Wp),
-        .alpha_q30(32'd1073741824),   // alpha=1.0 旁路（首版）
+        .alpha_q30(alpha_q30_cfg),    // 重构接收时随标签冻结，处理中不读取新配置。
         .b_q24(b_q24_cfg),
         // **epoch 用捕获时锁存的值**，不是实时端口（审计 R1）。
         // 这样"旧 raw 返回 + 新 capture 同沿"时，本笔拿到的是自己那一代。

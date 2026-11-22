@@ -26,14 +26,14 @@ SHA256 = {
     "sinc5_comp_coeff_lut.svh": "33022a5a33888f7f363e5e92ef305605085cf54cbace93c6a72c35d7ce9a1801",
     "ad4080_top.sv": "033880fb1a64c8b4cd00c1c615fa86576d9c50594bf03c345e9829c79dfe8f36",
     "ad4080_regs.sv": "6053552d1eabe093b3fc2cfe4b2819582509c8b4ad17218c46d45f13bc75b327",
-    "ad4080_dsp_chain.sv": "bf8fdbdd7461fe8e566e9c1b142075edcbedf37bb1decc6a4aa805fe66633155",
+    "ad4080_dsp_chain.sv": "a79339822aaacde4e8c516db985b94aa2b0f33372d016a44cdf453d81105cfa1",
     "cnv_ctrl.sv": "b63015114f34494479974e9f1f1cacd793bdd18f8e3b0d8084ed356a16bc095a",
     "event_detect.sv": "6400b704e19f415af0090b422489ffd27a2e7bb811578e4e9f0980229d82030e",
     "fifo_capture.sv": "79d6b79833f778b8fe515a1aba7497e9697b39f5db86a1c1afe2b25d4f51bdf6",
     "gpio_ctrl.sv": "1ab1be85db05e792730194b49737a33f31252d47746a10d16476bbe996759255",
-    "result_fifo.sv": "c9b4c275465bd31c4b817a2073bdcbe25485914b038e50f8ccbef4cabe1938b1",
+    "result_fifo.sv": "7ca29748f528186765121b956cec98271a3ed194fd96b4b91f9f19bf0c8b2aee",
     "sinc1_decim.sv": "936cb25b6bc6da9994213741e9a6d03e843eda8c6dbb258271b246510d9e9b79",
-    "sinc5_comp.sv": "5cf173051e275764beb02f5ca81b3ec30a4028220f6b5912d3468adb1e88fa0d",
+    "sinc5_comp.sv": "66eb06b0a4d677f24b7def81764abd0eacf9b0fb935281e12c741bb1916ec173",
     "sinc5_decim.sv": "fe70cc10d4854be8339cdfc95a3377fabf0477393377a4db680de7042d4900e5",
     "spi_slave.sv": "8700e51b81c96fa04a2c0097a593b87e575147762675df714662a3a1a321698d",
     "sys_error_corr.sv": "035c5c869c14b8e4555855f05251c673327685f8f447c487fb91b111fc3d3f80",
@@ -61,9 +61,9 @@ def bind_fifo(source: str) -> str:
     output logic [DATA_W-1:0] store_write_data_o,
     output logic [$clog2(DEPTH)-1:0] store_write_addr_o, queue_read_addr_o
 """)
-    source = replace_once(source, "    wire write_fire=rst_n && !clear && !collision && wr_en && (!full || overwrite_en);",
+    source = replace_once(source, "    wire write_fire=active_q && !clear && !collision && wr_en && (!full || overwrite_en);",
                          """    // 写请求与最终读授权分离，避免单口反馈形成组合环。
-    assign store_write_req_o=rst_n && !clear && wr_en && (!full || overwrite_en);
+    assign store_write_req_o=active_q && !clear && wr_en && (!full || overwrite_en);
     wire write_fire=store_write_req_o && store_write_ready_i && !collision;
     assign store_write_taken_o=write_fire;
     assign store_write_data_o=wr_data;
@@ -72,9 +72,14 @@ def bind_fifo(source: str) -> str:
     source = replace_once(source, '    (* ram_style="block" *) logic [DATA_W-1:0] mem [0:DEPTH-1];\n', "")
     source = replace_once(source, """    always_ff @(posedge clk) begin
         if (write_fire) mem[wr_ptr[MEM_AW-1:0]]<=wr_data;
-        rd_valid<=read_fire || snapshot_fire;
         if (snapshot_fire) rd_data<=mem[snapshot_addr];
         else if (read_fire) rd_data<=mem[rd_ptr[MEM_AW-1:0]];
+    end
+""", "")
+    # 保持原访问资格及异步清有效的行为，只把参考 RAM 的返回接到单口。
+    source = replace_once(source, """    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) rd_valid<=1'b0;
+        else rd_valid<=read_fire || snapshot_fire;
     end
 """, """    // [返回] 禁止把同域任意响应当成队列读。已显式提交的请求有一拍回送。
     logic read_expected_q;

@@ -35,7 +35,7 @@ module dither_pre (
     assign U_o = {1'b0, word_i[5]} * 3'd4 + {2'b0, word_i[3]};
     assign d5  = {2'b0, word_i[4]};
     assign f_o = {1'b0, word_i[2], word_i[1], word_i[0]};
-    assign J   = U_o + {d5, 1'b0};            // U + 2*D5
+    assign J   = U_o + 3'({d5, 1'b0});        // U + 2*D5 最大为 7。
     // SADC 子支路从 bit6 到 bit0 折为 4、2、1、1/2、1/4、1/8、1/8。
     // 只接入 D5、D3、D2、D1，名义偏移为 2D5 + f/8；U 仅在 RDAC 两个阶段使用。
     assign sadc_pre_o = {1'b0, word_i[4], 1'b0, word_i[2:0], 1'b0};
@@ -44,7 +44,9 @@ module dither_pre (
 
     always_comb begin
         for (int s = 0; s < 8; s++) begin
-            val = {1'b0, J} + (((s - v_phase_i) & 3'd7) < f_o ? 4'd1 : 4'd0);
+            logic [2:0] relative_slot;
+            relative_slot = 3'(s) - v_phase_i; // 三位模减法先回绕，再与四位 f 比较。
+            val = {1'b0, J} + ({1'b0, relative_slot} < f_o ? 4'd1 : 4'd0);
             // 位序必须是 pre_v[s][3]=b2, [2]=b1, [1]=b0, [0]=bal（MSB-first），
             // 与参考实现 dem_dither.pre() 返回的 [b2,b1,b0,bal] 逐位对应。
             // 依据：tools/cmp_dem_dither.py 的 hb4() 把 hex 按 (3-i) 还原成 list，

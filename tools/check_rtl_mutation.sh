@@ -17,14 +17,23 @@
 # =============================================================================
 set -uo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
+if [ "${1:-}" = "--core-only" ]; then
+  exec bash "$ROOT/tools/check_core_counterexamples.sh" "${2:?missing output directory}" --mutate
+fi
 RUNNER=${D3D4_RUNNER:-}
-WORK=${D3D4_WORKDIR:-/tmp/rtlmut}
+WORK=${D3D4_WORKDIR:-}
 RTL_REL=rtl/v21/recon_v21.sv
 
 run() { if [ -n "$RUNNER" ]; then ssh "$RUNNER" "$1"; else bash -c "$1"; fi; }
 
+if [ -z "$WORK" ]; then
+  WORK=$(run 'mktemp -d /tmp/rtlmut.XXXXXXXX') || exit 1
+else
+  [[ "$WORK" =~ ^/[A-Za-z0-9_./-]+$ ]] || exit 2
+  run "mkdir -- '$WORK'" || exit 1
+fi
 echo "=== 准备 $WORK ==="
-run "rm -rf $WORK && mkdir -p $WORK/rtl/v21 $WORK/tools" || exit 1
+run "mkdir -p -- '$WORK/rtl/v21' '$WORK/tools'" || exit 1
 if [ -n "$RUNNER" ]; then
   scp -q "$ROOT/$RTL_REL"    "$RUNNER:$WORK/$RTL_REL"
   scp -q "$ROOT/tools/check_rtl_rnd96.py" "$RUNNER:$WORK/tools/"

@@ -1,4 +1,4 @@
-% Markdown SHA-256 78a1a1b1f61699537660391059508852338e7bbcd89594d2c78e7871e8689363
+% Markdown SHA-256 0870c35135fc99f61c03458b84b9bc8bf3cc814b88947738324e6f5b402c6f0e
 
 \documentclass[UTF8,fontset=none,zihao=-4,a4paper]{ctexart}
 \usepackage[left=20mm,right=20mm,top=16mm,bottom=17mm,footskip=9mm]{geometry}
@@ -100,10 +100,10 @@
 \newcommand{\TraceCodeLine}[1]{\noindent\hangindent=1.25em\hangafter=1\strut #1\par}
 \newcommand{\TraceLineBreak}{\leavevmode\newline}
 
-\hypersetup{pdfsubject={Markdown SHA-256 78a1a1b1f61699537660391059508852338e7bbcd89594d2c78e7871e8689363}}
+\hypersetup{pdfsubject={Markdown SHA-256 0870c35135fc99f61c03458b84b9bc8bf3cc814b88947738324e6f5b402c6f0e}}
 \begin{document}
 \color{TraceInk}
-{\footnotesize\color{TraceMuted} 源 Markdown SHA-256\enspace\TraceCode{78a1a1b1f616\penalty150\relax{}995376603910\penalty150\relax{}59508852338e\penalty150\relax{}7bbcd89594d2\penalty150\relax{}c78e7871e868\penalty150\relax{}9363}\par}
+{\footnotesize\color{TraceMuted} 源 Markdown SHA-256\enspace\TraceCode{0870c35135fc\penalty150\relax{}99f61c03458b\penalty150\relax{}84b9bc8bf3cc\penalty150\relax{}814b88947738\penalty150\relax{}324e6f5b402c\penalty150\relax{}6f0e}\par}
 \hypersetup{pdftitle={AD4080 数字外围逐模块手册审查}}
 \hypertarget{trace-anchor-1}{}\pdfbookmark[0]{AD4080 数字外围逐模块手册审查}{trace-heading-1}\TraceDocumentTitle{AD4080 数字外围逐模块手册审查}
 
@@ -112,7 +112,7 @@
 
 \TraceKeepHeading{}\hypertarget{trace-anchor-2}{}\pdfbookmark[0]{首要实测}{trace-heading-2}\TraceSection{首要实测}
 
-Phase 2 用同一 VM 的冻结 DSP 对象实跑 38 项。图表的原始波形 CSV 仍可追溯各自的交付快照。当前门禁以 \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/docs/audit/RTL\_REFACTOR.md}{复验裁定与命令} 和 \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/evidence/peripheral-review.json}{当前构建回执} 为准。\par
+Phase 3 用同一 VM 的冻结 DSP 对象实跑 38 项。图表的原始波形 CSV 仍可追溯各自的交付快照。当前门禁以 \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/docs/audit/RTL\_REFACTOR.md}{复验裁定与命令} 和 \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/evidence/peripheral-review.json}{当前构建回执} 为准。\par
 
 本轮完整列出数字功能的原件页、\allowbreak{}判据和回归锚点。表 31 的 37 个已定义地址分别在硬 POR 和保留升序的软复位后经配置 SPI 读回。下发软复位前冻结的 FIFO 两字随后从同一物理存储原样读出。表 44 的 0x0F[2]、\allowbreak{}表 49 的 LVDS CNV 选择、\allowbreak{}图 91 的持续转换并行读出、\allowbreak{}表 11 的 GPIO 输出资格及表 25 的 FILTER\_\penalty150\relax{}SYNC 持续复位均有针对性验收。\href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/evidence/manual-functional-coverage.csv}{逐功能对拍矩阵} · \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/integration/product/ACCEPTANCE.md}{修订与复现}\par
 
@@ -169,19 +169,19 @@ CSV 在 E1/E2 两次均记录 \TraceCode{FILTER\_\penalty150\relax{}SYNC\_\penal
 \TraceField{裁定}{工程自定}
 \end{TraceCard}
 \begin{TraceCard}
-\TraceItem{\TraceCode{sys\_\penalty150\relax{}error\_\penalty150\relax{}corr} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/ce06df2849cbc374e965644bcedae2204a51e1ce/subsys/ad4080\_dsp/rtl/sys\_error\_corr.sv\#L26}{源码}}
+\TraceItem{\TraceCode{sys\_\penalty150\relax{}error\_\penalty150\relax{}corr} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/1a65e7ecb5cc8322c712cb8b9af0c4031aba4040/subsys/ad4080\_dsp/rtl/sys\_error\_corr.sv\#L26}{源码}}
 \TraceField{手册规定}{\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=64}{p.64 图 96} 指定先加后乘；\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=71}{p.71 式 (2)} 写出输入输出的仿射关系；\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=93}{p.93 表 61} 以 0x200 为单位增益。}
 \TraceField{代码、\allowbreak{}实测与尚缺的证据}{先形成有符号 x+O，再加其经工程 (G−512)·K/2\textasciicircum{}S 的舍入增量并作饱和。图 96 判别向量由旧 1024 修正到 1032。RMS 0.4038 LSB20 为声明的工程映射加合成留出所得。ADI 全档精确增益、\allowbreak{}舍入及真实输出延迟仍需测定。\href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/calibration/rtl\_verification.json}{独立图 96 映射}}
 \TraceField{裁定}{可认可}
 \end{TraceCard}
 \begin{TraceCard}
-\TraceItem{\TraceCode{ad4080\_\penalty150\relax{}dsp\_\penalty150\relax{}chain} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/ce06df2849cbc374e965644bcedae2204a51e1ce/subsys/ad4080\_dsp/rtl/ad4080\_dsp\_chain.sv\#L15}{源码}}
+\TraceItem{\TraceCode{ad4080\_\penalty150\relax{}dsp\_\penalty150\relax{}chain} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/1a65e7ecb5cc8322c712cb8b9af0c4031aba4040/subsys/ad4080\_dsp/rtl/ad4080\_dsp\_chain.sv\#L15}{源码}}
 \TraceField{手册规定}{\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=33}{p.33 图 51、\allowbreak{}52} 与 \href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=64}{p.64 图 96} 给出校正与旁路、\allowbreak{}三条滤波分支、\allowbreak{}事件及记录的相对位置。}
 \TraceField{代码、\allowbreak{}实测与尚缺的证据}{旁路和各滤波均接新先加后乘校正码。产品 SINC1 有 GPIO\ensuremath{\rightarrow}抽取\ensuremath{\rightarrow}实际记录同帧证据。SINC5 与 PF1 共用一条前级，PF1 系数由固定档位查表。\href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/calibration/rtl\_verification.json}{图 96 校正} · \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/integration/product/evidence/pin\_edges.csv}{产品逐沿}}
 \TraceField{裁定}{部分认可}
 \end{TraceCard}
 \begin{TraceCard}
-\TraceItem{\TraceCode{sar20\_\penalty150\relax{}ad4080\_\penalty150\relax{}top} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/ce06df2849cbc374e965644bcedae2204a51e1ce/subsys/ad4080\_dsp/rtl/sar20\_ad4080\_top.sv\#L23}{源码}}
+\TraceItem{\TraceCode{sar20\_\penalty150\relax{}ad4080\_\penalty150\relax{}top} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/1a65e7ecb5cc8322c712cb8b9af0c4031aba4040/subsys/ad4080\_dsp/rtl/sar20\_ad4080\_top.sv\#L23}{源码}}
 \TraceField{手册规定}{\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=20}{p.20 图 33、\allowbreak{}表 7} 给出对外转换码格式。}
 \TraceField{代码、\allowbreak{}实测与尚缺的证据}{该适配器可将本工程 offset-\penalty150\relax{}binary 转成有符号补码；样本 ID、\allowbreak{}故障锁存、\allowbreak{}停流与恢复是内部交接约定。它是原 DSP 的独立壳，外围产品实际从 20 位补码边界直接驱动 ad4080\_\penalty150\relax{}top。\href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/integration/product/README.md}{产品绑定}}
 \TraceField{裁定}{工程自定}
@@ -192,19 +192,19 @@ CSV 在 E1/E2 两次均记录 \TraceCode{FILTER\_\penalty150\relax{}SYNC\_\penal
 
 \TraceTableHeading{模块或条目}
 \begin{TraceCard}
-\TraceItem{\TraceCode{sinc1\_\penalty150\relax{}decim} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/ce06df2849cbc374e965644bcedae2204a51e1ce/subsys/ad4080\_dsp/rtl/sinc1\_decim.sv\#L23}{源码}}
+\TraceItem{\TraceCode{sinc1\_\penalty150\relax{}decim} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/1a65e7ecb5cc8322c712cb8b9af0c4031aba4040/subsys/ad4080\_dsp/rtl/sinc1\_decim.sv\#L23}{源码}}
 \TraceField{手册规定}{\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=64}{p.64 图 96、\allowbreak{}表 28} 给出 sinc1 选择和带宽；\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=94}{p.94 表 62，FILTER\_\penalty150\relax{}CONFIG} 给出 N=2 至 1024 及越界钳位。}
 \TraceField{代码、\allowbreak{}实测与尚缺的证据}{逐档核对每 N 个有效输入形成一个块均值、\allowbreak{}间隔 N、\allowbreak{}无效档钳至 1024。新版 CNV 单元覆盖 N=2…1024 及无效码，图 99 产品 N=2、\allowbreak{}W=3 实际 RDY 和三次写存储齐备。10 个合法档的带宽另经实际定点码流测得，均在表 28 的印刷舍入区间内。\href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/interfaces/dsp\_review/README.md}{逐档结果} · \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/integration/product/evidence/pin\_edges.csv}{图 99 实测}}
 \TraceField{裁定}{可认可}
 \end{TraceCard}
 \begin{TraceCard}
-\TraceItem{\TraceCode{sinc5\_\penalty150\relax{}decim} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/ce06df2849cbc374e965644bcedae2204a51e1ce/subsys/ad4080\_dsp/rtl/sinc5\_decim.sv\#L29}{源码}}
+\TraceItem{\TraceCode{sinc5\_\penalty150\relax{}decim} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/1a65e7ecb5cc8322c712cb8b9af0c4031aba4040/subsys/ad4080\_dsp/rtl/sinc5\_decim.sv\#L29}{源码}}
 \TraceField{手册规定}{\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=66}{p.66 表 29} 规定五阶滤波的抽取档；\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=69}{p.69 Digital Filter Conversion Pulses} 说明建立时间，\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=70}{p.70 图 104} 给出频响。}
 \TraceField{代码、\allowbreak{}实测与尚缺的证据}{新版有符号逐位数值回归与 4 个核心间隔的输出管线。已绑定 CNV 单元的第 5/6 个有效结果在 N=4 时为 E26/E30，N=2 时 E16/E18，覆盖至 N=256 与越界钳位。8 个合法档均有独立频响和表 28 截止校验，图 104 两处差异保留在频响回执。产品 N=2 滤波 FIFO 对拍 E16 首次 RDY，E17/\penalty150\relax{}E19/\penalty150\relax{}E21 写 74/\penalty150\relax{}164/\penalty150\relax{}114 并完整读回 46 位对。器件内部舍入仍需实物取证。\href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/interfaces/dsp\_review/README.md}{DSP 回执}}
 \TraceField{裁定}{部分认可}
 \end{TraceCard}
 \begin{TraceCard}
-\TraceItem{\TraceCode{sinc5\_\penalty150\relax{}comp} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/ce06df2849cbc374e965644bcedae2204a51e1ce/subsys/ad4080\_dsp/rtl/sinc5\_comp.sv\#L18}{源码}}
+\TraceItem{\TraceCode{sinc5\_\penalty150\relax{}comp} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/1a65e7ecb5cc8322c712cb8b9af0c4031aba4040/subsys/ad4080\_dsp/rtl/sinc5\_comp.sv\#L18}{源码}}
 \TraceField{手册规定}{\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=64}{p.64 图 96、\allowbreak{}表 28} 与 \href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=94}{p.94 表 62} 规定 sinc5 后再经补偿并作额外 2 倍抽取；\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=70}{p.70 图 105–107} 给出响应目标。}
 \TraceField{代码、\allowbreak{}实测与尚缺的证据}{工程 PF1 用 Q22 的 35 抽头对称 FIR、\allowbreak{}18 个独立系数，与原有单一 SINC5 数值结果共用前级，后续 2 倍抽取。D\_\penalty150\relax{}total=\penalty150\relax{}2N 用于 p.69 建立条件属于本轮保守工程口径；真实厂商 FIR 抽头、\allowbreak{}内部量化、\allowbreak{}舍入和实物响应仍待量测。8 个合法档响应均通过表 28 比较。N=2 时，按总倍率的工程解释为 E152 发布、\allowbreak{}下一实际 CNV 可写 FIFO。真实配置 SPI、\allowbreak{}GPIO、\allowbreak{}CNV、\allowbreak{}SRAM 及读回已合跑 SINC5/\penalty150\relax{}PF1。PF1 N=2 首次 RDY 在 E152，E153/\penalty150\relax{}E157/\penalty150\relax{}E161 写 744/\penalty150\relax{}1481/\penalty150\relax{}480，并完整读回 46 对，记录为 \TraceCode{AA\_\penalty150\relax{}002E8\_\penalty150\relax{}005C9\_\penalty150\relax{}001E0\_\penalty150\relax{}024943}，尾字段为工程 CRC。幅频逐档台架独立验收。\href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/integration/product/evidence/filter\_edges.csv}{产品滤波逐沿}\href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/interfaces/dsp\_review/README.md}{DSP 路径} · \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/interfaces/control\_review/noos\_validation.txt}{配置帧}}
 \TraceField{裁定}{部分认可}
@@ -216,13 +216,13 @@ CSV 在 E1/E2 两次均记录 \TraceCode{FILTER\_\penalty150\relax{}SYNC\_\penal
 \TraceField{裁定}{工程自定}
 \end{TraceCard}
 \begin{TraceCard}
-\TraceItem{\TraceCode{event\_\penalty150\relax{}detect} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/ce06df2849cbc374e965644bcedae2204a51e1ce/subsys/ad4080\_dsp/rtl/event\_detect.sv\#L23}{源码}}
+\TraceItem{\TraceCode{event\_\penalty150\relax{}detect} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/1a65e7ecb5cc8322c712cb8b9af0c4031aba4040/subsys/ad4080\_dsp/rtl/event\_detect.sv\#L23}{源码}}
 \TraceField{手册规定}{\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=54}{p.54 图 82、\allowbreak{}表 26} 与 \href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=55}{p.55 图 83} 定义内部/外部事件、\allowbreak{}阈值、\allowbreak{}ALERT 与状态；\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=56}{p.56 图 84、\allowbreak{}85} 画出迟滞及路由。}
 \TraceField{代码、\allowbreak{}实测与尚缺的证据}{产品图 83 过高阈 E3、\allowbreak{}E5 ALERT\_N 变 0，回窗 E6、\allowbreak{}E8 释放。E8 的 HI\_\penalty150\relax{}STATUS 仍为 1，真实 SPI W1C 后为 0。独立真实 CNV 台架另检查 LO、\allowbreak{}阈值等于、\allowbreak{}粘滞及同沿 W1C，图 84 的比较电平与图 83 的粘滞/引脚和 p.8 表 2 的时延条件仍各自解释。\href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/integration/product/evidence/pin\_edges.csv}{产品逐沿}}
 \TraceField{裁定}{部分认可}
 \end{TraceCard}
 \begin{TraceCard}
-\TraceItem{\TraceCode{gpio\_\penalty150\relax{}ctrl} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/ce06df2849cbc374e965644bcedae2204a51e1ce/subsys/ad4080\_dsp/rtl/gpio\_ctrl.sv\#L23}{源码}}
+\TraceItem{\TraceCode{gpio\_\penalty150\relax{}ctrl} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/1a65e7ecb5cc8322c712cb8b9af0c4031aba4040/subsys/ad4080\_dsp/rtl/gpio\_ctrl.sv\#L23}{源码}}
 \TraceField{手册规定}{\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=53}{p.53 表 25} 与 \href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=87}{p.87 表 52}、\allowbreak{}\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=88}{p.88 表 53}、\allowbreak{}\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=89}{p.89 表 54} 列 4 个 GPIO 的选择、\allowbreak{}方向、\allowbreak{}输入/输出含义。}
 \TraceField{代码、\allowbreak{}实测与尚缺的证据}{新版产品以真实 GPIO 采低有效 SYNC、\allowbreak{}RDY、\allowbreak{}FULL 和 READ\_\penalty150\relax{}DONE；N=2 时 E5/7/9 RDY\_N=0。HI/LO 与 ALERT 的数值保持和状态分别检查。原 bank 对任何一个 mux nibble 的 0xA 均整字拒绝，0x3 由实际 CNV 时基资格决定。手册与 AD408x 驱动对码 0xA 的含义有冲突，按本器件禁用。\href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/interfaces/control\_review/validation.txt}{GPIO 与 SPI 回执} · \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/integration/product/evidence/pin\_edges.csv}{产品 GPIO 逐沿}}
 \TraceField{裁定}{部分认可}
@@ -233,13 +233,13 @@ CSV 在 E1/E2 两次均记录 \TraceCode{FILTER\_\penalty150\relax{}SYNC\_\penal
 
 \TraceTableHeading{模块或条目}
 \begin{TraceCard}
-\TraceItem{\TraceCode{spi\_\penalty150\relax{}slave} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/ce06df2849cbc374e965644bcedae2204a51e1ce/subsys/ad4080\_dsp/rtl/spi\_slave.sv\#L24}{源码}}
+\TraceItem{\TraceCode{spi\_\penalty150\relax{}slave} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/1a65e7ecb5cc8322c712cb8b9af0c4031aba4040/subsys/ad4080\_dsp/rtl/spi\_slave.sv\#L24}{源码}}
 \TraceField{手册规定}{\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=34}{p.34 图 53、\allowbreak{}54 与表 14}、\allowbreak{}\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=35}{p.35 Write Access 章节} 规定配置帧和普通写数据相 SDO=0；\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=41}{p.41 表 18、\allowbreak{}19} 规定配置 CRC-8。}
 \TraceField{代码、\allowbreak{}实测与尚缺的证据}{真实 GPIO0 逐沿覆盖长/短指令、\allowbreak{}CS 同拍、\allowbreak{}半字节与严格半实体、\allowbreak{}CRC 和 SEND\_\penalty150\relax{}STATUS。后续流式实体按自身实际起址重新置 CRC-8 种子。每次写和流读首实体校主机 CRC，后续读送填充且器件仍出校验。已实测 ASC、\allowbreak{}DESC、\allowbreak{}严格/普通、\allowbreak{}错误截断/W1C/重试、\allowbreak{}真正空洞和短地址 15 位回绕。p.28 的轮询由显式初始化资格限制为只读 0x11。表2 的 SDI 短保持由实际 SCLK 上升沿先锁位，经核心跨域后解析，50 MHz 两占空档实测读写通过。Pad AC 仍按目标环境验收。\href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/interfaces/control\_review/pin\_edges\_validation.txt}{真实引脚回执}}
 \TraceField{裁定}{部分认可}
 \end{TraceCard}
 \begin{TraceCard}
-\TraceItem{\TraceCode{ad4080\_\penalty150\relax{}regs} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/ce06df2849cbc374e965644bcedae2204a51e1ce/subsys/ad4080\_dsp/rtl/ad4080\_regs.sv\#L24}{源码}}
+\TraceItem{\TraceCode{ad4080\_\penalty150\relax{}regs} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/1a65e7ecb5cc8322c712cb8b9af0c4031aba4040/subsys/ad4080\_dsp/rtl/ad4080\_regs.sv\#L24}{源码}}
 \TraceField{手册规定}{\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=73}{p.73 表 31} 与 \href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=74}{p.74 表 31 续} 给出地址分布，\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=83}{p.83 表 47} 的 0x14 含 POR、\allowbreak{}ROM 错误及事件状态。}
 \TraceField{代码、\allowbreak{}实测与尚缺的证据}{0x25–29 校正、\allowbreak{}滤波和状态经实际配置 SPI。非法 GPIO 整字拒绝。0x04=\penalty150\relax{}0x50 与短指令已绑定。0x15/16 的 0x41/45 结果 SPI 选择、\allowbreak{}双 lane Manchester/\penalty150\relax{}CNV 合法组合可写，非法组合保留旧配置，0x17 原样读回 F0，产品有效 VOD/RX 由跨域快照及 Pad 控制映射。0x14[3:2] 分别接 POR 与已绑定 CNV，0x14[1] 在 DSP 有预留输入，产品顶层等待实际 ROM/ECC 宏接入。0x0F[2] 可写、\allowbreak{}可读、\allowbreak{}复位清零，0x0E 非零循环依 p.80 拒绝。\href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/interfaces/control\_review/pin\_edges\_validation.csv}{实际配置引脚}}
 \TraceField{裁定}{部分认可}
@@ -257,7 +257,7 @@ CSV 在 E1/E2 两次均记录 \TraceCode{FILTER\_\penalty150\relax{}SYNC\_\penal
 \TraceField{裁定}{工程自定}
 \end{TraceCard}
 \begin{TraceCard}
-\TraceItem{\TraceCode{ad4080\_\penalty150\relax{}top} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/ce06df2849cbc374e965644bcedae2204a51e1ce/subsys/ad4080\_dsp/rtl/ad4080\_top.sv\#L23}{源码}}
+\TraceItem{\TraceCode{ad4080\_\penalty150\relax{}top} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/1a65e7ecb5cc8322c712cb8b9af0c4031aba4040/subsys/ad4080\_dsp/rtl/ad4080\_top.sv\#L23}{源码}}
 \TraceField{手册规定}{\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=33}{p.33 图 51、\allowbreak{}52} 划分配置 SPI 与结果端口，\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=54}{p.54 图 82} 和 \href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=64}{p.64 图 96} 画出结果、\allowbreak{}事件和滤波的连接。}
 \TraceField{代码、\allowbreak{}实测与尚缺的证据}{真实配置叶连接数值、\allowbreak{}CNV 标签/相位、\allowbreak{}事件和水位。直接 LVDS 用三个低电平 CNV 验 FILTER\_\penalty150\relax{}SYNC 保持复位，释放后新码的平均值为 12。原有记录接点按产品绑定器引到唯一外存；新增同源 GPIO/\penalty150\relax{}CSR FIFO 状态、\allowbreak{}POR\_ANA、\allowbreak{}可绑定的 CNV 最短周期错误及连续流字/tag 输出。控制、\allowbreak{}记录和连续流按各自的产品/叶级证据验收。\href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/integration/product/bind\_dsp.py}{产品绑定器} · \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/integration/product/evidence/pin\_edges.csv}{产品逐沿}}
 \TraceField{裁定}{部分认可}
@@ -274,13 +274,13 @@ CSV 在 E1/E2 两次均记录 \TraceCode{FILTER\_\penalty150\relax{}SYNC\_\penal
 
 \TraceTableHeading{模块或条目}
 \begin{TraceCard}
-\TraceItem{\TraceCode{fifo\_\penalty150\relax{}capture} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/ce06df2849cbc374e965644bcedae2204a51e1ce/subsys/ad4080\_dsp/rtl/fifo\_capture.sv\#L22}{源码}}
+\TraceItem{\TraceCode{fifo\_\penalty150\relax{}capture} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/1a65e7ecb5cc8322c712cb8b9af0c4031aba4040/subsys/ad4080\_dsp/rtl/fifo\_capture.sv\#L22}{源码}}
 \TraceField{手册规定}{\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=57}{p.57 表 27} 列四种模式；\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=91}{p.91 表 56} 给水位，\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=63}{p.63 图 93–95} 举事件前后全记录例。}
 \TraceField{代码、\allowbreak{}实测与尚缺的证据}{00 禁用、\allowbreak{}01 立即、\allowbreak{}10 事件后读 W 个、\allowbreak{}11 历史与全深读。图 99 的三次写受理为 200/\penalty150\relax{}600/\penalty150\relax{}1000，E10 FULL。产品 mode 11 核满历史和早事件两种记录的全 16,384 字、\allowbreak{}跨环顺序及尾字段，另核事件位置与首事后输出索引。产品的外部 FIFO 状态取真实装载事件，原采集/记录内部状态仍服务于队列运行。\href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/integration/product/evidence/pin\_edges.csv}{原始对拍} · \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/integration/product/evidence/verification.txt}{历史及容量回执}}
 \TraceField{裁定}{部分认可}
 \end{TraceCard}
 \begin{TraceCard}
-\TraceItem{\TraceCode{result\_\penalty150\relax{}fifo} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/ce06df2849cbc374e965644bcedae2204a51e1ce/subsys/ad4080\_dsp/rtl/result\_fifo.sv\#L22}{源码}}
+\TraceItem{\TraceCode{result\_\penalty150\relax{}fifo} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/1a65e7ecb5cc8322c712cb8b9af0c4031aba4040/subsys/ad4080\_dsp/rtl/result\_fifo.sv\#L22}{源码}}
 \TraceField{手册规定}{\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=56}{p.56 章节 Result FIFO} 明说单口、\allowbreak{}一次最多 16,384 个结果、\allowbreak{}采完再读；\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=57}{p.57 表 27} 定义使用方式。}
 \TraceField{代码、\allowbreak{}实测与尚缺的证据}{原队列叶子允许普通读写同拍；在产品中移去内部数组，保留计数和指针，由捕获状态与物理握手互斥访问。裸队列不可直接当成器件单口证据。\href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/verify/pinned\_fifo\_contract\_tb.sv}{全深度同拍检查} · \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/integration/product/bind\_dsp.py}{存储绑定器}}
 \TraceField{裁定}{部分认可}
@@ -363,7 +363,7 @@ CSV 在 E1/E2 两次均记录 \TraceCode{FILTER\_\penalty150\relax{}SYNC\_\penal
 \TraceField{裁定}{部分认可}
 \end{TraceCard}
 \begin{TraceCard}
-\TraceItem{\TraceCode{cnv\_\penalty150\relax{}ctrl} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/ce06df2849cbc374e965644bcedae2204a51e1ce/subsys/ad4080\_dsp/rtl/cnv\_ctrl.sv\#L23}{源码}}
+\TraceItem{\TraceCode{cnv\_\penalty150\relax{}ctrl} \href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/1a65e7ecb5cc8322c712cb8b9af0c4031aba4040/subsys/ad4080\_dsp/rtl/cnv\_ctrl.sv\#L23}{源码}}
 \TraceField{手册规定}{\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=7}{p.7 表 2} 给出 tCYC、\allowbreak{}CNV/CLK 对齐；\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf\#page=83}{p.83 表 47 的 ADC\_\penalty150\relax{}CNV\_\penalty150\relax{}ERR} 表示违反最小转换时序时数据无效。}
 \TraceField{代码、\allowbreak{}实测与尚缺的证据}{新版产品在有 CORE\_\penalty150\relax{}CLOCK\_\penalty150\relax{}HZ 绑定时按 25 ns 最短相邻 CNV 周期换算核心拍，ceil(时钟/40 MHz)。定向含 160 MHz 的 4 拍和 100 MHz 的 3 拍示例。实际错误事件进入 0x14[2] 的 W1C，0x1C[4] 选 ALERT 路由，CNV 码标签/相位错误另报。芯片 Pad 脉宽、\allowbreak{}tCCA 及 PVT 仍待验。\href{https://github.com/defineiocc02/20bit\_SAR\_ADC\_Behaviour\_Verification/blob/feat/ad4080-peripherals/subsys/ad4080\_peripherals/interfaces/dsp\_review/README.md}{CNV 与接口证据}}
 \TraceField{裁定}{部分认可}

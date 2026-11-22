@@ -107,8 +107,8 @@ module spi_slave #(
     // 表 18：流读仅首实体需要控制器校验，后续数据和器件 CRC 仍完整送出。
     wire host_crc_required = !read_command || !optional_entity;
     // p37 的地址指针是固定 15 位，短格式只缩短首地址的指令字段。
-    wire [15:0] advanced_addr = ascend_frame ? addr + {14'd0, length_r} :
-                                               addr - {14'd0, length_r};
+    wire [14:0] advanced_addr = ascend_frame ? addr[14:0] + {13'd0, length_r} :
+                                               addr[14:0] - {13'd0, length_r};
     // 表 19 的后续 seed 是本实体起址。现行有效 bank 地址都可用一字节
     // 无损表示。扩展到 0x0100 以上的有效地址需明确到 CRC8 种子的映射。
     wire crc_address_seed_missing = crc_frame && optional_entity && addr[15:8] != 8'd0;
@@ -307,7 +307,7 @@ module spi_slave #(
                         // p37/图 60 的滚转与 CRC 可共用同一个地址计数。
                         // 落在空洞时由实际 bank 判断 ADDRESS_INVALID，与
                         // 是否有后续首实体种子无关。
-                        addr <= {1'b0, advanced_addr[14:0]};
+                        addr <= {1'b0, advanced_addr};
                         optional_entity <= 1'b1;
                         phase <= PREPARE;
                     end

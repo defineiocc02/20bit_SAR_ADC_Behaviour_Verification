@@ -102,16 +102,10 @@ module wsum_v21 (
     // 详见 docs/v21/CONFIG_CONTRACT.md。
     //
     // **数据阵列不复位**（14,400 bit 加复位会把规模拉回去），
-    // 但 written/locked/state 这些**控制状态必须有复位值** ——
+    // 但 written/locked 这些**控制状态必须有复位值** ——
     // 否则上电后 written 是 X，完整性判定无意义。
     logic [359:0] written_q;   // 每个字是否写过（位图，不是计数器）
     logic         locked_q;
-    logic [1:0]   state_q;     // 0=IDLE 1=LOADING 2=ACTIVE
-
-    localparam logic [1:0] ST_IDLE    = 2'd0,
-                          ST_LOADING = 2'd1,
-                          ST_ACTIVE  = 2'd2;
-
     // 子权重工程上界（CONFIG_CONTRACT §6）
     localparam logic [39:0] SUB_MAX = 40'd32 * 40'd4 * 40'd1073741824;
 
@@ -136,13 +130,11 @@ module wsum_v21 (
         if (!rst_n) begin
             written_q <= 360'd0;
             locked_q  <= 1'b0;
-            state_q   <= ST_IDLE;
             cfg_range_err <= 1'b0;
         end else if (cfg_reload) begin
             // 重配入口：清 written、失效、回 IDLE
             written_q     <= 360'd0;
             locked_q      <= 1'b0;
-            state_q       <= ST_IDLE;
             cfg_range_err <= 1'b0;
         end else begin
             // 非法数据：置错误标志，但**不置 written**
@@ -157,12 +149,7 @@ module wsum_v21 (
             end
 
             // commit：必须 written 已全 1（挡住"最后一字与 commit 同拍"）
-            if (cfg_commit & ~locked_q & written_all) begin
-                locked_q <= 1'b1;
-                state_q  <= ST_ACTIVE;
-            end else if (!locked_q) begin
-                state_q <= written_all ? ST_LOADING : (written_q == 360'd0 ? ST_IDLE : ST_LOADING);
-            end
+            if (cfg_commit & ~locked_q & written_all) locked_q <= 1'b1;
         end
     end
 
@@ -213,8 +200,8 @@ module wsum_v21 (
     // 合同上片号由 sched18 的 pick() 产生，返回 5'(i) 且 i ∈ [0,17]，
     // 非法输入不在合同范围内。
 
-    // 注：参数 ids 保留只为接口不变，实际查表已在 cur_main/cur_sub 里做过
-    function automatic logic [63:0] f_G(input logic [39:0] ids);
+    // 查表已在 cur_main/cur_sub 完成，此处只接受掩码。
+    function automatic logic [63:0] f_G();
         logic [63:0] acc;
         begin
             acc = 64'd0;
@@ -225,8 +212,7 @@ module wsum_v21 (
         end
     endfunction
 
-    function automatic logic [63:0] f_Wm(input logic [39:0] ids,
-                                         input logic [159:0] post);
+    function automatic logic [63:0] f_Wm(input logic [159:0] post);
         logic [63:0] acc;
         begin
             acc = 64'd0;
@@ -253,8 +239,7 @@ module wsum_v21 (
         end
     endfunction
 
-    function automatic logic [63:0] f_Wp(input logic [39:0] ids,
-                                         input logic [31:0] pre);
+    function automatic logic [63:0] f_Wp(input logic [31:0] pre);
         logic [63:0] acc;
         begin
             acc = 64'd0;
@@ -281,9 +266,9 @@ module wsum_v21 (
         end else begin
             sum_valid <= calc_valid;
             if (calc_valid) begin
-                G_q30  <= f_G(ids_i);
-                Wp_q30 <= f_Wp(ids_i, pre_mask_i);
-                Wm_q30 <= f_Wm(ids_i, post_mask_i);
+                G_q30  <= f_G();
+                Wp_q30 <= f_Wp(pre_mask_i);
+                Wm_q30 <= f_Wm(post_mask_i);
             end
         end
     end

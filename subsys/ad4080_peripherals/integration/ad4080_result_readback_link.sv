@@ -77,8 +77,8 @@ module ad4080_result_readback_link #(
     logic mode_supported;           // 读指针只能按真正的单 lane 受理前移
     logic retired_idle_q;           // 核心寄存的末槽退休确认，冲刷时回空
 
-    ad4080_pwr_reset_sync u_local_epoch (
-        .clk_i(clk_core_i), .hold_ni(fifo_reset_ni && io_reset_ni && io_session_allow_i),
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(3)) u_local_epoch (
+        .clk_i(clk_core_i), .hold_ni({fifo_reset_ni, io_reset_ni, io_session_allow_i}),
         .ready_no(core_epoch_no)
     );
 

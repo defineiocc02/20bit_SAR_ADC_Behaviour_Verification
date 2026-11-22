@@ -823,11 +823,14 @@ def run_bench(args, top: str, spec: Bench, out: Path, command: list[str], versio
                 *(["--cc", "--exe", "--build", "--timescale", "1fs/1fs"] if cadence else ["--binary"]),
                 "--timing",
                 "--assert",
+                *(["--x-initial", "unique", "--x-assign", "unique", "--coverage"]
+                  if args.ci_coverage else []),
+                *([] if cadence else ["--timescale", "1ns/1ps"]),
                 "--unroll-count",
                 "8192",
                 "-j",
                 "1",
-                "-Wno-fatal",
+                *([] if args.ci_coverage else ["-Wno-fatal"]),
                 "-Werror-PINMISSING",
                 "-Werror-SELRANGE",
                 *compiler_options,
@@ -1038,6 +1041,7 @@ def main(argv=None) -> int:
     parser.add_argument("--expected-cycles", type=int)
     parser.add_argument("--expected-cases", type=int)
     parser.add_argument("--expected-valid-outputs", type=int)
+    parser.add_argument("--ci-coverage", action="store_true", help="严格告警、初始化扰动和覆盖率")
     parser.add_argument("--timeout", type=int, default=300)
     args = parser.parse_args(argv)
     for field in (

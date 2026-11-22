@@ -38,7 +38,7 @@ module dem_mask_v3 (
     logic       guard;
     logic [2:0] res;
     logic [7:0] hw, yw;
-    logic [3:0] j_sel;
+    logic [4:0] j_sel;
     logic       sw_a, sw_b4;
 
     assign guard = (k_i >= 10'd512);
@@ -48,7 +48,8 @@ module dem_mask_v3 (
     // 非饱和 guard 只有 512..519，低三位等于其子阵列余量。
     wire [2:0] guard_residue = k_i[2:0];
     assign res  = (3'd7 + h_phase_i);        // (7+h) % 8，3 位自然回绕
-    assign j_sel = {res, acq_seq_i[3]};      // 连续赋值，不进 always_comb，避免锁存
+    assign j_sel = {1'b0, res, acq_seq_i[3]}; // 20 位物理向量的索引为 5 位。
+    wire [2:0] unused_acquisition_low_bits = acq_seq_i[2:0]; // 此接口只有 bit3 选半片。
 
     // 1. 三位模减法产生环绕；比较保持同宽，避免生成索引扩到整数。
     genvar i;

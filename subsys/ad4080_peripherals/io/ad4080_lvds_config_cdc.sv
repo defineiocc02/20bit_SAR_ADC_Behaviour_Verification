@@ -50,11 +50,11 @@ module ad4080_lvds_config_cdc (
     // [RDC] 单侧复位也结束另一端的申请/应答纪元，避免在停钟恢复后等一个
     // 旧翻转位。保持信号须接电源所有者已经钳位的资格，异步撤销需物理闭合。
     assign link_reset_n = core_reset_ni && io_reset_ni;
-    ad4080_pwr_reset_sync u_core_release (
-        .clk_i(clk_core_i), .hold_ni(link_reset_n), .ready_no(core_ready_n)
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(2)) u_core_release (
+        .clk_i(clk_core_i), .hold_ni({core_reset_ni, io_reset_ni}), .ready_no(core_ready_n)
     );
-    ad4080_pwr_reset_sync u_io_release (
-        .clk_i(clk_io_i), .hold_ni(link_reset_n), .ready_no(io_ready_n)
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(2)) u_io_release (
+        .clk_i(clk_io_i), .hold_ni({core_reset_ni, io_reset_ni}), .ready_no(io_ready_n)
     );
 
     // =========================================================================

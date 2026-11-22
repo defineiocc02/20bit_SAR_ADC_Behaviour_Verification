@@ -142,7 +142,7 @@ module recon_v21 (
             s = n[31];
             a = s ? (~n + 32'd1) : n;
             prod = {35'd0, a} * MAGIC_3_34;
-            q96  = (prod >> 34) >> 5;
+            q96  = 32'((prod >> 34) >> 5);
             r96   = a - q96 * 32'd96;
             two_r = r96 << 1;
             q     = q96 + ((two_r >= 32'd96) ? 32'd1 : 32'd0);
@@ -244,7 +244,7 @@ module recon_v21 (
                 y  = -32'sd3145728 + 32'sd768 + ($signed({19'd0, adc2_raw}) * 32'sd1536);
                 // 27 位有符号 -> 64 位：高位补符号位，不是补 0
                 yb = {{37{b_q24[26]}}, b_q24};
-                d1a_q <= y - yb;
+                d1a_q <= 64'(y) - yb;
                 // 同沿锁存本笔参数（受理沿快照）
                 alpha1a_q <= alpha_q30;
                 G1a_q    <= G_q30;
@@ -287,7 +287,7 @@ module recon_v21 (
     //   所以把 N 连同 tag/err/valid 一起再打两拍，与 I 汇合后再进 S3。
     //   N 与 I 都进 i2_q/n2_q 的最终一级，S3 接口不变。
     //
-    logic        v2a_q, v2b_q, v2c_q;
+    logic        v2a_q, v2b_q;
     logic [31:0] tag2a_q, tag2b_q;
     logic        err2a_q, err2b_q;
     logic signed [95:0] n2a_q, n2b_q;
@@ -405,5 +405,8 @@ module recon_v21 (
             end
         end
     end
+
+    // 证明和逐级跟踪读取宽寄存器。合法范围内输出级只消费低 32 位。
+    wire unused_recon_probe = ^{x3_q[95:32], ri_valid};
 
 endmodule

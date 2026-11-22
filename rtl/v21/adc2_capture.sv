@@ -203,4 +203,7 @@ module adc2_capture (
     assign hold_done_o  = hold_done_q;
     assign late_err_o   = late_err_q;
 
+    // 当前退役接口仅发布 tag、qid 和 epoch，旧相位探针仅用于回溯。
+    wire unused_owner_phase = ^{owner_h_q, owner_v_q};
+
 endmodule

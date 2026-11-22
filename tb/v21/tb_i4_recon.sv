@@ -42,7 +42,7 @@ module tb_i4_recon;
         .clk(clk), .rst_n(rst_n),
         .in_valid(in_valid), .adc2_raw(adc2_raw),
         .Wm_q30(Wm_q30), .G_q30(G_q30), .Wp_q30(Wp_q30),
-        .alpha_q30(alpha_q30), .b_q24(b_q24),
+        .alpha_q30(alpha_q30), .b_q24(27'(b_q24)), // 旧向量文件字段为 32 位，生产脚明示 27 位。
         .in_epoch(in_epoch), .in_tag(in_tag), .cfg_epoch(cfg_epoch),
         .out_valid(out_valid), .code_o(code_o), .out_sat(out_sat),
         .out_err(out_err), .out_tag(out_tag));

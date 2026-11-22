@@ -75,7 +75,8 @@ jobs:
             esac
           done < "$GITHUB_WORKSPACE/flow/build/filelists/files_adc_v21.f"
           test "${#sources[@]}" -gt 0
-          verilator --lint-only --timing -Wno-fatal -Werror-PINMISSING -Werror-SELRANGE \
+          verilator --lint-only --timing -Wall -Werror-LATCH -Werror-WIDTH \
+            -Werror-PINMISSING -Werror-SELRANGE \
             --top-module adc_digital_ip_v21 "${sources[@]}" > elaborate.log 2>&1 \
             || { cat elaborate.log; exit 1; }
       - name: Verify current weight configuration lifecycle
@@ -88,7 +89,8 @@ jobs:
           work="$SAR_CI_RUN_ROOT/v21-config"
           mkdir -p "$work"
           cd "$work"
-          verilator --binary --timing --assert -j 2 -Wno-fatal \
+          verilator --binary --timing --assert -j 2 --timescale 1ns/1ps \
+            --x-initial unique --x-assign unique --coverage \
             -Werror-PINMISSING -Werror-SELRANGE \
             --top-module tb_cfg_lifecycle --Mdir obj \
             "$GITHUB_WORKSPACE/rtl/v21/wsum_v21.sv" \
@@ -100,12 +102,12 @@ jobs:
         # 用仓库的逐笔 oracle 比对 DUT 数据、标签、饱和与错误标志。
         # 相邻有效沿和夹空拍两条路径共用同一测试台，记录随本次工件保留。
         run: |
-          python tools/run_open_rtl.py --simulator verilator --tops tb_i4_recon tb_recon_stream \
+          python tools/run_open_rtl.py --ci-coverage --simulator verilator --tops tb_i4_recon tb_recon_stream \
             --out "$SAR_CI_RUN_ROOT/v21-recon"
       - name: Verify physical slice handover and on-chip dither at the production top
         # 量化器与余差驱动读取生产 DUT 输出的开关。断开低段的反例须在 ADC2 接口可见。
         run: |
-          python tools/run_open_rtl.py --simulator verilator --tops tb_analog_if v21_sample_cadence \
+          python tools/run_open_rtl.py --ci-coverage --simulator verilator --tops tb_analog_if v21_sample_cadence \
             --out "$SAR_CI_RUN_ROOT/v21-top"
       - name: Compare installed default Python and production RTL transactions
         # 同一固定输入通过实际控制台入口，使用真实 RTL 采集的片号、两端开关、
@@ -122,7 +124,7 @@ jobs:
             --negative-controls --out "$SAR_CI_RUN_ROOT/arithmetic"
       - name: Selected DSP protocol and numerical kernels
         run: |
-          python tools/run_open_rtl.py --simulator verilator \
+          python tools/run_open_rtl.py --ci-coverage --simulator verilator \
             --tops result_fifo_tb spi_slave_tb cnv_ctrl_contract_tb \
               sys_error_corr_contract_tb sinc5_decim_tb \
             --out "$SAR_CI_RUN_ROOT/dsp-leaf"
@@ -138,7 +140,62 @@ jobs:
           name: digital-component-evidence
           path: ${{ env.SAR_CI_RUN_ROOT }}
 
-  # 2. 语法门禁与全量风格报告
+  # 2. 真正生产清单的独立结构检查与变异
+  rtl-quality:
+    name: Strict RTL lint, synthesis and four-state regression
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: ./.github/actions/setup-verilator
+      - name: Install isolated open RTL tools
+        shell: bash
+        run: |
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends yosys iverilog
+          python -m pip install yowasp-yosys==0.71.0.0.post1285
+          mkdir -p "$SAR_CI_RUN_ROOT/tools"
+          cd "$SAR_CI_RUN_ROOT/tools"
+          curl --fail --location --retry 4 --output sv2v.zip \
+            https://github.com/zachjs/sv2v/releases/download/v0.0.13/sv2v-Linux.zip
+          printf '%s  sv2v.zip\n' 552799a1d76cd177b9b4cc63a3e77823a3d2a6eb4ec006569288abeff28e1ff8 | sha256sum -c
+          python -m zipfile -e sv2v.zip unpacked
+          install -m 755 "$(find unpacked -name sv2v -type f -print -quit)" sv2v
+          printf '%s\n' "$PWD" >> "$GITHUB_PATH"
+          # 归纳和 PDR 使用与 Ubuntu Yosys 0.33 耦合的 SBY 源。
+          curl --fail --location --retry 4 --output sby.tar.gz \
+            https://codeload.github.com/YosysHQ/sby/tar.gz/1e1687d60ee56d2218bacf62856ef414ef67e5af
+          printf '%s  sby.tar.gz\n' 0b7b498a9d960aa33533300e5bcdce42d77b13b3d6473f172ae23c8dce73d1f9 | sha256sum -c
+          tar -xzf sby.tar.gz
+          make -C sby-1e1687d60ee56d2218bacf62856ef414ef67e5af install PREFIX="$PWD/sby-install"
+          printf '%s\n' "$PWD/sby-install/bin" >> "$GITHUB_PATH"
+      - name: Gate actual core, DSP and peripheral hierarchies
+        shell: bash
+        run: YOSYS=yowasp-yosys python tools/verify_rtl_quality.py --synth --out "$SAR_CI_RUN_ROOT/strict"
+      - name: Run independent four-state checks and both core mutations
+        shell: bash
+        run: |
+          bash tools/check_rtl_mutation.sh --core-only "$SAR_CI_RUN_ROOT/mutations"
+          python tools/check_peripheral_counterexamples.py --out "$SAR_CI_RUN_ROOT/four-state"
+      - name: Prove DEM guard saturation and the schedule invariants
+        shell: bash
+        run: bash tools/prove_core_safety.sh "$SAR_CI_RUN_ROOT/safety"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-rtl-quality
+          path: |
+            ${{ env.SAR_CI_RUN_ROOT }}/strict
+            ${{ env.SAR_CI_RUN_ROOT }}/mutations
+            ${{ env.SAR_CI_RUN_ROOT }}/four-state
+            ${{ env.SAR_CI_RUN_ROOT }}/safety
+
+  # 3. 语法门禁与全量风格报告
   # 在同一文件范围检查解析和名称。
   # 风格报告仍可供逐步治理。不把工具调用异常当成已生成有效报告。
   lint:

@@ -94,6 +94,7 @@ module ad4080_pwr_supervisor #(
     logic [TIMER_WIDTH-1:0] wake_ticks_q; // 在模拟电源合格条件下累计唤醒周期
     logic [TIMER_WIDTH-1:0] wake_last_q;  // 保留进入唤醒前的模式所选计数终值
     logic init_done_q;
+    logic init_reset_release_q; // 专用于复位资格，可在停钟时撤销。
     logic analog_run_req_q;  // 保持单比特实现，模式译码的瞬态不直接接复位树
     logic recover_rearmed_q; // done 在本次握手中已观察到低值，旧完成不能误放行
     logic ldo_io_en_q;       // 独立于隔离控制更新，先钳位再关内供 LDO
@@ -102,8 +103,7 @@ module ad4080_pwr_supervisor #(
     logic ana_ready_aon;
     logic core_live_aon;
     logic io_live_aon;
-    logic core_release_ni;
-    logic io_release_ni;
+    logic io_mode_allow_aon; // AON 模式译码，外供时没有内部 LDO 请求条件。
     logic core_pd_aon, io_pd_aon; // 已受理的独立控制，PG 输入仍来自真实监测器
     logic wake_power_ok;
     logic ref_fault_hold_no; // 异步捕获，跨 AON 时钟边沿延长短故障
@@ -124,28 +124,33 @@ module ad4080_pwr_supervisor #(
 
     // [上电] VDD33 合格才接收配置输入活动。REFIN 比较器由 VDD33 供电，
     // 复位链同时看两者，避免比较器掉电时遗留的“参考正常”放行模拟域。
-    ad4080_pwr_reset_sync u_pad_safe (
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(2)) u_pad_safe (
         .clk_i(clk_aon_i),
-        .hold_ni(por_d_ok_async_i && vdd33_ok_async_i),
+        .hold_ni({por_d_ok_async_i, vdd33_ok_async_i}),
         .ready_no(pad_safe_aon)
     );
-    ad4080_pwr_reset_sync u_ana_power (
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(3)) u_ana_power (
         .clk_i(clk_aon_i),
-        .hold_ni(por_d_ok_async_i && vdd33_ok_async_i && ref_ok_async_i),
+        .hold_ni({por_d_ok_async_i, vdd33_ok_async_i, ref_ok_async_i}),
         .ready_no(ana_power_ok_aon)
     );
 
     // [状态] 参考监测器由 VDD33 供电，VDD33 缺失时单独钳位参考状态输入。
     // 用异步低电平捕获没有跨过 AON 沿的 REFIN 故障，再同步成单周期事件。
     // POR 与软件复位初值仍由配置端负责，持续低压只发一次参考故障事件。
-    ad4080_pwr_reset_sync u_ref_fault_hold (
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(2), .RELEASE_ANY(1'b1)) u_ref_fault_hold (
         .clk_i(clk_aon_i),
-        .hold_ni(!vdd33_ok_async_i || ref_ok_async_i),
+        .hold_ni({!vdd33_ok_async_i, ref_ok_async_i}),
         .ready_no(ref_fault_hold_no)
     );
 
     always_ff @(posedge clk_aon_i or negedge cfg_hw_reset_no) begin
         if (!cfg_hw_reset_no) begin
+            ref_fault_sync_q <= '0;
+            ref_fault_prev_q <= 1'b0;
+            por_ana_event_aon_o <= 1'b0;
+        end else if (!pad_safe_aon) begin
+            // VDD33 失供先撤销监听，避免供电屏蔽源尚在同步释放时伪报 REFIN。
             ref_fault_sync_q <= '0;
             ref_fault_prev_q <= 1'b0;
             por_ana_event_aon_o <= 1'b0;
@@ -160,15 +165,14 @@ module ad4080_pwr_supervisor #(
     // 核心和 I/O 各自释放。许可返回 AON 需再次同步，不能借用另一域的释放沿。
     assign core_pd_aon = !external_io_i && cfg_ldo_pd_aon_i[1];
     assign io_pd_aon = !external_io_i && (cfg_ldo_pd_aon_i[0] || core_pd_aon);
-    assign core_release_ni = cfg_hw_reset_no && init_done_q && !core_pd_aon;
-    assign io_release_ni = core_release_ni && (external_io_i || (analog_run_req_q && !io_pd_aon))
-                         && iovdd_ok_async_i;
+    assign io_mode_allow_aon = external_io_i || (analog_run_req_q && !io_pd_aon);
 
-    ad4080_pwr_reset_sync u_core_reset (
-        .clk_i(clk_core_i), .hold_ni(core_release_ni), .ready_no(core_reset_no)
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(3)) u_core_reset (
+        .clk_i(clk_core_i), .hold_ni({cfg_hw_reset_no, init_reset_release_q, !core_pd_aon}), .ready_no(core_reset_no)
     );
-    ad4080_pwr_reset_sync u_io_reset (
-        .clk_i(clk_io_i), .hold_ni(io_release_ni), .ready_no(io_reset_no)
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(5)) u_io_reset (
+        .clk_i(clk_io_i), .hold_ni({cfg_hw_reset_no, init_reset_release_q, !core_pd_aon,
+                                  io_mode_allow_aon, iovdd_ok_async_i}), .ready_no(io_reset_no)
     );
     ad4080_pwr_reset_sync u_core_live (
         .clk_i(clk_aon_i), .hold_ni(core_reset_no), .ready_no(core_live_aon)
@@ -179,14 +183,14 @@ module ad4080_pwr_supervisor #(
 
     // [握手] 模拟可以在唤醒过程中释放复位以完成建立。转换仍由独立许可关断，
     // 以免等“模拟就绪”时又把模拟一直扣在复位内。
-    ad4080_pwr_reset_sync u_ana_reset (
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(5), .SAMPLE_ONLY(5'b00001)) u_ana_reset (
         .clk_i(clk_aon_i),
-        .hold_ni(core_release_ni && ana_power_ok_aon && analog_run_req_q),
+        .hold_ni({cfg_hw_reset_no, init_reset_release_q, !core_pd_aon, ana_power_ok_aon, analog_run_req_q}),
         .ready_no(ana_reset_no)
     );
-    ad4080_pwr_reset_sync u_ana_ready (
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(2)) u_ana_ready (
         .clk_i(clk_aon_i),
-        .hold_ni(ana_reset_no && ana_ready_async_i),
+        .hold_ni({ana_reset_no, ana_ready_async_i}),
         .ready_no(ana_ready_aon)
     );
 
@@ -212,13 +216,16 @@ module ad4080_pwr_supervisor #(
         if (!cfg_hw_reset_no) begin
             init_ticks_q <= '0;
             init_done_q <= 1'b0;
+            init_reset_release_q <= 1'b0;
         end else if (sw_reset_accept_aon_o) begin
             init_ticks_q <= '0;
             init_done_q <= 1'b0;
+            init_reset_release_q <= 1'b0;
         // [非法绑定] 频率为零时保留初始化守卫，避免 ticks-1 下溢后提前放行。
         end else if (!init_done_q && TIMING_CONFIG_VALID) begin
             if (init_ticks_q == TIMER_WIDTH'(INIT_TICKS - 1)) begin
                 init_done_q <= 1'b1;
+                init_reset_release_q <= 1'b1;
             end else begin
                 init_ticks_q <= init_ticks_q + 1'b1;
             end

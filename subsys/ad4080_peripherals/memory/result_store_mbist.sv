@@ -161,8 +161,14 @@ module result_store_mbist (
     // 4. 结果检查与恢复
     // =========================================================================
     // 四态功能模型的有效位或已写数据出现 X 也记为故障，便于定位宏配置问题。
-    assign valid_error = (store_read_valid_i !== read_pending_q);
-    assign data_error = read_pending_q && (store_data_i !== pending_expected_q);
+    bit valid_matches, data_matches;
+    always_comb begin
+        // 只有确定相等才放行。逻辑比较产生未知时，两态结果为零。
+        valid_matches = store_read_valid_i == read_pending_q;
+        data_matches = store_data_i == pending_expected_q;
+    end
+    assign valid_error = !valid_matches;
+    assign data_error = read_pending_q && !data_matches;
 
     // 同沿优先级为复位、授权丢失、协议错误、数据错误、最后响应完成。
     // 保留上一拍的地址和底图，错误不能误归到沿上同时发出的测试命令。

@@ -59,20 +59,19 @@ module recip_q60 (
         for (int i = 0; i < 44; i++) if (g_q30[i]) b = 6'(i + 1);
     end
 
-    // 左移结果取低 36 位：数学结果必 < 2^36，高位只是中间溢出
-    logic [63:0] shl;
+    // b≤36 时原数的高位全零，先限宽再归一等效并覆盖所有组合分支。
     always_comb begin
         if (b == 6'd0) begin
             m36 = 36'd0;
         end else if (b <= 6'd36) begin
-            shl = {20'd0, g_q30} << (6'd36 - b);
-            m36 = shl[35:0];
+            m36 = 36'(g_q30) << (6'd36 - b);
         end else begin
             m36 = 36'(g_q30 >> (b - 6'd36));
         end
     end
 
     assign m   = m36[35:5];        // >>5，31 bit，Q30
+    wire [4:0] unused_fractional_tail = m36[4:0]; // 按 Q30 合同向下截断。
     assign idx = m[29:24];         // 6 bit（bit30 为隐含整数位）
 
     // 64 项种子表：LUT[i] = 2^60 // (2^30 + (i+0.5)·2^24)

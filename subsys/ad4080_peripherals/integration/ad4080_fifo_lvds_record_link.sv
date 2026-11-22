@@ -100,11 +100,11 @@ module ad4080_fifo_lvds_record_link #(
     logic frame_valid, frame_first, frame_last;
     logic [1:0] frame_kind;
 
-    ad4080_pwr_reset_sync u_io_epoch (
-        .clk_i(clk_io_i), .hold_ni(fifo_reset_ni && io_reset_ni && io_session_allow_i), .ready_no(io_epoch_no)
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(3)) u_io_epoch (
+        .clk_i(clk_io_i), .hold_ni({fifo_reset_ni, io_reset_ni, io_session_allow_i}), .ready_no(io_epoch_no)
     );
-    ad4080_pwr_reset_sync u_core_epoch (
-        .clk_i(clk_core_i), .hold_ni(fifo_reset_ni && io_reset_ni && io_session_allow_i), .ready_no(core_epoch_no)
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(3)) u_core_epoch (
+        .clk_i(clk_core_i), .hold_ni({fifo_reset_ni, io_reset_ni, io_session_allow_i}), .ready_no(core_epoch_no)
     );
 
     assign can_command = link_online_io && !request_io_q && !closing_io_q && !seen_io_q[1];
@@ -189,15 +189,20 @@ module ad4080_fifo_lvds_record_link #(
     logic [1:0] raw_prefetch_words;                      // 两级同步已确认可用，避免提前发送头
     logic da_fall, da_rise, db_fall, db_rise;
     logic payload_start, protocol_error, mode_error, dropped, overflow;
-    logic readback_allow_io_q;
+    logic readback_allow_io_q, session_power_io_q;
     logic unused_core_online, unused_core_full, unused_busy;
     logic [2:0] unused_beat_width;
 
     // [异常] 组合状态仅进入 I/O 域寄存器。物理 epoch 撤销仍异步关闭，
     // 活动错误由本域采纳后冲刷 raw 链，并保持到核心旧授权退场。
     always_ff @(posedge clk_io_i or negedge io_epoch_no) begin
-        if (!io_epoch_no) readback_allow_io_q <= 1'b0;
-        else readback_allow_io_q <= !flush_io_q && !(record_error_o && request_io_q);
+        if (!io_epoch_no) begin
+            readback_allow_io_q <= 1'b0;
+            session_power_io_q <= 1'b0;
+        end else begin
+            readback_allow_io_q <= !flush_io_q && !(record_error_o && request_io_q);
+            session_power_io_q <= 1'b1;
+        end
     end
     // 在目标域两拍同步会话位之前，来源已经建立字数；退场完成前保持总线。
 `ifndef SYNTHESIS
@@ -224,7 +229,7 @@ module ad4080_fifo_lvds_record_link #(
         .io_da_fall_o(da_fall), .io_da_rise_o(da_rise), .io_db_fall_o(db_fall), .io_db_rise_o(db_rise)
     );
     ad4080_fifo_record_framer #(.SPI_PIN_HEADER(SPI_RESULT_BOUND), .SPI_CRC_TAIL_BOUND(SPI_CRC_TAIL_BOUND)) u_framer (
-        .clk_i(clk_io_i), .rst_ni(io_epoch_no), .power_good_i(io_session_allow_i),
+        .clk_i(clk_io_i), .rst_ni(io_epoch_no), .power_good_i(session_power_io_q),
         .abort_i(abort_i || fault_io_q[1] || (request_io_q && record_is_spi && spi_abort) ||
                  (raw_valid && (raw_dual || raw_check || db_fall || db_rise))),
         .start_valid_i(record_start_valid_i && can_command), .start_ready_o(framer_ready),

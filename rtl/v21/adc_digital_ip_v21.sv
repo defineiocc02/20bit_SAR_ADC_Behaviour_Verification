@@ -211,12 +211,20 @@ module adc_digital_ip_v21 (
     // 否则 prepare 那拍读到的是上一笔的 word）
     logic [31:0] pre_slot_leaf;
     logic [6:0]  sadc_pre_leaf;
+    logic [3:0] unused_pre_fraction; // 分段支路已在叶级译码。
+    logic [39:0] unused_sched_preview;
+    logic [31:0] unused_sched_rng;
+    logic [5:0] unused_acq_word;
+    logic [359:0] unused_ctx_post_state;
+    logic [17:0] unused_ctx_post_write;
+    logic unused_event_valid;
+    logic [3:0] unused_event_index, unused_event_bit_index;
     dither_pre u_pd (
         .word_i   (prepare_dither_word),
         .v_phase_i(prep_v_pre),
         .pre_o    (pre_slot_leaf),
         .U_o      (selected_upper),
-        .f_o      (), .sadc_pre_o(sadc_pre_leaf));
+        .f_o      (unused_pre_fraction), .sadc_pre_o(sadc_pre_leaf));
 
     // 两个量化器各自保持采集预置。与 RDAC 描述符在同一受理沿取同一字。
     // 未受理时的 word/phase/qid 变化不能改变任一物理 bank；数字端以写门
@@ -247,7 +255,7 @@ module adc_digital_ip_v21 (
         .adv(sched_adv),
         .acq_mask_o(s18_acq), .conv_mask_o(s18_conv), .idle_mask_o(s18_idle),
         // ACQ 在推进沿冻结沿前片号。推进后的片号预览留给独立调度接口。
-        .ids_o(s18_ids), .ids_next_o(), .rng_o());
+        .ids_o(s18_ids), .ids_next_o(unused_sched_preview), .rng_o(unused_sched_rng));
 
     // 片组来源选择：生产走内部 sched18，定向测试可外部覆盖
     wire [17:0] use_acq  = sched_ext_sel ? sched_acq  : s18_acq;
@@ -273,7 +281,7 @@ module adc_digital_ip_v21 (
         .acq_sel_o(acq_sel_o), .conv_sel_o(conv_sel_o), .idle_sel_o(idle_sel_o),
         .acq_h_o(acq_h), .acq_v_dem_o(acq_v), .acq_v_pre_o(acq_v_pre),
         .acq_half_o(acq_half), .acq_coin_o(acq_coin),
-        .acq_word_o(), .acq_U_o(acq_U),
+        .acq_word_o(unused_acq_word), .acq_U_o(acq_U),
         .acq_pre_slot_i(pre_slot_leaf), .acq_pre_slot_o(acq_pre_slot),
         .acq_tag_o(acq_tag), .acq_flash_o(acq_flash), .conv_flash_o(conv_flash),
         .acq_qid_o(acq_qid), .conv_qid_o(conv_qid),
@@ -284,7 +292,7 @@ module adc_digital_ip_v21 (
         .acq_valid_o(acq_valid), .acq_sampled_o(acq_sampled),
         .conv_valid_o(conv_valid),
         .rdac_pre_state_o(rdac_pre_state_o), .pre_wr_o(pre_wr_o),
-        .rdac_post_state_o(), .post_wr_o(),
+        .rdac_post_state_o(unused_ctx_post_state), .post_wr_o(unused_ctx_post_write),
         .prepare_fire_o(prepare_fire), .commit_fire_o(commit_fire),
         .sched_adv_o(sched_adv),
         .release_fire_o(release_fire),
@@ -345,7 +353,8 @@ module adc_digital_ip_v21 (
         .bit_valid_i(ev_bit_valid_i), .bit_i(ev_bit_i),
         .bit_index_i(ev_bit_index_i), .event_index_i(ev_event_index_i),
         .sar_qid_i(ev_qid_i), .sar_final_i(1'b0),
-        .ev_valid_o(), .ev_event_index_o(), .ev_bit_index_o(),
+        .ev_valid_o(unused_event_valid), .ev_event_index_o(unused_event_index),
+        .ev_bit_index_o(unused_event_bit_index),
         .k_o(k_w), .k_bad_o(k_bad_w), .apply_fire_o(apply_fire_w),
         .last_evt_o(last_evt_w),
         .final_applied_o(final_applied_w), .final_k_o(final_k_w),
@@ -432,9 +441,9 @@ module adc_digital_ip_v21 (
             // 写门每拍重新产生：本拍无合法应用则落回 0（不保留上一拍的写门）
             post_wr_q <= post_wr_c;
             // 数据只在有效写时更新，其余保持 —— "未选物理片保持原状态"
-            for (int gp = 0; gp < 18; gp++) begin
-                if (post_wr_c[gp])
-                    post_state_q[gp*20 +: 20] <= post_phys_c[gp*20 +: 20];
+            for (int phys = 0; phys < 18; phys++) begin
+                if (post_wr_c[phys])
+                    post_state_q[phys*20 +: 20] <= post_phys_c[phys*20 +: 20];
             end
         end
     end
@@ -551,10 +560,7 @@ module adc_digital_ip_v21 (
     //
     // 注意：这里用 conv 的 slot 级 post（post_slot_w）而不是物理 360 位，
     // 因为宏按 slot 组织权重表；物理路由的正确性已由 I1/I2 逐位对拍证明。
-    logic        node_calc_valid;
 
-    logic [12:0] node_raw;
-    logic        node_range;
 
     // ---------------------------------------------------------------- final post 锁存
     //
@@ -670,5 +676,10 @@ module adc_digital_ip_v21 (
         .out_sat(out_sat), .out_err(out_err), .out_tag(out_tag));
 
     assign adc2_release_ok_o  = adc2_release_ok;
+
+    // 历史诊断探针被台架和归档波形使用。当前生产写门和事件仍走真实提交路径。
+    wire unused_legacy_probes = ^{ev_start_i, acq_h, acq_v, acq_v_pre, acq_half, acq_coin,
+        acq_pre_slot, acq_ids, release_fire, conv_word, conv_U_w, conv_flash,
+        final_coin_q, final_half_q, adc2_hold_done, adc2_owner_busy};
 
 endmodule

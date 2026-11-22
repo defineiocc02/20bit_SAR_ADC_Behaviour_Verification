@@ -203,9 +203,11 @@ module ad4080_peripheral_services #(
     ad4080_pwr_reset_sync u_poll_iovdd (
         .clk_i(clk_aon_i), .hold_ni(iovdd_ok_async_i), .ready_no(poll_iovdd_aon)
     );
-    ad4080_pwr_reset_sync u_poll_control (
+    // 内部 LDO 命令、AON 输出和供电模式绑定位都由供电服务拥有。
+    wire poll_ldo_allow_aon = external_io_i || (iovdd_ldo_en_o && ldo_pd_aon_q == 2'b00);
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(2)) u_poll_control (
         .clk_i(clk_aon_i),
-        .hold_ni(cfg_hw_reset_no && (external_io_i || (iovdd_ldo_en_o && ldo_pd_aon_q == 2'b00))),
+        .hold_ni({cfg_hw_reset_no, poll_ldo_allow_aon}),
         .ready_no(poll_control_aon)
     );
     assign poll_pads_qualified_aon = poll_control_aon && poll_vdd33_aon && poll_iovdd_aon;
@@ -255,8 +257,8 @@ module ad4080_peripheral_services #(
     // [固定字] Rev. B p.24 区分从未提供参考与合格后失去参考。监视器
     // 由 VDD33 供电，两个 AON 沿确认之后才记历史。软件初始化、低功耗及
     // 后续参考掉压允许保留这笔历史，转换仍从 supervisor 取当前合格许可。
-    ad4080_pwr_reset_sync u_ref_history_qualify (
-        .clk_i(clk_aon_i), .hold_ni(cfg_hw_reset_no && vdd33_ok_async_i && ref_ok_async_i),
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(3)) u_ref_history_qualify (
+        .clk_i(clk_aon_i), .hold_ni({cfg_hw_reset_no, vdd33_ok_async_i, ref_ok_async_i}),
         .ready_no(ref_qualified_aon)
     );
 
@@ -401,8 +403,8 @@ module ad4080_peripheral_services #(
     // [权限] ENTER 的保持回执须先到 AON 才授予测试，不能借用提前抵达核心
     // 的 hold 发第一笔破坏性命令。授权撤销立即阻断测试 SRAM 请求；原保持
     // 直到握手退场及重建结束仍在，期间已有功能读可以按许可排尽。
-    ad4080_pwr_reset_sync u_bist_grant (
-        .clk_i(clk_core_i), .hold_ni(fifo_reset_no && bist_mode_grant_aon_o), .ready_no(bist_grant_core)
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(2)) u_bist_grant (
+        .clk_i(clk_core_i), .hold_ni({fifo_reset_no, bist_mode_grant_aon_o}), .ready_no(bist_grant_core)
     );
     assign bist_func_hold_core_o = bist_req_core_q[1] || mbist_func_hold_core;
 

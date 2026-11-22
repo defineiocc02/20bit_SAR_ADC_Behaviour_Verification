@@ -165,42 +165,86 @@ module ad4080_peripheral_product #(
     logic [1:0] result_mode_io;                     // 权威配置从同一个跨域快照解码
     (* ASYNC_REG = "TRUE" *) logic [1:0] stream_enabled_io_q, stream_idle_core_q, stream_train_core_q;
 
-    always_ff @(posedge clk_core_i or negedge cs_n) begin
-        if (!cs_n) config_idle_pipe_q <= '0;
+    // 所有未对外使用的诊断以实际端口位宽接出，主事务仍用已匹配的握手。
+    logic unused_stored_word_valid_o;
+    logic unused_dout_valid;
+    logic unused_continuous_bypass_o;
+    logic unused_correction_clip_low;
+    logic unused_correction_clip_high;
+    logic unused_cfg_hw_reset_no;
+    logic unused_core_reset_no;
+    logic unused_ana_reset_no;
+    logic unused_cfg_init_done_aon_o;
+    logic unused_wake_busy_aon_o;
+    logic unused_isolate_io_o;
+    logic unused_ref_cmo_en_o;
+    logic unused_por_ana_event_aon_o;
+    logic unused_conversion_allow_aon_o;
+    logic unused_otp_busy_aon_o;
+    logic unused_otp_shadow_valid_aon_o;
+    logic unused_bist_fail_addr_valid_core_o;
+    logic unused_io_edge_words_valid_o;
+    logic unused_read_req_ready_core_o;
+    logic [1:0] unused_operating_mode_aon_o;
+    logic [3:0] unused_otp_error_code_aon_o;
+    logic [3:0] unused_io_slot_count_o;
+    logic [9:0] unused_io_da_fall_o;
+    logic [9:0] unused_io_da_rise_o;
+    logic [9:0] unused_io_db_fall_o;
+    logic [9:0] unused_io_db_rise_o;
+    logic [13:0] unused_bist_fail_addr_core_o;
+    logic [19:0] unused_dout;
+    logic [19:0] unused_bist_fail_expected_core_o;
+    logic [19:0] unused_bist_fail_actual_core_o;
+    logic [OTP_WORDS*OTP_WORD_WIDTH-1:0] unused_otp_shadow_image_aon_o;
+    // 配置快照未依赖 C 寄存器保留半字和滤波抽取编码的 I/O 副本。
+    wire [3:0] unused_data_c_reserved_io = data_cfg_c_io[3:0];
+    wire [5:0] unused_filter_rate_io = filter_cfg_io[7:2];
+    logic fifo_config_active_core_q;
+
+    // CS 只作为普通输入采样；硬复位是寄存器唯一异步复位来源。
+    // 延迟四拍让 SPI 在 AON 判断前完成末位采样和命令提交。
+    always_ff @(posedge clk_core_i or negedge fifo_reset_n) begin
+        if (!fifo_reset_n) fifo_config_active_core_q <= 1'b0;
+        else fifo_config_active_core_q <= 1'b1;
+    end
+    always_ff @(posedge clk_core_i or negedge fifo_reset_n) begin
+        if (!fifo_reset_n) config_idle_pipe_q <= '0;
+        else if (!cs_n) config_idle_pipe_q <= '0;
         else config_idle_pipe_q <= {config_idle_pipe_q[2:0], 1'b1};
     end
 
     // [AON] 一个布防中的记录即便暂时没有总线活动也须拒绝掉电/软复位。
     // 失败截断仅清当前记录元数据，保留同一物理阵列和其它供电边界。
-    ad4080_pwr_reset_sync u_cfg_permission (
-        .clk_i(clk_core_i), .hold_ni(fifo_reset_n && cfg_allow_aon && !record_locked && !bist_hold_core),
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(4)) u_cfg_permission (
+        .clk_i(clk_core_i), .hold_ni({fifo_reset_n, cfg_allow_aon, !record_locked, !bist_hold_core}),
         .ready_no(cfg_allow_core)
     );
     // 0x00/0x02 在原配置 pad 仍有足够电源时进入同一 AON 所有者。普通
     // 配置以及 SDO 驱动仍使用 full 权限，因而 IOVDD 断开不能留活输出。
-    ad4080_pwr_reset_sync u_cfg_control_permission (
-        .clk_i(clk_core_i), .hold_ni(fifo_reset_n && cfg_control_allow_aon), .ready_no(cfg_control_allow_core)
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(2)) u_cfg_control_permission (
+        .clk_i(clk_core_i), .hold_ni({fifo_reset_n, cfg_control_allow_aon}), .ready_no(cfg_control_allow_core)
     );
     // 软件初始化复用原 SPI 接收和 SDO 许可。仅 0x11 可以在 AON 真正
     // 受理后、物理 pad 保持有效的窄窗口读取，不解锁一般寄存器。
-    ad4080_pwr_reset_sync u_cfg_poll_permission (
-        .clk_i(clk_core_i), .hold_ni(fifo_reset_n && cfg_poll_allow_aon), .ready_no(cfg_poll_allow_core)
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(2)) u_cfg_poll_permission (
+        .clk_i(clk_core_i), .hold_ni({fifo_reset_n, cfg_poll_allow_aon}), .ready_no(cfg_poll_allow_core)
     );
-    ad4080_pwr_reset_sync u_aon_capture (
-        .clk_i(clk_aon_i), .hold_ni(fifo_reset_n && !capture_incomplete_core_o), .ready_no(aon_capture_clear)
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(2)) u_aon_capture (
+        .clk_i(clk_aon_i), .hold_ni({fifo_reset_n, !capture_incomplete_core_o}), .ready_no(aon_capture_clear)
     );
-    ad4080_pwr_reset_sync u_aon_read (
-        .clk_i(clk_aon_i), .hold_ni(fifo_reset_n && !record_locked && link_idle && stream_idle_core_q[1]),
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(4)) u_aon_read (
+        .clk_i(clk_aon_i), .hold_ni({fifo_reset_n, !record_locked, link_idle, stream_idle_core_q[1]}),
         .ready_no(aon_read_unlocked)
     );
     // 原 SPI 末位可以早于 CS 关闭。只等待本事务退出，再在 AON 活动沿
     // 判捕获、读口及上游空闲，避免把同步释放较晚的 CS 误判为忙客户。
-    ad4080_pwr_reset_sync u_aon_cfg_eval (
-        .clk_i(clk_aon_i), .hold_ni(fifo_reset_n && config_idle_pipe_q[3]), .ready_no(aon_cfg_eval)
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(2)) u_aon_cfg_eval (
+        .clk_i(clk_aon_i), .hold_ni({fifo_reset_n, config_idle_pipe_q[3]}), .ready_no(aon_cfg_eval)
     );
-    ad4080_pwr_reset_sync u_aon_idle (
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(5)) u_aon_idle (
         .clk_i(clk_aon_i),
-        .hold_ni(fifo_reset_n && sample_source_idle_core_i && config_idle_pipe_q[3] && !write_req && !read_req),
+        .hold_ni({fifo_reset_n, sample_source_idle_core_i, config_idle_pipe_q[3], !write_req, !read_req}),
         .ready_no(aon_clients_idle)
     );
     assign bist_ready_aon_o = services_bist_ready && aon_read_unlocked;
@@ -210,9 +254,9 @@ module ad4080_peripheral_product #(
     // [GPIO] FULL 在真实捕获完成时上升。进入读锁后持住此前阶段的 FULL，
     // SRAM 地址预取不改变管脚。首/末逻辑 TX 装载沿直接更新两位 I/O 状态；
     // 重新布防、显式清除或断电异步切掉旧状态，即使当时没有 I/O 时钟。
-    ad4080_pwr_reset_sync u_pin_status_reset (
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(4)) u_pin_status_reset (
         .clk_i(clk_io_i),
-        .hold_ni(fifo_reset_n && io_record_epoch_o && !capture_incomplete_core_o && !capture_metadata_clear),
+        .hold_ni({fifo_reset_n, io_record_epoch_o, !capture_incomplete_core_o, !capture_metadata_clear}),
         .ready_no(fifo_pin_status_reset_n)
     );
     always_ff @(posedge clk_io_i or negedge fifo_pin_status_reset_n) begin
@@ -295,7 +339,7 @@ module ad4080_peripheral_product #(
         .P_POR_ANA_EVENT_ENABLE(1'b1), .P_CONTINUOUS_LVDS_BOUND(1'b1), .P_AON_CFG_BOUND(1'b1)
     ) u_dsp (
         .clk(clk_core_i), .rst_n(fifo_reset_n), .cs_n, .sclk, .sdi, .sdo, .sdo_oe,
-        .restart_sync_i(1'b0), .stored_word_valid_o(), // 产品软复位仍由真实 SPI/AON 仲裁。
+        .restart_sync_i(1'b0), .stored_word_valid_o(unused_stored_word_valid_o), // 产品软复位仍由真实 SPI/AON 仲裁。
         .interface_ready(cfg_control_allow_core), .pwr_cfg_full_allow_i(cfg_allow_core),
         .pwr_cfg_poll_allow_i(cfg_poll_allow_core),
         .adc_idle(sample_source_idle_core_i && !record_locked && !bist_hold_core),
@@ -304,7 +348,7 @@ module ad4080_peripheral_product #(
         .pwr_rsp_op_i(pwr_rsp_op), .pwr_mode_i(pwr_mode), .pwr_ldo_pd_i(pwr_ldo_pd),
         .valid_in(sample_valid_core_i && conversion_allow_core_o), .x(sample_signed_core_i),
         .filter_sync(filter_sync_core_i), .ext_event(ext_event_core_i), .arm(1'b0), .rd_en(read_taken),
-        .gpio_i, .gpio_o, .gpio_oe(gpio_oe_core), .dout(), .dout_valid(), .status(status_o),
+        .gpio_i, .gpio_o, .gpio_oe(gpio_oe_core), .dout(unused_dout), .dout_valid(unused_dout_valid), .status(status_o),
         .cnv_tick_i(cnv_tick_core_i), .conversion_timing_error_i(conversion_timing_error_core_o),
         .cnv_data_timing_error_o(cnv_data_timing_error_core_o),
         .por_ana_event_i(por_ana_event_core),
@@ -313,10 +357,10 @@ module ad4080_peripheral_product #(
         .data_config_ready_i(continuous_config_ready_core_o), .sample_tag_i(sample_tag_core_i),
         .data_intf_config_a_o(data_cfg_a_core), .data_intf_config_b_o(data_cfg_b_core),
         .data_intf_config_c_o(data_cfg_c_core), .filter_config_o(filter_cfg_core),
-        .continuous_bypass_o(), .continuous_enable_o(stream_enabled_core), .continuous_flush_o(stream_flush_core),
+        .continuous_bypass_o(unused_continuous_bypass_o), .continuous_enable_o(stream_enabled_core), .continuous_flush_o(stream_flush_core),
         .continuous_word_valid_o(stream_word_valid_core),
         .continuous_word_o(stream_word_core), .continuous_word_tag_o(stream_tag_core),
-        .correction_clip_low(), .correction_clip_high(),
+        .correction_clip_low(unused_correction_clip_low), .correction_clip_high(unused_correction_clip_high),
         .cfg_reject(cfg_reject_o), .cfg_reject_reason(cfg_reject_reason_o), .processing_reject(processing_reject_o),
         .clear_record_i(capture_clear_q || discard_record || bist_clear_q),
         .store_write_ready_i(write_ready), .store_read_valid_i(store_valid), .store_read_data_i(store_data),
@@ -335,40 +379,40 @@ module ad4080_peripheral_product #(
         .por_d_ok_async_i, .vdd33_ok_async_i, .ref_ok_async_i, .iovdd_ok_async_i, .ana_ready_async_i,
         .clients_idle_aon_i(aon_clients_idle && aon_read_unlocked), .capture_incomplete_aon_i(!aon_capture_clear),
         .sw_reset_req_aon_i, .mode_req_valid_aon_i, .mode_req_aon_i, .wake_recover_done_aon_i,
-        .cfg_hw_reset_no(), .core_reset_no(), .fifo_reset_no(fifo_reset_n), .io_reset_no(io_reset_n), .ana_reset_no(),
-        .cfg_init_done_aon_o(), .cfg_control_write_allow_aon_o(cfg_control_allow_aon), .cfg_full_access_allow_aon_o(cfg_allow_aon),
+        .cfg_hw_reset_no(unused_cfg_hw_reset_no), .core_reset_no(unused_core_reset_no), .fifo_reset_no(fifo_reset_n), .io_reset_no(io_reset_n), .ana_reset_no(unused_ana_reset_no),
+        .cfg_init_done_aon_o(unused_cfg_init_done_aon_o), .cfg_control_write_allow_aon_o(cfg_control_allow_aon), .cfg_full_access_allow_aon_o(cfg_allow_aon),
         .cfg_poll_allow_aon_o(cfg_poll_allow_aon),
-        .operating_mode_aon_o(), .wake_busy_aon_o(), .wake_recover_req_aon_o,
-        .mode_req_accept_aon_o, .sw_reset_accept_aon_o, .isolate_io_o(), .iovdd_ldo_en_o, .ref_cmo_en_o(),
+        .operating_mode_aon_o(unused_operating_mode_aon_o), .wake_busy_aon_o(unused_wake_busy_aon_o), .wake_recover_req_aon_o,
+        .mode_req_accept_aon_o, .sw_reset_accept_aon_o, .isolate_io_o(unused_isolate_io_o), .iovdd_ldo_en_o, .ref_cmo_en_o(unused_ref_cmo_en_o),
         .vdd11_ldo_pd_safe_aon_i, .vdd11_ldo_en_o,
         .pwr_cmd_valid_core_i(pwr_cmd_valid), .pwr_cmd_op_core_i(pwr_cmd_op), .pwr_cmd_value_core_i(pwr_cmd_value),
         .pwr_cmd_evaluate_aon_i(aon_cfg_eval),
         .pwr_cmd_ready_core_o(pwr_cmd_ready), .pwr_rsp_valid_core_o(pwr_rsp_valid), .pwr_rsp_accept_core_o(pwr_rsp_accept),
         .pwr_rsp_op_core_o(pwr_rsp_op), .pwr_mode_core_o(pwr_mode), .pwr_ldo_pd_core_o(pwr_ldo_pd),
-        .por_ana_event_aon_o(), .por_ana_event_core_o(por_ana_event_core),
-        .conversion_allow_aon_o(), .conversion_allow_core_o,
+        .por_ana_event_aon_o(unused_por_ana_event_aon_o), .por_ana_event_core_o(por_ana_event_core),
+        .conversion_allow_aon_o(unused_conversion_allow_aon_o), .conversion_allow_core_o,
         .otp_power_good_aon_i, .otp_adapters_quiescent_aon_i, .otp_adapters_cancel_aon_o,
         .otp_req_valid_aon_o, .otp_req_ready_aon_i, .otp_req_addr_aon_o,
         .otp_rsp_valid_aon_i, .otp_rsp_ready_aon_o, .otp_rsp_data_aon_i, .otp_rsp_error_aon_i,
         .otp_verify_req_valid_aon_o, .otp_verify_req_ready_aon_i, .otp_verify_image_aon_o,
         .otp_verify_rsp_valid_aon_i, .otp_verify_rsp_ready_aon_o, .otp_verify_rsp_pass_aon_i,
-        .otp_busy_aon_o(), .otp_error_code_aon_o(), .otp_shadow_valid_aon_o(), .otp_shadow_image_aon_o(),
+        .otp_busy_aon_o(unused_otp_busy_aon_o), .otp_error_code_aon_o(unused_otp_error_code_aon_o), .otp_shadow_valid_aon_o(unused_otp_shadow_valid_aon_o), .otp_shadow_image_aon_o(unused_otp_shadow_image_aon_o),
         .bist_mode_req_aon_i(bist_request_aon_i && aon_read_unlocked), .bist_mode_ready_aon_o(services_bist_ready),
         .bist_mode_grant_aon_o(bist_grant_aon_o), .bist_func_hold_core_o(bist_hold_core),
         .bist_func_quiesced_core_i(sample_source_idle_core_i && !record_locked && link_idle),
         .bist_start_core_i, .bist_start_ready_core_o, .bist_checkerboard_core_i,
         .bist_func_reinit_done_core_i(bist_reinit_ack_q), .bist_contents_invalid_core_o,
         .bist_busy_core_o, .bist_done_core_o, .bist_fail_reason_core_o,
-        .bist_fail_addr_valid_core_o(), .bist_fail_addr_core_o(),
-        .bist_fail_expected_core_o(), .bist_fail_actual_core_o(),
+        .bist_fail_addr_valid_core_o(unused_bist_fail_addr_valid_core_o), .bist_fail_addr_core_o(unused_bist_fail_addr_core_o),
+        .bist_fail_expected_core_o(unused_bist_fail_expected_core_o), .bist_fail_actual_core_o(unused_bist_fail_actual_core_o),
         .result_req_valid_core_i(write_req || read_req), .result_req_ready_core_o(store_ready),
         .result_write_core_i(write_req), .result_addr_core_i(write_req ? write_addr : read_addr),
         .result_write_data_core_i(write_data), .result_read_valid_core_o(store_valid), .result_read_data_core_o(store_data),
         .io_word_valid_i(stream_train_io), .io_word_ready_o(selected_io_permission), .io_sample_i(20'b0),
         .fifo_record_allow_io_o(fifo_record_allow_io),
         .io_dual_lane_i(data_cfg_a_io[2]), .io_intf_check_i(stream_train_io),
-        .io_edge_words_valid_o(), .io_da_fall_o(), .io_da_rise_o(),
-        .io_db_fall_o(), .io_db_rise_o(), .io_slot_count_o()
+        .io_edge_words_valid_o(unused_io_edge_words_valid_o), .io_da_fall_o(unused_io_da_fall_o), .io_da_rise_o(unused_io_da_rise_o),
+        .io_db_fall_o(unused_io_db_fall_o), .io_db_rise_o(unused_io_db_rise_o), .io_slot_count_o(unused_io_slot_count_o)
     );
 
     // =========================================================================
@@ -377,8 +421,8 @@ module ad4080_peripheral_product #(
     // [SPI结果] FIFO_FULL 在实际末写发布。真实 DCLK 接受头首位后，
     // 将本窗口资格同步回核心，用八个头周期为物理取数留出时间。
     // 未选记录可切备用模式；过早或停住的 DCS 不占用地址、不形成会话。
-    ad4080_pwr_reset_sync u_spi_selection (
-        .clk_i(clk_core_i), .hold_ni(fifo_reset_n && result_spi_selected_async),
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(2), .SAMPLE_ONLY(2'b01)) u_spi_selection (
+        .clk_i(clk_core_i), .hold_ni({fifo_reset_n, result_spi_selected_async}),
         .ready_no(result_spi_selected_core)
     );
     // LVDS 的外部记录命令保持原入口；SPI 档提交该重复命令时显式拒绝。
@@ -428,7 +472,7 @@ module ad4080_peripheral_product #(
         .abort_i(abort_io_i), .crc_valid_i(crc_valid_io_i), .crc_ready_o(crc_ready_io_o),
         .crc_i(crc_io_i), .crc_error_i(crc_error_io_i), .crc_cancel_o(crc_cancel_io_o),
         .record_done_o(frame_done_io), .record_error_o(frame_error_io_o), .record_error_code_o(frame_error_code_io_o),
-        .read_req_valid_core_i(record_locked && record_available_core_o), .read_req_ready_core_o(),
+        .read_req_valid_core_i(record_locked && record_available_core_o), .read_req_ready_core_o(unused_read_req_ready_core_o),
         .read_addr_core_i(next_record_addr), .sram_read_req_valid_core_o(read_req), .sram_read_req_ready_core_i(read_ready),
         .sram_read_addr_core_o(read_addr), .sram_read_rsp_valid_core_i(store_valid), .sram_read_rsp_data_core_i(store_data),
         .record_idle_core_o(link_idle), .read_fault_core_o(unused_read_fault),
@@ -481,12 +525,12 @@ module ad4080_peripheral_product #(
 
     // 源 CSR 变更立即撤新预约许可，应用后在目的时钟同步放回。A/B/C 和
     // 滤波设置为一份稳定快照。应用资格独立，避免冷启动等自己的回执。
-    ad4080_pwr_reset_sync u_continuous_admission (
-        .clk_i(clk_io_i), .hold_ni(io_reset_n && cfg_ready_core), .ready_no(stream_mode_core_ready_io)
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(2)) u_continuous_admission (
+        .clk_i(clk_io_i), .hold_ni({io_reset_n, cfg_ready_core}), .ready_no(stream_mode_core_ready_io)
     );
     ad4080_lvds_config_cdc u_stream_config (
         .clk_core_i, .clk_io_i, .core_reset_ni(fifo_reset_n), .io_reset_ni(io_reset_n),
-        .cfg_a_core_i(data_cfg_a_core), .cfg_b_core_i(data_cfg_b_core), .cfg_live_core_i(fifo_reset_n),
+        .cfg_a_core_i(data_cfg_a_core), .cfg_b_core_i(data_cfg_b_core), .cfg_live_core_i(fifo_config_active_core_q),
         .cfg_c_core_i(data_cfg_c_core), .cfg_filter_core_i(filter_cfg_core),
         .cfg_ready_core_o(cfg_ready_core), .io_idle_i(stream_idle_io && cfg_pause_io_q), .io_apply_allow_i(io_reset_n),
         .cfg_a_io_o(data_cfg_a_io), .cfg_b_io_o(data_cfg_b_io), .cfg_valid_io_o(cfg_valid_io),
@@ -510,8 +554,8 @@ module ad4080_peripheral_product #(
     // 共同异步断言，在各域的复位同步器放行后才有新的装载。普通 A/B 改
     // 档仍用上方显式排完旧帧后切换的快照握手。
     assign stream_epoch_hold_n = fifo_reset_n && io_reset_n && stream_enabled_core && !stream_flush_core;
-    ad4080_pwr_reset_sync u_stream_epoch (
-        .clk_i(clk_io_i), .hold_ni(stream_epoch_hold_n), .ready_no(stream_reset_io_n)
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(4), .SAMPLE_ONLY(4'b0010)) u_stream_epoch (
+        .clk_i(clk_io_i), .hold_ni({fifo_reset_n, io_reset_n, stream_enabled_core, !stream_flush_core}), .ready_no(stream_reset_io_n)
     );
     ad4080_continuous_result_cdc #(.TAG_WIDTH(32)) u_stream_cdc (
         .clk_core_i, .clk_io_i, .reset_ni(stream_epoch_hold_n && cfg_ready_core),

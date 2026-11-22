@@ -30,9 +30,14 @@ module spi_slave_tb;
   // 1. 独立从机与寄存器实体
   // =============================================================================
   // 此用例选择从机的释放写相能力。产品要求的四线写数据相驱动 0 另由引脚用例检查。
+  // 在运行时选择普通无 AON 夹具。默认输入有常量连接时，5.030 的
+  // 随机初始化加覆盖率可能把输入初始化发射成对 C++ 常量的赋值。
+  logic [15:0] test_qualifiers;
+  initial if (!$value$plusargs("spi_qualifiers=%h",test_qualifiers)) test_qualifiers = 16'h0008;
   spi_slave #(.P_SHORT_ADDR_BITS(7),.P_WRITE_SDO_DRIVE(0)) spi(
     .clk(clk),.rst_n(rst_n),.cs_n(cs_n),.sclk(sclk),.sdi(sdi),.sdo(sdo),.sdo_oe(sdo_oe),
-    .interface_ready(interface_ready),.crc_en(crc_en),.send_status(send_status),.single_inst(single_inst),
+    .interface_ready(interface_ready),.reset_poll_only_i(test_qualifiers[0]),
+    .restart_sync_i(test_qualifiers[1]),.crc_en(crc_en),.send_status(send_status),.single_inst(single_inst),
     .short_instr(short_instr),.addr_asc(addr_asc),.strict_access(strict_access),.status_long(status_long),
     .status_short(status_short),.addr(addr),.wdata(wdata),.write_bytes(write_bytes),.we(we),.rdata(rdata),
     .entity_bytes(entity_bytes),.address_valid(address_valid),.read_only(read_only),.access_supported(access_supported),
@@ -41,14 +46,14 @@ module spi_slave_tb;
     .not_ready_err_pulse(not_ready_err_pulse),.cfg_reject(spi_reject),.cfg_reject_reason(spi_reason));
   ad4080_regs #(.P_MULTIBYTE_ORDER(0),.P_OFFSET_LSB_ADDR(37),.P_PRODUCT_ID_L(55),.P_SHORT_ADDR_BITS(7)) bank(
     // 独立数值或协议配置没有 AON 响应；真实功耗命令在产品台架验证。
-    .pwr_cfg_full_allow_i(1'b1), .pwr_cmd_ready_i(1'b0), .pwr_cmd_valid_o(),
-    .pwr_cmd_op_o(), .pwr_cmd_value_o(), .pwr_rsp_valid_i(1'b0),
-    .pwr_rsp_accept_i(1'b0), .pwr_rsp_op_i(2'b00), .pwr_mode_i(2'b00),
-    .pwr_ldo_pd_i(2'b00), .rom_crc_error_i(1'b0),
+    .pwr_cfg_full_allow_i(test_qualifiers[3]), .pwr_cmd_ready_i(test_qualifiers[4]), .pwr_cmd_valid_o(),
+    .pwr_cmd_op_o(), .pwr_cmd_value_o(), .pwr_rsp_valid_i(test_qualifiers[5]),
+    .pwr_rsp_accept_i(test_qualifiers[6]), .pwr_rsp_op_i(test_qualifiers[8:7]), .pwr_mode_i(test_qualifiers[10:9]),
+    .pwr_ldo_pd_i(test_qualifiers[12:11]), .rom_crc_error_i(test_qualifiers[13]),
 
     // 本夹具只验证配置帧，不把缺省外部监测事件接成真实的片上故障。
     .data_config_ready_i(1'b0), .data_intf_config_a_o(), .data_intf_config_b_o(), .data_intf_config_c_o(),
-    .conversion_timing_error_i(1'b0), .cnv_error_alert_o(), .por_ana_event_i(1'b0),
+    .conversion_timing_error_i(1'b0), .cnv_error_alert_o(), .por_ana_event_i(test_qualifiers[14]), .restart_sync_i(test_qualifiers[1]), .pwr_init_poll_i(test_qualifiers[15]),
     .clk(clk),.rst_n(rst_n),.addr(addr),.wdata(wdata),.write_bytes(write_bytes),.we(we),.rdata(rdata),
     .entity_bytes(entity_bytes),.address_valid(address_valid),.read_only(read_only),.access_supported(access_supported),
     .access_reject_reason(access_reject_reason),.adc_idle(adc_idle),.gpio_levels(4'ha),

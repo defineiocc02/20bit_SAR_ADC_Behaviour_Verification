@@ -428,4 +428,7 @@ module acq_conv_ctx #(
     assign rdac_post_state_o = 360'd0;
     assign post_wr_o         = 18'd0;
 
+    // 合同保留外部整组观测。当前 owner 只在 prepare 沿冻结 sched_ids。
+    wire unused_legacy_schedule = ^{sched_conv, sched_idle, sched_ids_next};
+
 endmodule

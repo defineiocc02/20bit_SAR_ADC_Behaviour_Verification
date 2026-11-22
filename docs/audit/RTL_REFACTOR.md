@@ -47,6 +47,21 @@
 
 Phase 2 在同一 VM 上通过 11 项 VCS、五组 Verilator 专项、1,943 项 pytest 及 38 项外围验收。默认 Python/RTL 重新逐笔核对 1,792 笔与每笔 36 个字段。原始手册测试的数学数据与厂商接口边界仍从冻结资料读取，新 DSP 源以[当前锁定对象](../../subsys/ad4080_peripherals/evidence/dsp-revision.txt)为准。
 
-## 后续门禁
+## Phase 3 独立门禁
 
-Phase 3 的全库严格 Lint 尚待放行。原始盘点发现空引脚连接和变量遮蔽告警，生产源仍存在四态比较。Phase 4 的目标目录和统一顶层在 Phase 3 验收后进入。实物依赖、CRC24 和 ROM/OTP 状态继续由[实物待办](../../subsys/ad4080_peripherals/evidence/peripheral_open_items.csv)跟踪。
+| VM 实跑命令 | 结果 |
+| --- | --- |
+| `YOSYS=yowasp-yosys python tools/verify_rtl_quality.py --synth --out "$RUN_OUT/strict"` | 扫描 43 个生产文件。三个顶层的强制 Lint 均为 0 告警和 0 错误。核心、外围的 Yosys `check -assert` 通过，均无锁存器。 |
+| `bash tools/check_rtl_mutation.sh --core-only "$RUN_OUT/mutations"` | Icarus 正用例通过，DEM 回绕变异和丢种子变异均成功编译后被各自断言捕获。 |
+| `python tools/check_peripheral_counterexamples.py --out "$RUN_OUT/four-state"` | Icarus 证明复位后 POR 旧令牌重放为 0。增益独立对拍 51 个码和 406 项检查通过。 |
+| `bash tools/prove_core_safety.sh "$RUN_OUT/safety"` | SBY 的 PDR 证明保护码饱和。另一个 SBY 任务执行 Yosys 两步归纳，采集片数及 ACQ/CONV 互斥均证明。 |
+| `python tools/run_open_rtl.py --ci-coverage --simulator verilator --tops tb_i4_recon tb_recon_stream tb_analog_if v21_sample_cadence result_fifo_tb spi_slave_tb cnv_ctrl_contract_tb sys_error_corr_contract_tb sinc5_decim_tb --out "$RUN_OUT/coverage"` | 九组严格编译和真实执行通过。初始化扰动、覆盖率均开启。1792 笔乘 36 字段对拍无差异。 |
+| `bash tools/verify_v21.sh` 与 `bash tools/check_rtl_mutation.sh` | 11 项 VCS 回归通过，原算术三种真实变异全部检出并复原。 |
+| 全量 pytest 和外围同版验证 | 1943 项通过，外围 38/38。 |
+| `fm_shell` 比较 Phase 2 与 Phase 3 的 DEM 通用逻辑网表 | 160 个端口比较点相等，失败 0。范围为单个 DEM 叶。 |
+
+将跨域保持源逐位独立同步，再在目的域合并。软件复位对核心停钟仍能撤销硬件释放资格。生产 Lint 门禁只保留原有的 `result_store.sv` 文件名例外。覆盖率路径使用运行时可设置的夹具输入，避免 Verilator 5.030 把端口默认值优化为不可赋值的 C++ 常量。
+
+## 实物边界
+
+Phase 4 的目标目录和统一顶层在上述验收后进入。实物依赖、CRC24 和 ROM/OTP 状态继续由[实物待办](../../subsys/ad4080_peripherals/evidence/peripheral_open_items.csv)跟踪。

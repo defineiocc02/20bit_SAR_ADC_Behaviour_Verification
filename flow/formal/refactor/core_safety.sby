@@ -1,0 +1,24 @@
+[tasks]
+dem
+sched
+
+[options]
+dem: mode prove
+dem: depth 4
+sched: mode prep
+
+[engines]
+dem: abc pdr
+
+[script]
+read -formal core-leaves.v core_safety.sv
+dem: prep -top dem_safety
+sched: prep -top sched_safety -flatten
+sched: async2sync
+sched: dffunmap
+sched: opt_clean
+sched: sat -verify -prove-asserts -set-assumes -seq 2 -tempinduct -maxsteps 5
+
+[files]
+core-leaves.v
+core_safety.sv

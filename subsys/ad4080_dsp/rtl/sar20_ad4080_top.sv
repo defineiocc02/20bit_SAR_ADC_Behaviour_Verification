@@ -82,24 +82,30 @@ module sar20_ad4080_top #(
     assign rejected_sample_id=sar_sample_id;
     assign rejected_flags=sar_flags;
     assign rejected_after_fault=sample_rejected && stream_fault;
+    // 并行适配器只接数值与寄存器。下面的模式和 IO 观察输出保留在 DSP 叶层。
+    logic unused_pwr_cmd_valid_o, unused_cnv_data_timing_error_o, unused_continuous_bypass_o, unused_continuous_enable_o, unused_continuous_flush_o, unused_continuous_word_valid_o;
+    logic [1:0] unused_pwr_cmd_op_o, unused_pwr_cmd_value_o;
+    logic [7:0] unused_data_intf_config_a_o, unused_data_intf_config_b_o, unused_data_intf_config_c_o, unused_filter_config_o;
+    logic [19:0] unused_continuous_word_o;
+    logic [31:0] unused_continuous_word_tag_o;
     ad4080_top #(.IN_W(20),.FIFO_DEPTH(FIFO_DEPTH),
         .P_GAIN_MAP_VALID(P_GAIN_MAP_VALID),.K_GAIN(K_GAIN),.SHIFT(SHIFT),
         .P_GAIN_CODE0_SUPPORTED(P_GAIN_CODE0_SUPPORTED),.P_MULTIBYTE_ORDER(P_MULTIBYTE_ORDER),
         .P_OFFSET_LSB_ADDR(P_OFFSET_LSB_ADDR),.P_PRODUCT_ID_L(P_PRODUCT_ID_L),
         .P_SHORT_ADDR_BITS(P_SHORT_ADDR_BITS),.P_WRITE_SDO_DRIVE(P_WRITE_SDO_DRIVE)) u_dsp (
     // 独立数值或协议配置没有 AON 响应；真实功耗命令在产品台架验证。
-    .pwr_cfg_full_allow_i(1'b1), .pwr_cmd_ready_i(1'b0), .pwr_cmd_valid_o(),
-    .pwr_cmd_op_o(), .pwr_cmd_value_o(), .pwr_rsp_valid_i(1'b0),
+    .pwr_cfg_full_allow_i(1'b1), .pwr_cmd_ready_i(1'b0), .pwr_cmd_valid_o(unused_pwr_cmd_valid_o),
+    .pwr_cmd_op_o(unused_pwr_cmd_op_o), .pwr_cmd_value_o(unused_pwr_cmd_value_o), .pwr_rsp_valid_i(1'b0),
     .pwr_rsp_accept_i(1'b0), .pwr_rsp_op_i(2'b00), .pwr_mode_i(2'b00),
     .pwr_ldo_pd_i(2'b00), .rom_crc_error_i(1'b0),
 
     // 此适配器的既有契约是并行结果与标记；设备计时、串行发射及 AON 由产品装配接入。
     .cnv_tick_i(1'b0), .conversion_timing_error_i(1'b0), .por_ana_event_i(1'b0),
-    .cnv_data_timing_error_o(), .phy_fifo_full_i(1'b0), .phy_fifo_read_done_i(1'b0),
+    .cnv_data_timing_error_o(unused_cnv_data_timing_error_o), .phy_fifo_full_i(1'b0), .phy_fifo_read_done_i(1'b0),
     .csr_fifo_full_i(1'b0), .csr_fifo_read_done_i(1'b0), .data_config_ready_i(1'b0),
-    .sample_tag_i(sar_sample_id), .data_intf_config_a_o(), .data_intf_config_b_o(), .data_intf_config_c_o(),
-    .continuous_bypass_o(), .continuous_enable_o(), .continuous_flush_o(), .filter_config_o(), .continuous_word_valid_o(), .continuous_word_o(),
-    .continuous_word_tag_o(), // 连续 LVDS 未绑定。此并行出口不使用流标签。
+    .sample_tag_i(sar_sample_id), .data_intf_config_a_o(unused_data_intf_config_a_o), .data_intf_config_b_o(unused_data_intf_config_b_o), .data_intf_config_c_o(unused_data_intf_config_c_o),
+    .continuous_bypass_o(unused_continuous_bypass_o), .continuous_enable_o(unused_continuous_enable_o), .continuous_flush_o(unused_continuous_flush_o), .filter_config_o(unused_filter_config_o), .continuous_word_valid_o(unused_continuous_word_valid_o), .continuous_word_o(unused_continuous_word_o),
+    .continuous_word_tag_o(unused_continuous_word_tag_o), // 连续 LVDS 未绑定。此并行出口不使用流标签。
         .clk(clk),.rst_n(rst_n),.restart_sync_i(restart_sync),
         .cs_n(cs_n),.sclk(sclk),.sdi(sdi),.sdo(sdo),.sdo_oe(sdo_oe),
         .adc_idle(adc_idle),.interface_ready(interface_ready),

@@ -149,12 +149,12 @@ module sched18 (
     // 第 n 个置位：在对应的 pc 表里找第一个 "有效且 pc==n" 的位
     function automatic logic [4:0] pick(input logic [17:0] v,
                                         input logic [4:0] pc [0:17],
-                                        input int n);
+                                        input logic [4:0] n);
         logic [4:0] r;
         begin
             r = 5'd0;
             for (int i = 0; i < 18; i++)
-                if (v[i] && (pc[i] == 5'(n))) r = 5'(i);
+                if (v[i] && (pc[i] == n)) r = 5'(i);
             pick = r;
         end
     endfunction
@@ -163,7 +163,7 @@ module sched18 (
     genvar gci;
     generate
         for (gci = 0; gci < 10; gci++) begin : g_cand
-            assign cand[gci] = pick(avail, pc_avail, gci);
+            assign cand[gci] = pick(avail, pc_avail, 5'(gci));
         end
     endgenerate
 
@@ -198,8 +198,8 @@ module sched18 (
     genvar gii;
     generate
         for (gii = 0; gii < 8; gii++) begin : g_ids
-            assign ids_o[gii*5 +: 5]      = pick(acq_q,    pc_acq,  gii);
-            assign ids_next_o[gii*5 +: 5] = pick(acq_next, pc_next, gii);
+            assign ids_o[gii*5 +: 5]      = pick(acq_q,    pc_acq,  5'(gii));
+            assign ids_next_o[gii*5 +: 5] = pick(acq_next, pc_next, 5'(gii));
         end
     endgenerate
 

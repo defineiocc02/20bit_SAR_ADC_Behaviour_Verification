@@ -50,11 +50,11 @@ module ad4080_product_record_session (
     logic consumed_q;                 // 截断后区分完整可再读与部分消耗
     logic launched_io_q, terminal_io_q, failed_io_q;
 
-    ad4080_pwr_reset_sync u_live_core (
-        .clk_i(clk_core_i), .hold_ni(rst_core_ni && io_reset_ni && io_allow_i), .ready_no(io_live_core)
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(3)) u_live_core (
+        .clk_i(clk_core_i), .hold_ni({rst_core_ni, io_reset_ni, io_allow_i}), .ready_no(io_live_core)
     );
-    ad4080_pwr_reset_sync u_live_io (
-        .clk_i(clk_io_i), .hold_ni(rst_core_ni && io_reset_ni && io_allow_i), .ready_no(io_live_io)
+    ad4080_pwr_reset_sync #(.HOLD_COUNT(3)) u_live_io (
+        .clk_i(clk_io_i), .hold_ni({rst_core_ni, io_reset_ni, io_allow_i}), .ready_no(io_live_io)
     );
 
     assign command_ready_core_o = io_live_core && can_lock_core_i && !locked_core_o && !returned_core_q[1];

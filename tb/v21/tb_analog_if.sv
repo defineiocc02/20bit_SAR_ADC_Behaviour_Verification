@@ -87,8 +87,13 @@ module tb_analog_if;
 
     // 选内部调度。三笔预置不同，Flash=4，所有低位判决均拒绝。
     // A、B 的高段为零，C 的高段为四，对应最终命令 256、256、260。
+    logic [31:0] alpha_cfg;
+    // 由台架在运行时设置。Verilator 5.030 的覆盖率随机初始化对有默认值
+    // 的常量输入映射可能生成非法的 C++ 赋值目标。
+    initial if (!$value$plusargs("alpha_q30=%d", alpha_cfg)) alpha_cfg = 32'd1073741824;
+
     adc_digital_ip_v21 dut (
-        .alpha_q30_cfg(32'd1073741824), // 名义增益与冻结向量一致。
+        .alpha_q30_cfg(alpha_cfg),
         .clk(clk), .rst_n(rst_n),
         .prepare_valid(prepare_valid), .prepare_ready(prepare_ready),
         .dither_force_i(1'b1), .sadc_pre_state_o(), .sadc_pre_wr_o(),

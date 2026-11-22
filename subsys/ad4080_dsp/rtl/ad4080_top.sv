@@ -313,6 +313,7 @@ module ad4080_top #(
         end
     end else begin : g_untimed
         // 旧的并行数值用例无需新增 pin。由常量参数展开，未连接输入不参与运算。
+        wire unused_parallel_cnv = cnv_tick_i;
         assign chain_input_valid = valid_in;
         assign timing_chain_clear = 1'b0;
         assign timing_abort_capture = 1'b0;
@@ -461,6 +462,7 @@ module ad4080_top #(
             end
         end
     end else begin : g_no_stream_tag
+        wire [31:0] unused_parallel_tag = sample_tag_i;
         assign continuous_word_tag_o = '0;
         assign continuous_flush_o = 1'b0;
     end endgenerate

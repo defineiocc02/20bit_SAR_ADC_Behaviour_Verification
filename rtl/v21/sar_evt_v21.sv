@@ -273,4 +273,7 @@ module sar_evt_v21 (
     // 锁到下一拍的 mask —— 实测锁到全 0）。
     assign last_evt_o       = apply_fire_o & last_evt;
 
+    // 最后事件由序号和位号决定。兼容输入和 guard 调试状态留给独立台架。
+    wire unused_guard_trace = ^{sar_final_i, guard_lvl_q};
+
 endmodule

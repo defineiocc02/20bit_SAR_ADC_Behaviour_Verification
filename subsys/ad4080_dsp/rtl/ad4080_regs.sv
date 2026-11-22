@@ -222,9 +222,12 @@ module ad4080_regs #(
     endfunction
 
     // 读回暴露当前实际寄存器，保留位在此固定为零。
+    // 一个组合结果对应一个多字节实体；拆开总线字段，保持覆盖率计数的赋值目标清楚。
+    logic [22:0] pair_decode;
     always_comb begin
         rdata='0; entity_bytes=2'd1; address_valid=1'b1; read_only=1'b0;
         access_supported=1'b1; access_reject_reason=4'd0;
+        pair_decode='0;
         case (addr)
             16'h0000: rdata={8'd0,2'b00,ascend_r,1'b1,4'd0};
             16'h0001: rdata={8'd0,single_r,3'd0,short_r,3'd0};
@@ -259,25 +262,25 @@ module ad4080_regs #(
             16'h001A: rdata={8'd0,gpio_sel_r[1],gpio_sel_r[0]};
             16'h001B: rdata={8'd0,gpio_sel_r[3],gpio_sel_r[2]};
             16'h001C: rdata={8'd0,event_r,hi_route_r,lo_route_r,cnv_route_r,2'd0,fifo_mode_r};
-            16'h001D,16'h001E: {rdata,entity_bytes,access_supported,access_reject_reason}=
-                decode_pair({1'b0,watermark_r},16'h001D);
-            16'h001F,16'h0020: {rdata,entity_bytes,access_supported,access_reject_reason}=
-                decode_pair({5'd0,hyst_r},16'h001F);
-            16'h0021,16'h0022: {rdata,entity_bytes,access_supported,access_reject_reason}=
-                decode_pair({4'd0,hi_r},16'h0021);
-            16'h0023,16'h0024: {rdata,entity_bytes,access_supported,access_reject_reason}=
-                decode_pair({4'd0,lo_r},16'h0023);
-            16'h0025,16'h0026: begin
-                {rdata,entity_bytes,access_supported,access_reject_reason}=decode_pair({4'd0,offset_r},16'h0025);
-                if (P_OFFSET_LSB_ADDR != 32'h00000025) begin
-                    access_supported=1'b0; access_reject_reason=REJECT_UNBOUND;
-                end
-            end
-            16'h0027,16'h0028: {rdata,entity_bytes,access_supported,access_reject_reason}=
-                decode_pair({6'd0,gain_r},16'h0027);
+            16'h001D,16'h001E: pair_decode=decode_pair({1'b0,watermark_r},16'h001D);
+            16'h001F,16'h0020: pair_decode=decode_pair({5'd0,hyst_r},16'h001F);
+            16'h0021,16'h0022: pair_decode=decode_pair({4'd0,hi_r},16'h0021);
+            16'h0023,16'h0024: pair_decode=decode_pair({4'd0,lo_r},16'h0023);
+            16'h0025,16'h0026: pair_decode=decode_pair({4'd0,offset_r},16'h0025);
+            16'h0027,16'h0028: pair_decode=decode_pair({6'd0,gain_r},16'h0027);
             16'h0029: rdata={8'd0,1'b0,dec_r,1'b0,filter_r};
             default: begin address_valid=1'b0; access_supported=1'b0; access_reject_reason=REJECT_ADDRESS; end
         endcase
+        if (addr >= 16'h001D && addr <= 16'h0028) begin
+            rdata=pair_decode[22:7];
+            entity_bytes=pair_decode[6:5];
+            access_supported=pair_decode[4];
+            access_reject_reason=pair_decode[3:0];
+        end
+        if (P_OFFSET_LSB_ADDR != 32'h00000025 && (addr == 16'h0025 || addr == 16'h0026)) begin
+            access_supported=1'b0;
+            access_reject_reason=REJECT_UNBOUND;
+        end
         if (P_AON_CFG_BOUND && flag_set(pwr_init_poll_i)) begin
             if (addr == 16'h0011) read_only=1'b1;
             else begin access_supported=1'b0; access_reject_reason=REJECT_NOT_IDLE; end

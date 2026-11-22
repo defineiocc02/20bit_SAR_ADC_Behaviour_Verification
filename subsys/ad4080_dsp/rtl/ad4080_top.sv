@@ -83,6 +83,8 @@ module ad4080_top #(
     input  logic [1:0] pwr_rsp_op_i = 2'b00,
     input  logic [1:0] pwr_mode_i = 2'b00,       // 已执行读回从 AON 返回。
     input  logic [1:0] pwr_ldo_pd_i = 2'b00,
+    input  logic restart_sync_i = 1'b0,   // 系统换代，核心时钟沿取消旧处理与记录。
+    output logic stored_word_valid_o,    // 既有记录读回有效，独立于新转换有效。
     output logic processing_reject
 );
     logic [15:0] addr,wdata,rdata,status_long;
@@ -118,8 +120,8 @@ module ad4080_top #(
     logic [IN_W-1:0] event_sample, fifo_sample, direct_sample;
 
     wire pin_sync = filter_sync | gpio_fsync;
-    wire fsync_all = pin_sync | fsync_pulse | timing_chain_clear;
-    wire fifo_clear = fifo_clear_request | timing_abort_capture;
+    wire fsync_all = pin_sync | fsync_pulse | timing_chain_clear | restart_sync_i;
+    wire fifo_clear = fifo_clear_request | timing_abort_capture | restart_sync_i;
     wire threshold_pulse = (hi_pulse & hi_route) | (lo_pulse & lo_route);
     wire fifo_event=event_en ? internal_fifo_event : (ext_event|gpio_event);
     wire capture_io_active=arm|fifo_arm|fifo_clear|rd_en|fifo_valid;
@@ -162,7 +164,7 @@ module ad4080_top #(
                                 (filter_sel != 2'd0 ? base_rate : 11'd1);
         wire [5:0] warm_group_limit = pf1_on ? 6'd34 : 6'd4;
         wire fifo_new_arm = (arm | fifo_arm) && !capture_active && fifo_mode != 0;
-        wire restart = fsync_pulse || fifo_clear_request || fifo_new_arm;
+        wire restart = fsync_pulse || fifo_clear_request || fifo_new_arm || restart_sync_i;
         // 表 25 允许直读在 SYNC 低时跨 CNV 保持复位。图 99 的 FIFO 建批则
         // 要求 E1 采到低电平且 E2 前释放，避免把不合法的起点标为同一有效记录。
         wire direct_path = fifo_mode == 2'd0 && !captured;
@@ -332,16 +334,21 @@ module ad4080_top #(
     // 即使 core 停钟使远端的 300 µs 等待先结束，也不能从旧 bank 读回。
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) pwr_reset_wait_q <= 1'b0;
+        else if (restart_sync_i) pwr_reset_wait_q <= 1'b0;
         else if (P_AON_CFG_BOUND && pwr_rsp_valid_i && pwr_rsp_op_i == 2'd1) pwr_reset_wait_q <= 1'b0;
         else if (P_AON_CFG_BOUND && pwr_cmd_valid_o && pwr_cmd_ready_i && pwr_cmd_op_o == 2'd1)
             pwr_reset_wait_q <= 1'b1;
     end
-    assign reset_poll_only = P_AON_CFG_BOUND && (pwr_cfg_poll_allow_i === 1'b1) && !pwr_reset_wait_q;
+    // 未知 Pad 轮询许可按关闭处理。同域软清除也撤销当前事务资格。
+    bit poll_pad_qualified;
+    always_comb poll_pad_qualified = pwr_cfg_poll_allow_i == 1'b1;
+    assign reset_poll_only = P_AON_CFG_BOUND && poll_pad_qualified && !pwr_reset_wait_q && !restart_sync_i;
     assign sdo_oe = spi_sdo_oe && (!P_AON_CFG_BOUND || pwr_cfg_full_allow_i || reset_poll_only);
 
     spi_slave #(.P_SHORT_ADDR_BITS(P_SHORT_ADDR_BITS),.P_WRITE_SDO_DRIVE(P_WRITE_SDO_DRIVE)) u_spi (
         .clk(clk),.rst_n(rst_n),.cs_n(cs_n),.sclk(sclk),.sdi(sdi),.sdo(sdo),.sdo_oe(spi_sdo_oe),
         .interface_ready(interface_ready && !pwr_reset_wait_q),.reset_poll_only_i(reset_poll_only),
+        .restart_sync_i,
         .crc_en(crc_en),.send_status(send_status),
         .single_inst(single_inst),.short_instr(short_instr),.addr_asc(addr_asc),.strict_access(strict_access),
         .status_long(status_long),.status_short(status_short),.addr(addr),.wdata(wdata),
@@ -358,8 +365,9 @@ module ad4080_top #(
         .P_GAIN_MAP_VALID(P_GAIN_MAP_VALID),.P_GAIN_CODE0_SUPPORTED(P_GAIN_CODE0_SUPPORTED),
         .P_CNV_TIMING_BOUND(P_CNV_TIMING_BOUND),
         .P_CNV_ERROR_BOUND(P_CNV_ERROR_BOUND), .P_POR_ANA_EVENT_ENABLE(P_POR_ANA_EVENT_ENABLE),
-        .P_AON_CFG_BOUND(P_AON_CFG_BOUND), .P_ROM_CRC_ERROR_BOUND(P_ROM_CRC_ERROR_BOUND)) u_regs (
-        .clk(clk),.rst_n(rst_n),.addr(addr),.wdata(wdata),.write_bytes(write_bytes),.we(we),
+        .P_AON_CFG_BOUND(P_AON_CFG_BOUND), .P_ROM_CRC_ERROR_BOUND(P_ROM_CRC_ERROR_BOUND),
+        .FIFO_DEPTH(FIFO_DEPTH)) u_regs (
+        .clk(clk),.rst_n(rst_n),.addr(addr),.wdata(wdata),.write_bytes(write_bytes),.we(we),.restart_sync_i,
         .rdata(rdata),.entity_bytes(entity_bytes),.address_valid(address_valid),.read_only(read_only),
         .access_supported(access_supported),.access_reject_reason(access_reject_reason),
         .data_config_ready_i, .data_intf_config_a_o, .data_intf_config_b_o, .data_intf_config_c_o,
@@ -393,8 +401,9 @@ module ad4080_top #(
         .processing_reject(processing_reject)
     );
     event_detect u_event (
-        .clk(clk),.rst_n(rst_n),.enable(event_en),.hi_route(hi_route),.lo_route(lo_route),
-        .clear_hi(hi_clr),.clear_lo(lo_clr),.sample_valid(event_sample_valid),.data_in(event_sample),
+        .clk(clk),.rst_n(rst_n),.enable(event_en && !restart_sync_i),.hi_route(hi_route),.lo_route(lo_route),
+        .clear_hi(hi_clr || restart_sync_i),.clear_lo(lo_clr || restart_sync_i),
+        .sample_valid(event_sample_valid),.data_in(event_sample),
         .hi_thresh(event_hi),.lo_thresh(event_lo),.hysteresis(event_hyst),
         .hi_dtct(hi_dtct),.lo_dtct(lo_dtct),.hi_flag(hi_flag),.lo_flag(lo_flag),
         .hi_pulse(hi_pulse),.lo_pulse(lo_pulse),.alert_n(event_alert_n)
@@ -457,7 +466,8 @@ module ad4080_top #(
     end endgenerate
     // 软件复位可将 FIFO_MODE 改为 00；已完成的记录仍须继续从捕获读口输出。
     assign dout=captured ? fifo_data : direct_sample;
-    assign dout_valid=captured ? fifo_valid : ((fifo_mode==0) && direct_sample_valid);
+    assign stored_word_valid_o = !restart_sync_i && captured && fifo_valid;
+    assign dout_valid=!restart_sync_i && (captured ? fifo_valid : ((fifo_mode==0) && direct_sample_valid));
     assign correction_clip_low=clip_low;
     assign correction_clip_high=clip_high;
     always_ff @(posedge clk or negedge rst_n) begin

@@ -24,8 +24,8 @@ DSP_RTL = "subsys/ad4080_dsp/rtl"
 # 源码摘要覆盖临时绑定涉及的依赖，缺少一个叶子也不能代表原 DSP。
 SHA256 = {
     "sinc5_comp_coeff_lut.svh": "33022a5a33888f7f363e5e92ef305605085cf54cbace93c6a72c35d7ce9a1801",
-    "ad4080_top.sv": "f48b85d956f8e737d208f00ad6052763ed89cf56f9f6965ef1b26b5f63dfd08f",
-    "ad4080_regs.sv": "4c7a9a949fccd97d01f41688df10c99db24eccd4174317b92dbf4a48ba53765d",
+    "ad4080_top.sv": "033880fb1a64c8b4cd00c1c615fa86576d9c50594bf03c345e9829c79dfe8f36",
+    "ad4080_regs.sv": "6053552d1eabe093b3fc2cfe4b2819582509c8b4ad17218c46d45f13bc75b327",
     "ad4080_dsp_chain.sv": "bf8fdbdd7461fe8e566e9c1b142075edcbedf37bb1decc6a4aa805fe66633155",
     "cnv_ctrl.sv": "b63015114f34494479974e9f1f1cacd793bdd18f8e3b0d8084ed356a16bc095a",
     "event_detect.sv": "6400b704e19f415af0090b422489ffd27a2e7bb811578e4e9f0980229d82030e",
@@ -35,7 +35,7 @@ SHA256 = {
     "sinc1_decim.sv": "936cb25b6bc6da9994213741e9a6d03e843eda8c6dbb258271b246510d9e9b79",
     "sinc5_comp.sv": "5cf173051e275764beb02f5ca81b3ec30a4028220f6b5912d3468adb1e88fa0d",
     "sinc5_decim.sv": "fe70cc10d4854be8339cdfc95a3377fabf0477393377a4db680de7042d4900e5",
-    "spi_slave.sv": "a6d8cd29064e67d492b1f583920478f84c7cd5c8fa88c023adc12043558beca7",
+    "spi_slave.sv": "8700e51b81c96fa04a2c0097a593b87e575147762675df714662a3a1a321698d",
     "sys_error_corr.sv": "035c5c869c14b8e4555855f05251c673327685f8f447c487fb91b111fc3d3f80",
 }
 

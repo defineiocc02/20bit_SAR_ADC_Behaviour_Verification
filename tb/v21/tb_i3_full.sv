@@ -146,6 +146,8 @@ module tb_i3_full;
         .ev_bit_valid_i(ev_bit_valid_i), .ev_bit_i(ev_bit_i),
         .ev_bit_index_i(ev_bit_index_i), .ev_event_index_i(ev_event_index_i),
         .ev_qid_i(ev_qid_i),
+        // 本台架由 prepare_flash 预置 F，不使用独立 Flash 返回事务。
+        .ev_flash_valid_i(1'b0), .ev_flash_code_i(3'd0),
         .sched_ext_sel(sched_ext_sel),
         .sched_acq(sched_acq), .sched_conv(sched_conv), .sched_idle(sched_idle),
         .sched_ids(sched_ids),
@@ -351,6 +353,8 @@ module tb_i3_full;
         else $display("      A 节点快照有效  OK");
 
         // ---- E1：采 B + 捕获 A 余差 ----
+        // 公共沿并行通知两个宏。此时只锁存 A 的余差，不能把 B 当作
+        // 已进入转换。hold 故意推迟，以便将物理释放和码返回分开观察。
         $display("---- E1: 采 B 并捕获 A 余差 ----");
         @(negedge clk);
         sample_event = 1'b1; input_captured = 1'b1; residue_captured = 1'b1;
@@ -374,6 +378,7 @@ module tb_i3_full;
         else $display("      hold 未到 -> 不释放  OK");
 
         // ---- 通过实际握手返回 A 的 raw ----
+        // 返回口不携带上游 tag。预期 A1 来自 DUT 保存的当前 ADC2 owner。
         begin
             logic [31:0] gt;
             deliver_raw(13'd5120, 1'b0, gt);
@@ -415,6 +420,7 @@ module tb_i3_full;
         else $display("      B k=258  OK");
 
         // E2：捕获 B（同时不给 input_captured，模拟停收）
+        // 停止新输入时仍需退役旧转换。两个完成量独立，以覆盖排空路径。
         @(negedge clk);
         sample_event = 1'b1; input_captured = 1'b0; residue_captured = 1'b1;
         hold_ack = 1'b0;
@@ -428,6 +434,7 @@ module tb_i3_full;
         sample_event = 1'b0; residue_captured = 1'b0;
 
         // B 的 raw 返回
+        // 新 owner 必须取 B2，即使 A 返回经历过延迟 hold。
         begin
             logic [31:0] gt2;
             deliver_raw(13'd2560, 1'b0, gt2);

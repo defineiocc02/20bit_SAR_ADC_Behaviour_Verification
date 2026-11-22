@@ -53,6 +53,7 @@ module ad4080_result_spi_pins (
     logic ack_dclk_q;
     (* ASYNC_REG = "TRUE" *) logic [1:0] ack_sync_q, dcs_sync_q, fault_sync_q;
     (* ASYNC_REG = "TRUE" *) logic [1:0] selected_sync_q;
+    (* ASYNC_REG = "TRUE" *) logic [1:0] full_sync_q;
     logic window_fault_q, window_started_q, window_done_q, capture_claimed_q;
     logic dcs_previous_q, close_early_q, finished_io_q, admitted_window_io_q;
     logic completed_group, dcs_rise_io;
@@ -101,6 +102,7 @@ module ad4080_result_spi_pins (
             dcs_previous_q <= 1'b1;
             fault_sync_q <= '0;
             selected_sync_q <= '0;
+            full_sync_q <= '0;
             close_early_q <= 1'b0;
             finished_io_q <= 1'b0;
             admitted_window_io_q <= 1'b0;
@@ -109,12 +111,13 @@ module ad4080_result_spi_pins (
             dcs_previous_q <= dcs_sync_q[1];
             fault_sync_q <= {fault_sync_q[0], window_fault_q};
             selected_sync_q <= {selected_sync_q[0], selected_async_o};
-            if (!capture_full_i && !session_io_i) finished_io_q <= 1'b0;
+            full_sync_q <= {full_sync_q[0], capture_full_i};
+            if (!full_sync_q[1] && !session_io_i) finished_io_q <= 1'b0;
             else if (completed_group) finished_io_q <= 1'b1;
 
             // 未满时开始的 DCS 即使延续到 FULL 也未取得任何读权，收片选
             // 不可作废刚完成的另一条记录。只关闭成功出过第一头位的窗口。
-            if (!spi_mode || (!capture_full_i && !session_io_i)) begin
+            if (!spi_mode || (!full_sync_q[1] && !session_io_i && !selected_sync_q[1])) begin
                 close_early_q <= 1'b0;
                 admitted_window_io_q <= 1'b0;
             end else if (dcs_rise_io) begin
@@ -129,6 +132,9 @@ module ad4080_result_spi_pins (
     // =========================================================================
     assign slot_available = mailbox_reset_ni && mailbox_pending_q && ack_dclk_q != tx_token_q;
     assign header_bit = header_i[3'd7-header_index_q[2:0]];
+    // DCLK 可能停在高位直到主机看见 FULL。首下降沿直接使用同一个
+    // 对外 FULL，不能等待两个可能根本不存在的 DCLK。实际 IO 约束
+    // 须让 FULL 到首 DCLK 满足建立窗口。内部 clk_io_i 状态只看同步值。
     assign header_fire = rst_ni && !dcs_ni && spi_mode && !window_fault_q &&
                          header_index_q < 4'd8 && (window_started_q || (capture_full_i && !capture_claimed_q));
     assign payload_fire = rst_ni && !dcs_ni && spi_mode && window_started_q &&

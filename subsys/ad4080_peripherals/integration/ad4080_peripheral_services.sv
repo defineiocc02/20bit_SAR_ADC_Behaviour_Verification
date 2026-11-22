@@ -194,12 +194,21 @@ module ad4080_peripheral_services #(
         else if (sw_accept_aon) soft_init_aon_q <= pwr_cmd_aon && pwr_op_aon == 2'd1;
         else if (cfg_init_done_aon_o) soft_init_aon_q <= 1'b0;
     end
-    ad4080_pwr_reset_sync u_poll_pad_qualify (
-        .clk_i(clk_aon_i),
-        .hold_ni(cfg_hw_reset_no && vdd33_ok_async_i && iovdd_ok_async_i &&
-                 (external_io_i || (iovdd_ldo_en_o && ldo_pd_aon_q == 2'b00))),
-        .ready_no(poll_pads_qualified_aon)
+    logic poll_vdd33_aon, poll_iovdd_aon, poll_control_aon;
+    // 两路异步电源监测各自撤销和同步释放。AON 控制许可独立，
+    // 三者在目的域形成访问许可，组合结果不再驱动触发器复位。
+    ad4080_pwr_reset_sync u_poll_vdd33 (
+        .clk_i(clk_aon_i), .hold_ni(vdd33_ok_async_i), .ready_no(poll_vdd33_aon)
     );
+    ad4080_pwr_reset_sync u_poll_iovdd (
+        .clk_i(clk_aon_i), .hold_ni(iovdd_ok_async_i), .ready_no(poll_iovdd_aon)
+    );
+    ad4080_pwr_reset_sync u_poll_control (
+        .clk_i(clk_aon_i),
+        .hold_ni(cfg_hw_reset_no && (external_io_i || (iovdd_ldo_en_o && ldo_pd_aon_q == 2'b00))),
+        .ready_no(poll_control_aon)
+    );
+    assign poll_pads_qualified_aon = poll_control_aon && poll_vdd33_aon && poll_iovdd_aon;
     assign cfg_poll_allow_aon_o = soft_init_aon_q && !cfg_init_done_aon_o && poll_pads_qualified_aon;
 
     ad4080_cfg_power_cdc u_power_cdc (
@@ -276,8 +285,19 @@ module ad4080_peripheral_services #(
     // -------------------------------------------------------------------------
     logic por_req_aon_q, por_pending_aon_q;
     logic por_ack_core_q;
+    logic por_bridge_reset_no, por_csr_ready_core;
     (* ASYNC_REG = "TRUE" *) logic [1:0] por_ack_aon_q;
     (* ASYNC_REG = "TRUE" *) logic [1:0] por_req_core_q;
+
+    // 握手双方只随共同硬 POR 换代。FIFO 独立复位时，保持上次确认，
+    // 待 CSR 可以采纳后再确认在途事件，避免旧翻转在恢复时被当作新故障。
+    ad4080_pwr_reset_sync u_por_bridge_reset (
+        .clk_i(clk_core_i), .hold_ni(por_d_ok_async_i), .ready_no(por_bridge_reset_no)
+    );
+    // FIFO 的硬复位网络只进复位端。用单独的目的域确认许可裁决事件退休。
+    ad4080_pwr_reset_sync u_por_csr_ready (
+        .clk_i(clk_core_i), .hold_ni(fifo_reset_no), .ready_no(por_csr_ready_core)
+    );
 
     always_ff @(posedge clk_aon_i or negedge cfg_hw_reset_no) begin
         if (!cfg_hw_reset_no) begin
@@ -295,18 +315,19 @@ module ad4080_peripheral_services #(
         end
     end
 
-    always_ff @(posedge clk_core_i or negedge fifo_reset_no) begin
-        if (!fifo_reset_no) begin
+    always_ff @(posedge clk_core_i or negedge por_bridge_reset_no) begin
+        if (!por_bridge_reset_no) begin
             por_req_core_q <= '0;
             por_ack_core_q <= 1'b0;
         end else begin
             por_req_core_q <= {por_req_core_q[0], por_req_aon_q};
-            por_ack_core_q <= por_req_core_q[1];
+            if (por_csr_ready_core) por_ack_core_q <= por_req_core_q[1];
         end
     end
 
     // 确认沿同时由 CSR 采纳事件。停钟若已见请求，电平保持到该采纳沿。
-    assign por_ana_event_core_o = fifo_reset_no && (por_req_core_q[1] != por_ack_core_q);
+    assign por_ana_event_core_o = por_bridge_reset_no && por_csr_ready_core &&
+                                  (por_req_core_q[1] != por_ack_core_q);
 
     // =========================================================================
     // 2. AON 到核心的测试会话互锁
@@ -391,40 +412,56 @@ module ad4080_peripheral_services #(
     logic read_permission_core;
     logic function_read_valid_core;
     logic store_req, store_write, store_read_valid;
-    logic io_word_release_ni;    // 共同的异步撤销条件，两个许可在 I/O 域分别释放
+    logic io_word_release_ni;    // 原始资格与 I/O 复位，仅供本域 ready 门控
     logic io_payload_ready;     // 已交到 I/O 域的普通字及产品 FIFO epoch
     logic io_check_ready;       // 该电源会话曾提供合格参考后才可取固定字
     logic [13:0] store_addr;     // 保持原物理分行位序
     logic [19:0] store_wdata, store_rdata;
 
-    // [失效] 许可撤销可以赶在目的时钟恢复前封住写口。放开必须由目的域
-    // 两级释放，不能把 AON 条件直接当成核心或 I/O 域的同步 valid。
+    logic conversion_power_core, conversion_domain_core, read_power_core, read_domain_core;
+    logic io_domain_ready, io_store_ready, io_record_power_ready, io_lvds_power_ready, io_ref_ready;
+    wire read_allow_aon = pwr_fifo_read_allow_aon && otp_shadow_valid_aon_o;
+    wire lvds_allow_aon = pwr_lvds_allow_aon && otp_shadow_valid_aon_o;
+    // [失效] AON 功能许可、目标时钟域、MBIST 内容资格分别同步释放。
+    // 单条资格撤销即屏蔽 ready；跨域条件的并合只作事务门控，不进入异步复位端。
     assign conversion_allow_aon_o = pwr_conversion_allow_aon && otp_shadow_valid_aon_o && bist_idle_aon;
     ad4080_pwr_reset_sync u_conversion_permission (
-        .clk_i(clk_core_i), .hold_ni(conversion_allow_aon_o && core_reset_no),
-        .ready_no(conversion_allow_core_o)
+        .clk_i(clk_core_i), .hold_ni(conversion_allow_aon_o), .ready_no(conversion_power_core)
     );
+    ad4080_pwr_reset_sync u_conversion_domain (
+        .clk_i(clk_core_i), .hold_ni(core_reset_no), .ready_no(conversion_domain_core)
+    );
+    assign conversion_allow_core_o = conversion_power_core && conversion_domain_core;
     ad4080_pwr_reset_sync u_read_permission (
-        .clk_i(clk_core_i), .hold_ni(pwr_fifo_read_allow_aon && otp_shadow_valid_aon_o && fifo_reset_no),
-        .ready_no(read_permission_core)
+        .clk_i(clk_core_i), .hold_ni(read_allow_aon), .ready_no(read_power_core)
     );
+    ad4080_pwr_reset_sync u_read_domain (
+        .clk_i(clk_core_i), .hold_ni(fifo_reset_no), .ready_no(read_domain_core)
+    );
+    assign read_permission_core = read_power_core && read_domain_core;
     // Rev. B 表 11 的外供低功耗读回只走 SPI。相同的存储资格在 I/O 域
     // 独立释放，不能复用下面会在待机和睡眠关闭的 LVDS 资格。
     ad4080_pwr_reset_sync u_fifo_record_io_permission (
-        .clk_i(clk_io_i),
-        .hold_ni(pwr_fifo_read_allow_aon && otp_shadow_valid_aon_o && io_reset_no && !bist_contents_invalid_core_o),
-        .ready_no(fifo_record_allow_io_o)
+        .clk_i(clk_io_i), .hold_ni(read_allow_aon), .ready_no(io_record_power_ready)
     );
+    ad4080_pwr_reset_sync u_io_domain (
+        .clk_i(clk_io_i), .hold_ni(io_reset_no), .ready_no(io_domain_ready)
+    );
+    ad4080_pwr_reset_sync u_io_store_contents (
+        .clk_i(clk_io_i), .hold_ni(!bist_contents_invalid_core_o), .ready_no(io_store_ready)
+    );
+    assign fifo_record_allow_io_o = io_record_power_ready && io_domain_ready && io_store_ready;
     // [测试] 保持阶段仍允许外部排干已交付的 I/O 字。真正开始写 SRAM 后
     // 内容作废标志同时封住 I/O 事务，直到核心收到重建确认。
-    assign io_word_release_ni = pwr_lvds_allow_aon && otp_shadow_valid_aon_o && io_reset_no &&
-                                !bist_contents_invalid_core_o;
+    assign io_word_release_ni = lvds_allow_aon && io_reset_no && !bist_contents_invalid_core_o;
     ad4080_pwr_reset_sync u_io_word_permission (
-        .clk_i(clk_io_i), .hold_ni(io_word_release_ni), .ready_no(io_payload_ready)
+        .clk_i(clk_io_i), .hold_ni(lvds_allow_aon), .ready_no(io_lvds_power_ready)
     );
     ad4080_pwr_reset_sync u_io_check_permission (
-        .clk_i(clk_io_i), .hold_ni(io_word_release_ni && ref_seen_aon_q), .ready_no(io_check_ready)
+        .clk_i(clk_io_i), .hold_ni(ref_seen_aon_q), .ready_no(io_ref_ready)
     );
+    assign io_payload_ready = io_word_release_ni && io_lvds_power_ready && io_domain_ready && io_store_ready;
+    assign io_check_ready = io_payload_ready && io_ref_ready;
     // 模式与字在 I/O 域一同提交。普通字仍能来自已存记录，当前参考掉压
     // 只撤新转换，不能借固定字的启动判据断开产品读回的 epoch。
     assign io_word_ready_o = io_intf_check_i ? io_check_ready : io_payload_ready;

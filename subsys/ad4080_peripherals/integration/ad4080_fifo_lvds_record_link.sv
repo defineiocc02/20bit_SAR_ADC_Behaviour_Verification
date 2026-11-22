@@ -189,15 +189,25 @@ module ad4080_fifo_lvds_record_link #(
     logic [1:0] raw_prefetch_words;                      // 两级同步已确认可用，避免提前发送头
     logic da_fall, da_rise, db_fall, db_rise;
     logic payload_start, protocol_error, mode_error, dropped, overflow;
+    logic readback_allow_io_q;
     logic unused_core_online, unused_core_full, unused_busy;
     logic [2:0] unused_beat_width;
 
-    // [异常] 失配读经同步触发组帧中止。已活动错误即时封 raw 链并保持到
-    // 核心旧授权退场。无绑定的命令从未启动读回，无需启动这种冲刷。
+    // [异常] 组合状态仅进入 I/O 域寄存器。物理 epoch 撤销仍异步关闭，
+    // 活动错误由本域采纳后冲刷 raw 链，并保持到核心旧授权退场。
+    always_ff @(posedge clk_io_i or negedge io_epoch_no) begin
+        if (!io_epoch_no) readback_allow_io_q <= 1'b0;
+        else readback_allow_io_q <= !flush_io_q && !(record_error_o && request_io_q);
+    end
+    // 在目标域两拍同步会话位之前，来源已经建立字数；退场完成前保持总线。
+`ifndef SYNTHESIS
+    assert property (@(posedge clk_io_i) disable iff (!io_epoch_no)
+                     request_io_q && $past(request_io_q) |-> $stable(count_io_q));
+`endif
     assign read_fault_core_o = protocol_error || mode_error || dropped || overflow;
     ad4080_result_readback_link #(.FIFO_ADDR_WIDTH(FIFO_ADDR_WIDTH)) u_readback (
         .clk_core_i, .clk_io_i, .fifo_reset_ni, .io_reset_ni,
-        .io_session_allow_i(io_session_allow_i && !flush_io_q && !(record_error_o && request_io_q)),
+        .io_session_allow_i(readback_allow_io_q),
         .io_start_allow_i(payload_start), .read_req_valid_core_i(read_req_valid_core_i && read_credit),
         .read_req_ready_core_o(lower_ready), .read_addr_core_i,
         .read_dual_lane_core_i(1'b0), .read_intf_check_core_i(1'b0),

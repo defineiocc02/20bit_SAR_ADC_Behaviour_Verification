@@ -295,6 +295,7 @@ module ad4080_peripheral_product #(
         .P_POR_ANA_EVENT_ENABLE(1'b1), .P_CONTINUOUS_LVDS_BOUND(1'b1), .P_AON_CFG_BOUND(1'b1)
     ) u_dsp (
         .clk(clk_core_i), .rst_n(fifo_reset_n), .cs_n, .sclk, .sdi, .sdo, .sdo_oe,
+        .restart_sync_i(1'b0), .stored_word_valid_o(), // 产品软复位仍由真实 SPI/AON 仲裁。
         .interface_ready(cfg_control_allow_core), .pwr_cfg_full_allow_i(cfg_allow_core),
         .pwr_cfg_poll_allow_i(cfg_poll_allow_core),
         .adc_idle(sample_source_idle_core_i && !record_locked && !bist_hold_core),

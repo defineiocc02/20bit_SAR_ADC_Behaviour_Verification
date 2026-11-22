@@ -38,6 +38,8 @@ module tb_i4b_e2e;
         .ev_bit_valid_i(ev_bit_valid_i), .ev_bit_i(ev_bit_i),
         .ev_bit_index_i(ev_bit_index_i), .ev_event_index_i(ev_event_index_i),
         .ev_qid_i(ev_qid_i),
+        // 本台架由 prepare_flash 预置 F，不使用独立 Flash 返回事务。
+        .ev_flash_valid_i(1'b0), .ev_flash_code_i(3'd0),
         .sched_ext_sel(sched_ext_sel),
         .sched_acq(sched_acq), .sched_conv(sched_conv), .sched_idle(sched_idle),
         .sched_ids(sched_ids),

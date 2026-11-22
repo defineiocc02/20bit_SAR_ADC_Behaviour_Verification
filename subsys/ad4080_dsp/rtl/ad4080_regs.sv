@@ -33,10 +33,12 @@ module ad4080_regs #(
     parameter bit P_CNV_ERROR_BOUND = 1'b0,    // 仅可信同域 tCONV 监测提供器件错误事件。
     parameter bit P_POR_ANA_EVENT_ENABLE = 1'b0, // 仅绑定已跨域交付的实际参考故障脉冲。
     parameter bit P_AON_CFG_BOUND = 1'b0,       // 真正 AON 裁决后提交 0x00/02/18。
-    parameter bit P_ROM_CRC_ERROR_BOUND = 1'b0  // 仅绑实际 ROM 校验输出。
+    parameter bit P_ROM_CRC_ERROR_BOUND = 1'b0, // 仅绑实际 ROM 校验输出。
+    parameter int FIFO_DEPTH = 16384            // 物理结果阵列字数，设备上限 16,384。
 ) (
     // --- 严格实体协议 ---
     input  logic clk, rst_n,                 // CSR 与 SPI 已在同一核心域。
+    input  logic restart_sync_i = 1'b0,     // 本地换代清配置；SPI 软件复位保留 ASC。
     input  logic [15:0] addr, wdata,          // addr 与整个写实体同时有效。
     input  logic [1:0] write_bytes,          // 大小不符不得只写首字节。
     input  logic we,                        // SPI 已收齐实体并成功完成该帧约束。
@@ -111,14 +113,19 @@ module ad4080_regs #(
     logic keep_stream_length_r;               // 表44 的可读写位与不支持的非零循环独立。
     logic [1:0] crc_enable_bits_r, crc_inverse_bits_r;
     logic [7:0] scratch_r;
+    // 许可判据使用两态返回值，未驱动或未知输入不能放开写权限。
+    function automatic bit flag_set(input logic value);
+        flag_set = value == 1'b1;
+    endfunction
+
     // 所有权未确定时保留已确认的整字配置，拒绝跨域过程中覆盖下一次启动用的时隙。
-    wire config_edit_idle = (adc_idle === 1'b1) && (data_config_ready_i === 1'b1) &&
+    wire config_edit_idle = flag_set(adc_idle) && flag_set(data_config_ready_i) &&
                             !capture_active && !capture_incomplete && !capture_io_active;
     logic reset_armed, por_r, por_analog_r;
     logic not_ready_r, clock_r, crc_error_r, readonly_r, partial_r, address_r;
     logic [15:0] pair_value;
     wire [14:0] watermark_candidate = clamp_watermark(pair_value[14:0]);
-    wire software_reset_allowed = (adc_idle === 1'b1) && !capture_incomplete && !capture_io_active;
+    wire software_reset_allowed = flag_set(adc_idle) && !capture_incomplete && !capture_io_active;
     wire sw_reset_request = we && write_bytes==2'd1 && addr == 16'h0000 && reset_armed &&
                             !(wdata[7] && wdata[0]);
     wire power_cfg_idle = software_reset_allowed && !capture_active;
@@ -139,6 +146,8 @@ module ad4080_regs #(
     wire conversion_cfg_locked = P_CNV_TIMING_BOUND && capture_active;
 
     initial begin
+        if (FIFO_DEPTH < 1 || FIFO_DEPTH > 16384)
+            $fatal(1,"ad4080_regs: FIFO depth must be between 1 and 16384");
         if (P_MULTIBYTE_ORDER != -1 && P_MULTIBYTE_ORDER != 0)
             $fatal(1,"ad4080_regs: multibyte order must be explicitly bound or unavailable");
         if (P_OFFSET_LSB_ADDR != -1 && P_OFFSET_LSB_ADDR != 32'h00000025)
@@ -149,8 +158,18 @@ module ad4080_regs #(
 
     function automatic [14:0] clamp_watermark(input logic [14:0] value);
         if (value == 0) clamp_watermark = 15'd1;
-        else if (value > 15'd16384) clamp_watermark = 15'd16384;
+        else if (value > 15'(FIFO_DEPTH)) clamp_watermark = 15'(FIFO_DEPTH);
         else clamp_watermark = value;
+    endfunction
+
+    // Rev. B 表62要求非法抽取码钳至所选滤波器的最大 N。
+    // 保留主机原始字段用于读回，数值和时基路径统一使用有效档位。
+    function automatic logic [3:0] filter_rate(input logic [1:0] mode, input logic [3:0] rate);
+        case (mode)
+            2'd1: filter_rate = (rate > 4'd9) ? 4'd9 : rate;
+            2'd2, 2'd3: filter_rate = (rate > 4'd7) ? 4'd7 : rate;
+            default: filter_rate = rate;
+        endcase
     endfunction
 
     function automatic logic gpio_function_supported(input logic [3:0] value);
@@ -259,10 +278,10 @@ module ad4080_regs #(
             16'h0029: rdata={8'd0,1'b0,dec_r,1'b0,filter_r};
             default: begin address_valid=1'b0; access_supported=1'b0; access_reject_reason=REJECT_ADDRESS; end
         endcase
-        if (P_AON_CFG_BOUND && (pwr_init_poll_i === 1'b1)) begin
+        if (P_AON_CFG_BOUND && flag_set(pwr_init_poll_i)) begin
             if (addr == 16'h0011) read_only=1'b1;
             else begin access_supported=1'b0; access_reject_reason=REJECT_NOT_IDLE; end
-        end else if (P_AON_CFG_BOUND && pwr_cfg_full_allow_i !== 1'b1 && addr != 16'h0000 && addr != 16'h0002) begin
+        end else if (P_AON_CFG_BOUND && !flag_set(pwr_cfg_full_allow_i) && addr != 16'h0000 && addr != 16'h0002) begin
             access_supported=1'b0; access_reject_reason=REJECT_NOT_IDLE;
         end
     end
@@ -294,7 +313,7 @@ module ad4080_regs #(
     // -------------------------------------------------------------------------
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) cnv_error_r <= 1'b0;
-        else if (sw_reset_now) cnv_error_r <= 1'b0;
+        else if (sw_reset_now || restart_sync_i) cnv_error_r <= 1'b0;
         else if (P_CNV_ERROR_BOUND && conversion_timing_error_i) cnv_error_r <= 1'b1;
         else if (cnv_error_w1c) cnv_error_r <= 1'b0;
     end
@@ -305,6 +324,7 @@ module ad4080_regs #(
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             offset_r<='0; gain_r<=10'd512; filter_r<=2'd0; dec_r<=4'd0;
+            // 表56 规定寄存器复位值 0x4000。小容量验证例在布防前写入水位。
             fifo_mode_r<=2'd0; watermark_r<=15'd16384; hyst_r<='0; hi_r<='0; lo_r<='0;
             event_r<=1'b0; hi_route_r<=1'b0; lo_route_r<=1'b0; cnv_route_r<=1'b0;
             gpio_dir_r<=4'b0001; gpio_data_r<='0; gpio_sel_r<='0;
@@ -319,8 +339,10 @@ module ad4080_regs #(
             hi_clr<=1'b0; lo_clr<=1'b0; fifo_arm<=1'b0; fifo_clear<=1'b0;
             fsync_pulse<=1'b0; sw_reset_pulse<=1'b0;
             cfg_reject<=1'b0; cfg_reject_reason<='0;
-        end else if (sw_reset_now) begin
+        end else if (sw_reset_now || restart_sync_i) begin
             // 软件复位只重置配置，不清捕获 RAM 或已完成记录的会话状态。
+            // 适配器换代与硬启动同样清地址方向，FIFO 由顶层同步取消。
+            if (restart_sync_i) ascend_r<=1'b0;
             offset_r<='0; gain_r<=10'd512; filter_r<=2'd0; dec_r<=4'd0;
             fifo_mode_r<=2'd0; watermark_r<=15'd16384; hyst_r<='0; hi_r<='0; lo_r<='0;
             event_r<=1'b0; hi_route_r<=1'b0; lo_route_r<=1'b0; cnv_route_r<=1'b0;
@@ -508,22 +530,22 @@ module ad4080_regs #(
             end
             // Rev. B p.24 和表 47。一个新参考故障与 bit3 W1C 同沿时，
             // 末次赋值保留新事件。公开 ROM 状态位的来源独立于参考事件。
-            if (P_POR_ANA_EVENT_ENABLE && (por_ana_event_i === 1'b1)) por_analog_r<=1'b1;
+            if (P_POR_ANA_EVENT_ENABLE && flag_set(por_ana_event_i)) por_analog_r<=1'b1;
             // 来自 AON 的拒收可能在 SPI 帧后才到达，仍应送工程诊断。
             if (P_AON_CFG_BOUND && pwr_rsp_valid_i && !pwr_rsp_accept_i) reject_write(REJECT_NOT_IDLE);
         end
     end
 
     assign status={st_fifo_full,st_fifo_read_done,st_hi_flag,st_lo_flag,por_analog_r,cnv_error_alert_o,
-                   (P_ROM_CRC_ERROR_BOUND && rst_n && (rom_crc_error_i === 1'b1)),por_r};
+                   (P_ROM_CRC_ERROR_BOUND && rst_n && flag_set(rom_crc_error_i)),por_r};
     // p.28 的忙状态随真实初始化结束；表46 的违规事件仍由独立 W1C 清。
-    assign interface_status={(not_ready_r || (P_AON_CFG_BOUND && (pwr_init_poll_i === 1'b1))),
+    assign interface_status={(not_ready_r || (P_AON_CFG_BOUND && flag_set(pwr_init_poll_i))),
                              2'b00,clock_r,crc_error_r,readonly_r,partial_r,address_r};
     assign status_long={2'b00,status[7:4],status[2:1],status[3],status[0],
                         interface_status[7],interface_status[4:0]};
     assign status_short={1'b0,status[0],interface_status[7],interface_status[4:0]};
     assign offset_code=offset_r; assign gain_code=gain_r;
-    assign filter_sel=filter_r; assign dec_sel=dec_r;
+    assign filter_sel=filter_r; assign dec_sel=filter_rate(filter_r,dec_r);
     assign fifo_mode=fifo_mode_r; assign fifo_watermark=watermark_r;
     assign event_hyst=hyst_r; assign event_hi=hi_r; assign event_lo=lo_r;
     assign event_en=event_r; assign hi_route=hi_route_r; assign lo_route=lo_route_r;

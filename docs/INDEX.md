@@ -5,7 +5,7 @@
 | 要回答的问题 | 入口 |
 | --- | --- |
 | 从哪个版本开始复现、引用哪个提交？ | [本次结构与唯一性实测](audit/TREE_AUDIT_REPORT.md#current-tree-review) · [分支、软件包与发布记录](meta/CHANGELOG.md) · [软件引用](meta/CITATION.cff) |
-| 调度、扰动与 DEM 怎样运行？ | [数字 IP 图册](algorithms/README.md) · [逐模块算法和状态](algorithms/digital.md) · [顶层与实例清单](../rtl/README.md) |
+| 调度、扰动与 DEM 怎样运行？ | [核心原理与代码精讲（7篇）](guide/deep_dive/README.md) · [数字 IP 图册](algorithms/README.md) · [逐模块算法和状态](algorithms/digital.md) · [顶层与实例清单](../rtl/README.md) |
 | 模拟宏怎样同数字 IP 交接？ | [接口合同](CONTRACT_CURRENT.md) · [物理接口与重构方程](v21/PHYSICAL_INTERFACE.md) · [开关编码、保护码和受理沿](v21/SWITCHING_RULES.md) · [权重装载](v21/CONFIG_CONTRACT.md) |
 | 有哪些数字实测、哪些属于模型估算？ | [逐项状态](STATUS.md) · [扰动注入与扣回实测](audit/TREE_AUDIT_REPORT.md#dither-word-audit) · [全码 DNL/INL 模型对照](audit/TREE_AUDIT_REPORT.md#全码静态线性度) |
 | 想用自己的输入复核 | [数字仿真入口](../flow/sim/README.md) · [Python 快速上手](guide/QUICKSTART.md) · [行为模型图和试验输入](figures/behavioral/README.md) · [故障排查](guide/DEBUGGING.md) |

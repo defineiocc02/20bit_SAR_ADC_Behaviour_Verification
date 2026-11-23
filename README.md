@@ -1,8 +1,66 @@
-# 20 位两级 SAR ADC 数字 IP
+# 20 位两级 SAR ADC 数字 IP（AD4080 对标单芯片架构）
 
-这套数字逻辑把两次量化合成一个 20 位结果。前级 SAR 先给出粗判决，数字 IP 据此逐位切换残差 DAC（RDAC）。第二级 ADC（ADC2）测量剩余电压并返回 13 位原码。要算准最终结果，还需要知道**这一笔实际用了哪八片电容，采样和转换时分别打开了哪些开关**。顶层将这些记录、校准权重和原码按样本标签配对，再输出最终码。
+这套工程实现了面向 **20-bit / 40 MSPS** 精密两级 SAR ADC 的完整数字芯片顶层与黄金行为模型。前级快速量化器（SADC）给出粗判决，数字核据此驱动 18 片残差 DAC（RDAC）切片池完成交织、分路扰动与三维 DEM；第二级 ADC（ADC2）返回 13 位细码后，片内按该笔实际物理片号与开关状态查表重构 20 位结果，再经片上系统校正、可编程滤波、16K FIFO 存储与 SPI/LVDS 读出。
 
-**单芯片数字顶层是 `ad4080_chip_top`。** 它把转换核产出的 20 位码接到系统零点/增益校正、滤波、触发记录及 SPI/LVDS 读出。由外围服务共享 16,384 × 20 位结果存储。转换核 `adc_digital_ip_v21` 是这个顶层的子模块，默认 Python 模型对应其中的扰动、DEM 和定点重构。[单芯片 RTL](rtl/top/ad4080_chip_top.sv) · [转换核 RTL](rtl/sar_core/adc_digital_ip_v21.sv) · [接口合同](docs/CONTRACT_CURRENT.md)
+**单芯片数字顶层是 `ad4080_chip_top`，转换核子模块是 `adc_digital_ip_v21`。** 默认 Python 模型（[9.0.1+adi.repro](pyproject.toml)）与转换核使用同一套字源、片选、DEM 和定点重构规则。[单芯片 RTL](rtl/top/ad4080_chip_top.sv) · [转换核 RTL](rtl/sar_core/adc_digital_ip_v21.sv) · [接口合同](docs/CONTRACT_CURRENT.md) · [项目状态](docs/STATUS.md)
+
+![AD4080 整芯片 1500×1500 µm Floorplan：转换核 IP、4 Bank 结果 SRAM、CTRL 外围、OTP 与模拟分区](rtl/ad4080_periph/figures/floorplan.png)
+
+---
+
+## 核心功能精讲（从原理到代码，逐块拆透）
+
+想快速看懂每个关键模块“**为什么这么设计、传统方案卡在哪、硬件电路和 RTL 每一行怎么实现**”，直接进入对应精讲（[精讲总导读](docs/guide/deep_dive/README.md)）：
+
+| 关键模块 | 一句话看懂核心原理 | 详细图文精讲 | 对应源码 / 模型 |
+| --- | --- | --- | --- |
+| **RDAC 分离与 18 选 8 交织** | 摘出大电容不做试错，吃下 6 大红利；18 片池留 2 片备用轮换打散 $f_s/2$ 杂散 | [01 · RDAC 与 18 选 8 交织精讲](docs/guide/deep_dive/01_rdac_and_interleaving.md) | [sched18.sv](rtl/sar_core/sched18.sv) |
+| **整数 + 小数 Split Dither** | “米尺 + 游标”分开晃：整数晃 RDAC 且就地抵消不撑爆 RA；8 片平均凭空造出 $f/8$ 小数 | [02 · Split Dither 精讲](docs/guide/deep_dive/02_split_dither.md) | [dither_pre.sv](rtl/sar_core/dither_pre.sv) |
+| **三维 DEM 与 50% 半格桥接** | 用 $k=213$ 手绘 8×8 棋盘；每个 `8Cu` 拆成两个 `4Cu` 抹平一元区与二进制区的跨界死缝 | [03 · 三维 DEM 与半格桥接精讲](docs/guide/deep_dive/03_3d_dem_and_bridge.md) | [dem_mask_v3.sv](rtl/sar_core/dem_mask_v3.sv) |
+| **两段式动态参考** | 转换期红路缓冲器扛 99% 体力活，余差期蓝路无缓冲直连 `REF_IN`，电流降 100 倍且零温漂 | [04 · 动态参考精讲](docs/guide/deep_dive/04_dynamic_reference.md) | [reference_mux.py](src/adi_model/behavioral/reference_mux.py) |
+| **共享 ×32 余差放大器 RA** | 闭环 `gmR+OTA` 容忍参考继续建立；Auto-Zero 亏 −1.6 dB，宽切窄带赢回 +1.3 dB | [05 · 余差放大器 RA 精讲](docs/guide/deep_dive/05_residue_amplifier.md) | [ra.py](src/adi_model/behavioral/ra.py) |
+| **事件跟随、校准与 7 级重构** | 512 保护门限防溢出；片外求 18×20 权重表；7 级整数流水线只扣一次真实 `Wp` 精准还码 | [06 · 跟随、校准与重构精讲](docs/guide/deep_dive/06_events_calib_recon.md) | [sar_evt_v21.sv](rtl/sar_core/sar_evt_v21.sv) · [recon_v21.sv](rtl/sar_core/recon_v21.sv) |
+| **单芯片顶层与数字外围** | 20-bit 码出核后的后半生：系统校正、26 档滤波、16K SRAM/MBIST、SPI/LVDS 与电源域 | [07 · 单芯片与数字外围精讲](docs/guide/deep_dive/07_peripherals_and_chip_top.md) | [ad4080_chip_top.sv](rtl/top/ad4080_chip_top.sv) |
+
+<a id="先选你要看的东西"></a>
+<a id="跟一笔样本走完数字主线"></a>
+
+---
+
+## 核心实测效果图
+
+### 1. 转换核单笔全链追踪（`tag 54`，字 53 → `410304` 码）
+
+![实测 tag 54，沿字 53 的两条采样通路追到 410304 码](docs/algorithms/figures/digital-transaction-flow.svg)
+
+### 2. 全码 20-bit 静态线性度（INL / DNL）
+
+![全码 20-bit INL/DNL 对照：拟合权重将峰值 |INL| 从 0.934 压至 0.174 LSB20，|DNL| 从 0.111 压至 0.043 LSB20](docs/figures/static_linearity/linearity-0.0001.png)
+
+### 3. 动态频谱（SNDR 94.63 dB / SFDR 118.97 dB）
+
+![行为模型动态频谱 PSD 对照：开启 DEM 与冻结权重表后 SNDR 达 94.63 dB、SFDR 达 118.97 dB](docs/figures/behavioral/F04_psd.png)
+
+### 4. 产品外围 26 档数字滤波扫频（Verilator vs 手册表 28）
+
+![AD4080 26 档数字滤波（SINC1 / SINC5 / SINC5+补偿）Verilator 扫频与手册表 28 对照](rtl/ad4080_periph/figures/filter-response.svg)
+
+---
+
+## 效果与验证条件
+
+| 可以核对的效果 | 实测或模型条件 |
+| --- | --- |
+| **扰动能否扣回** | 本地 Verilator 驱动生产顶层，理想宏读取真实 SADC、RDAC 开关。固定输入连续 1,024 笔，片内字源覆盖全部 64 个字，每笔输出 410304。漏扣字 53 采样权重多 13,568 码；重复扣少 13,568 码。[逐笔数据与复现命令](docs/audit/TREE_AUDIT_REPORT.md#dither-word-audit) |
+| **错配能校正多少** | 给单个物理子单元注入偏差后，192 笔里 24 笔出现 ±32 码误差；装入已知权重后 192 笔全部归零。全码静态模型下拟合权重将峰值 \|INL\| 从 0.934 压至 0.174 LSB20。[192 笔权重配对图](docs/algorithms/figures/integer-arithmetic.svg) · [全码 DNL/INL 对照](docs/audit/TREE_AUDIT_REPORT.md#全码静态线性度) |
+| **能否连续 40 MS/s** | 640 MHz 理想数字时钟与约定宏握手下，顶层连续交付 192 笔，相邻输出间隔均为 25 ns；40 MHz 数字时钟下第一笔余差尚未获授权。真实模拟宏时限与整核物理时序待签核。[时钟条件与对照结果](docs/STATUS.md#持续采样率) |
+| **产品外围验收** | 50 MHz 配置 SPI 通过 1 ps 保持复验；26 档滤波频响与手册表 28 对拍；单路 400 MHz / 双路 200 MHz DDR LVDS 384 笔逐位通过。[产品外围验收](rtl/ad4080_periph/integration/product/ACCEPTANCE.md) · [逐模块手册对照 PDF](rtl/ad4080_periph/report/manual-trace.pdf) |
+
+更多专题图集：[数字 IP 图册 PDF](docs/algorithms/digital-ip-atlas.pdf) · [在线算法与状态机](docs/algorithms/README.md) · [外围台架逐沿时序图](rtl/ad4080_periph/figures/signal-timing.svg) · [裸片电源与复位架构图](rtl/ad4080_periph/power/power_architecture.svg)
+
+---
+
+## 快捷命令与目录结构
 
 | 命令 | 结果与前提 |
 | --- | --- |
@@ -13,66 +71,29 @@
 | `make cal` | ADCToolbox 主机估计、26 档滤波频响及真实 SPI 写入后读回。 |
 | `make audit` | 目录、相对链接、算法图册、手册追溯和交付 SHA-256。 |
 
-从仓库根运行。可用 `RUN_ROOT` 指定一个工作树外的运行目录。复现结果用 `git rev-parse HEAD` 标识。Python 包为 [9.0.1+adi.repro](pyproject.toml)。工具版本和完整验收命令见[重构报告](docs/audit/RTL_REFACTOR.md)。
-
-[**打开数字 IP 图册（四页主图＋算法与状态机附录）**](docs/algorithms/digital-ip-atlas.pdf) · [在线读算法、状态机与可编辑原图](docs/algorithms/README.md) · [逐图对照论文与授权专利](docs/algorithms/README.md#直接核对原图与原文)
-
-[**AD4080 产品外围数字端验收**](rtl/ad4080_periph/integration/product/ACCEPTANCE.md)涵盖配置 SPI、滤波、存储及由已知输入驱动的 40 MS/s 外围连续 LVDS 测试。[逐模块手册对照 PDF](rtl/ad4080_periph/report/manual-trace.pdf)
-
-![实测 tag 54，沿字 53 的两条采样通路追到 410304 码](docs/algorithms/figures/digital-transaction-flow.svg)
-
-<a id="先选你要看的东西"></a>
-## 从一笔采样看功能
-
-<a id="跟一笔样本走完数字主线"></a>
-
-| 步骤 | 数字 IP 做什么 | 对应实现与图 |
-| --- | --- | --- |
-| 选片与交接 | 18 个物理片中，8 片采集、8 片转换、2 片备用。受理新请求时保存片号、样本标签和量化器编号。前一采集组整组转入转换。 | [片选 RTL](rtl/sar_core/sched18.sv) · [片号逐拍图](docs/algorithms/digital.md#schedule) |
-| 生成并注入扰动 | 生产时将 `dither_force_i` 接 0。每次受理，片内产生一个六位字。所选的 SADC 接收低段七位开关，另一套保持。八片 RDAC 接收完整采样预置 `pre`。 | [两端开关译码](rtl/sar_core/dither_pre.sv) · [扰动通路与交替写入状态图](docs/algorithms/digital.md#pre) |
-| 跟随判决并轮换单元 | 数字逻辑只提交前级已确定的位。动态单元匹配（DEM）让不同电容承担同一个名义码。最高区拒绝 512 试探时，本拍关闭写门，从 bit5 继续；末次实际写入的开关记作 `post`。 | [SAR 状态图](docs/algorithms/digital.md#events) · [DEM 开关矩阵](docs/algorithms/digital.md#dem) |
-| 捕获与重构 | 用八片的物理编号查片外标定、片内装载的权重。ADC2 返回原码后，使用同笔 `post` 的权重加回转换贡献，扣除同笔 `pre` 的权重，输出 20 位码、标签和状态。 | [ADC2 归属](rtl/sar_core/adc2_capture.sv) · [权重计算](rtl/sar_core/wsum_v21.sv) · [定点重构](rtl/sar_core/recon_v21.sv) |
-
-## 效果与验证条件
-
-| 可以核对的效果 | 实测或模型条件 |
-| --- | --- |
-| **扰动能否扣回** | 本地 Verilator 驱动生产顶层，理想宏读取真实 SADC、RDAC 开关。固定输入连续 1,024 笔，片内字源覆盖全部 64 个字，每笔输出 410304。单独在重构端漏扣字 53 的采样权重，输出多 13,568 码；重复扣则少 13,568 码。[逐笔数据与复现命令](docs/audit/TREE_AUDIT_REPORT.md#dither-word-audit) |
-| **错配能校正多少** | 给一个物理子单元施加已知偏差，同批 192 笔原码使用名义权重时，10 笔低 32 码、14 笔高 32 码。装入已知系数后，192 笔全部回到参考值。全码 DNL/INL 另由静态电荷模型评估，图注列出失配、训练和测试条件。[192 笔权重配对图](docs/algorithms/figures/integer-arithmetic.svg) · [全码 DNL/INL 对照](docs/audit/TREE_AUDIT_REPORT.md#全码静态线性度) |
-| **能否连续 40 MS/s** | 在 640 MHz 理想数字时钟、比较判决和宏握手按约到达时，顶层连续交付 192 笔，输出间隔 25 ns。数字时钟本身为 40 MHz 时，第一笔余差在预定采样沿尚未获得捕获授权。实际模拟宏时限和同版整核物理时序待验收。[时钟条件与对照结果](docs/STATUS.md#持续采样率) |
-
-直接看图：[64 个字的去扰与断线对照](docs/algorithms/figures/dither-transfer.svg) · [第 32 沿的三个 tag](docs/algorithms/figures/capture-handover.svg) · [512 试探的写门](docs/algorithms/figures/sar-events.svg) · [DEM 开关覆盖](docs/algorithms/figures/physical-masks.svg) · [同条件全码 INL/DNL](docs/figures/static_linearity/linearity-0.0001.svg)。
-
-## 文件放在哪里
-
-根目录有 10 个目录和 5 个文件（含隐藏项）。文件是本页、`Makefile`、`pyproject.toml`、`.gitignore`、`.gitattributes`。
+从仓库根运行，可用 `RUN_ROOT` 指定工作树外输出目录；工具版本与完整验收见[重构报告](docs/audit/RTL_REFACTOR.md)。
 
 | 根目录 | 内容和入口 |
 | --- | --- |
-| [rtl/](rtl/README.md) | 单芯片装配在 `top/`，转换在 `sar_core/`，校正与滤波在 `ad4080_dsp/`，控制、存储和读出在 `ad4080_periph/`。 [编译清单](rtl/filelists/README.md) |
-| [tb/](tb/) | SystemVerilog 测试台、C++ 顶层驱动与冻结向量。集成 ADC 的事件、交接、连续采样和重构检查在 [tb/v21/](tb/v21/)。 |
-| [src/](src/adi_model/) | Python 包 `adi_model`。公共入口在 [defaults.py](src/adi_model/defaults.py)，逐事件比较与重构在 [digital_conversion.py](src/adi_model/digital_conversion.py)。`control/` 实现控制算法，`topology/` 和 `behavioral/` 描述电荷与非理想，`simulation/` 推进样本，`calibration/`、`metrics/` 求系数和误差。 |
-| [flow/](flow/) | [sim/](flow/sim/README.md) 说明仿真和夹具，`tests/` 保存 Python 回归，`formal/`、`synth/` 保存形式验证和后端流程。 |
-| [tools/](tools/) | 可执行入口。定向 RTL 测试用 `run_open_rtl.py`，正式 VCS 回归用 `verify_v21.sh`，结构与图册分别由 `check_engineering.py` 和 `v21_algorithm_atlas.mjs` 核对。 |
-| [docs/](docs/INDEX.md) | [接口合同](docs/CONTRACT_CURRENT.md)、[项目状态](docs/STATUS.md)、[算法与状态机](docs/algorithms/README.md)、[审计证据](docs/audit/README.md)。行为图和全码线性度图在 `figures/`，旧工程记录在 `_history/`。 |
-| [references/](references/README.md) | 论文、讲稿、来源清单。查论文原图和相应页码从这里进入。 |
-| [experiments/](experiments/) | Fig.11 电荷研究和 CAAZ 独立扩展。 |
-| [archive/](archive/) | 旧数字核的历史对照源码。 |
-| [.github/](.github/) | CI 工作流、协作约定及维护模板。 |
+| [rtl/](rtl/README.md) | 单芯片装配在 `top/`，转换核在 `sar_core/`，校正与滤波在 `ad4080_dsp/`，控制、存储和读出在 `ad4080_periph/`。[编译清单](rtl/filelists/README.md) |
+| [tb/](tb/) | SystemVerilog 测试台、C++ 顶层驱动与冻结向量，集成测试在 [tb/v21/](tb/v21/)。 |
+| [src/](src/adi_model/) | Python 包 `adi_model`（[defaults.py](src/adi_model/defaults.py) / [digital_conversion.py](src/adi_model/digital_conversion.py)），按 `control/`、`behavioral/`、`topology/`、`calibration/`、`contracts/` 分层。 |
+| [flow/](flow/) | [仿真夹具](flow/sim/README.md)、Python 回归（`tests/`）、形式验证（`formal/`）与综合脚本（`synth/`）。 |
+| [tools/](tools/) | `run_open_rtl.py`、`verify_v21.sh`、`check_engineering.py`、`check_doc_counts.py`、`v21_algorithm_atlas.mjs`。 |
+| [docs/](docs/INDEX.md) | [核心原理精讲](docs/guide/deep_dive/README.md)、[接口合同](docs/CONTRACT_CURRENT.md)、[项目状态](docs/STATUS.md)、[算法与状态机](docs/algorithms/README.md)、[审计证据](docs/audit/README.md)。 |
+| [references/](references/README.md) | 论文、讲稿与专利来源清单。 |
+| [experiments/](experiments/) · [archive/](archive/) · [.github/](.github/) | Fig.11 与 CAAZ 研究扩展、旧数字核历史对照源码、CI 工作流与协作规范。 |
+
+---
 
 ## 跑起来
 
-从仓库根运行。下面三条只读检查分别清点工作树、核对工程链接及接口、核对算法图与图源。
-
-~~~bash
+```bash
+# 1. 只读自检（目录、相对链接、图资产与合同一致性）
 python3 -B tools/check_doc_counts.py --check
 python3 -B tools/check_engineering.py
-node tools/v21_algorithm_atlas.mjs --check
-~~~
 
-**用 Python 查看同一笔数字转换。** 以下命令把输入固定在 −0.6522216796875 V，并用测试引脚强制字 53。结果文件应显示粗码 202、RDAC 命令 206、ADC2 原码 6016、最终码 410304。去掉 `--dither-word`，即由片内复位序列生字。普通正弦演示直接运行 `python -m adi_model simulate`。[Python 快速上手](docs/guide/QUICKSTART.md) · [功能、原文与实现差异](docs/audit/AUDIT_ALGO_VS_SOURCE.md)
-
-~~~bash
+# 2. 用 Python 复现单笔数字转换（输入 -0.6522216796875 V，强制字 53 → 输出 202 206 6016 410304）
 run_dir="$(mktemp -d)"
 bash tools/pyenv.sh --run -m adi_model simulate --dc -0.6522216796875 --samples 1 --dither-word 53 --output "$run_dir/sim"
 bash tools/pyenv.sh --run - "$run_dir/sim/codes.npz" <<'PYTHON'
@@ -80,14 +101,11 @@ import numpy as np, sys
 with np.load(sys.argv[1]) as data:
     print(*(int(data[name][0]) for name in ("coarse", "k", "adc2_code", "code")))
 PYTHON
-~~~
 
-**复核数字顶层。** 本机有 Verilator 和 C++ 工具链时，以下命令记录连续采样、扰动和定点重构。顶层的 `summary.csv` 对照各场景，`samples.csv` 保存逐笔引脚与出码。正式 VCS 回归、综合与等价各有独立入口。[仿真与 RTL 测试](flow/sim/README.md) · [综合与等价](flow/synth/README.md)
-
-~~~bash
+# 3. 用本地 Verilator 复核转换核连续采样、扰动闭环与定点重构
 rtl_dir="$(mktemp -d)"
 bash tools/pyenv.sh --run tools/run_open_rtl.py --simulator verilator \
   --tops v21_sample_cadence tb_i4_recon tb_recon_stream --out "$rtl_dir/results"
-~~~
+```
 
-[文件归属与维护](docs/meta/REPOSITORY_LAYOUT.md) · [变更记录](docs/meta/CHANGELOG.md) · [English overview](docs/meta/README_EN.md)
+[Python 快速上手](docs/guide/QUICKSTART.md) · [文件归属与维护](docs/meta/REPOSITORY_LAYOUT.md) · [变更记录](docs/meta/CHANGELOG.md) · [English overview](docs/meta/README_EN.md)

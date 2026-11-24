@@ -53,8 +53,8 @@
 | --- | --- |
 | **扰动能否扣回** | 本地 Verilator 驱动生产顶层，理想宏读取真实 SADC、RDAC 开关。固定输入连续 1,024 笔，片内字源覆盖全部 64 个字，每笔输出 410304。漏扣字 53 采样权重多 13,568 码；重复扣少 13,568 码。[逐笔数据与复现命令](docs/audit/TREE_AUDIT_REPORT.md#dither-word-audit) |
 | **错配能校正多少** | 给单个物理子单元注入偏差后，192 笔里 24 笔出现 ±32 码误差；装入已知权重后 192 笔全部归零。全码静态模型下拟合权重将峰值 \|INL\| 从 0.934 压至 0.174 LSB20。[192 笔权重配对图](docs/algorithms/figures/integer-arithmetic.svg) · [全码 DNL/INL 对照](docs/audit/TREE_AUDIT_REPORT.md#全码静态线性度) |
-| **能否连续 40 MS/s** | 640 MHz 理想数字时钟与约定宏握手下，顶层连续交付 192 笔，相邻输出间隔均为 25 ns；40 MHz 数字时钟下第一笔余差尚未获授权。真实模拟宏时限与整核物理时序待签核。[时钟条件与对照结果](docs/STATUS.md#持续采样率) |
-| **产品外围验收** | 50 MHz 配置 SPI 通过 1 ps 保持复验；26 档滤波频响与手册表 28 对拍；单路 400 MHz / 双路 200 MHz DDR LVDS 384 笔逐位通过。[产品外围验收](rtl/ad4080_periph/integration/product/ACCEPTANCE.md) · [逐模块手册对照 PDF](rtl/ad4080_periph/report/manual-trace.pdf) |
+| **能否连续 40 MS/s** | 单时钟核 `adc_digital_ip_v21` 在 640 MHz / 1.6 GHz 理想时钟下连续交付 192 笔；新增双域核 [adc_digital_ip_v21_40msps.sv](rtl/sar_core/adc_digital_ip_v21_40msps.sv) 将 >95% 重逻辑收口至真实 40 MHz（25 ns）主时钟、仅 ~1k 门跟随器走自定时突发，已在 **TSMC 28 nm HPC+** 完成 VCS RTL / DC（`clk_fs` 0 违规 `+2.72 ns` MET）/ PrimeTime 四角点 / 179k 单元 VCS 门级网表仿真闭环。[28 nm 签核报告与 40 nm 迁移清单](docs/synopsys_signoff/README.md) · [时钟对照](docs/STATUS.md#持续采样率) |
+| **产品外围验收** | 50 MHz 配置 SPI 通过 1 ps 保持复验；26 档滤波频响与手册表 28 对拍；单路 400 MHz / 双路 200 MHz DDR LVDS 384 笔逐位通过；另提供可综合流片边界封装（可编程 CRC-24、OTP 宏+`ROM_CRC_ERR`、4×4096×20 SRAM、LVDS ODDR/DCO PHY 及三域 IO SDC）。[产品外围验收](rtl/ad4080_periph/integration/product/ACCEPTANCE.md) · [逐模块手册对照 PDF](rtl/ad4080_periph/report/manual-trace.pdf) |
 
 更多专题图集：[数字 IP 图册 PDF](docs/algorithms/digital-ip-atlas.pdf) · [在线算法与状态机](docs/algorithms/README.md) · [外围台架逐沿时序图](rtl/ad4080_periph/figures/signal-timing.svg) · [裸片电源与复位架构图](rtl/ad4080_periph/power/power_architecture.svg)
 

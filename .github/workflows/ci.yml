@@ -9,6 +9,8 @@
 # 变更记录   :
 #   - 整核入口收口至 v21，退役旧链回放。
 #   - 2026-11-24: 补全 CAAZ 独立回归的 PYTHONPATH（追加 experiments 目录）。
+#   - 2026-11-24: 新增双域 40 MSPS 转换核与外围硬件边界（CRC24/OTP/SRAM/LVDS PHY）
+#                 的严格 Verilator Lint、sv2v/Yosys 综合结构检查与实时仿真回归。
 # =============================================================================
 name: CI
 
@@ -138,6 +140,52 @@ jobs:
         env:
           PYTHONPATH: src:flow:experiments
         run: python -m pytest experiments/extensions/caaz/tests -q
+      - name: Verify dual-domain 40 MSPS conversion core (40 MHz + self-timed follower)
+        # [真实40MHz吞吐] 驱动真实 25 ns 帧时钟（50% 占空比）与 [0.2..6.2 ns] 自定时事件突发，
+        # 校验连续 192 笔 40.000 MSPS 出码、64 字去扰、单单元校准、RA 安静窗零翻转与双项负对照。
+        shell: bash
+        run: |
+          work="$SAR_CI_RUN_ROOT/v21-dualrate"
+          mkdir -p "$work"
+          cd "$work"
+          # 按生产文件清单展开双域 40 MSPS 转换核全部源码，避免硬编码路径漂移
+          sources=()
+          while IFS= read -r line; do
+            case "$line" in
+              ""|//*) continue ;;
+              rtl/*.sv) sources+=("$GITHUB_WORKSPACE/$line") ;;
+            esac
+          done < "$GITHUB_WORKSPACE/rtl/filelists/files_adc_v21_40msps.f"
+          # 开启 Verilator --timing 与显式端口/越界错误门禁，跑满实测波形闭环
+          verilator --binary --timing --assert -j 2 --timescale 1ns/1ps \
+            -Werror-PINMISSING -Werror-SELRANGE \
+            --top-module tb_40msps_dualrate --Mdir obj \
+            "${sources[@]}" "$GITHUB_WORKSPACE/tb/v21/tb_40msps_dualrate.sv" \
+            > compile.log 2>&1 || { cat compile.log; exit 1; }
+          ./obj/Vtb_40msps_dualrate | tee simulation.log
+          grep -q 'DUALRATE_40MSPS_PASS' simulation.log
+      - name: Verify AD4080 silicon peripheral boundary wrappers (CRC24 / OTP / SRAM / LVDS PHY)
+        # [流片硬件边界] 实跑可编程 CRC24（5 组 crc24.py 黄金向量 + 撤销/代际反例）、
+        # OTP 宏+真实 otp_shadow_loader（含 ROM_CRC_ERR 与读错注入）、4×4096×20 SRAM 及 LVDS PHY。
+        shell: bash
+        run: |
+          work="$SAR_CI_RUN_ROOT/periph-closure"
+          mkdir -p "$work"
+          cd "$work"
+          # 直接联动冻结包内生产 otp_shadow_loader.sv，验证零改动接口兼容
+          verilator --binary --timing --assert -j 2 --timescale 1ns/1ps \
+            -Werror-PINMISSING -Werror-SELRANGE \
+            --top-module tb_ad4080_silicon_periph_closure --Mdir obj \
+            "$GITHUB_WORKSPACE/rtl/ad4080_periph/otp/otp_shadow_loader.sv" \
+            "$GITHUB_WORKSPACE/rtl/top/ad4080_crc24_service.sv" \
+            "$GITHUB_WORKSPACE/rtl/top/ad4080_otp_macro_adapter.sv" \
+            "$GITHUB_WORKSPACE/rtl/top/ad4080_sram_bank_foundry_wrap.sv" \
+            "$GITHUB_WORKSPACE/rtl/top/ad4080_result_store_foundry.sv" \
+            "$GITHUB_WORKSPACE/rtl/top/ad4080_lvds_phy_wrapper.sv" \
+            "$GITHUB_WORKSPACE/tb/v21/tb_ad4080_silicon_periph_closure.sv" \
+            > compile.log 2>&1 || { cat compile.log; exit 1; }
+          ./obj/Vtb_ad4080_silicon_periph_closure | tee simulation.log
+          grep -q 'AD4080_SILICON_PERIPH_CLOSURE_PASS' simulation.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -191,6 +239,55 @@ jobs:
       - name: Prove DEM guard saturation and the schedule invariants
         shell: bash
         run: bash tools/prove_core_safety.sh "$SAR_CI_RUN_ROOT/safety"
+      - name: Lint and synthesize dual-domain 40 MSPS core and silicon boundary wrappers
+        # [结构零锁存门禁] 对双域 40 MSPS 顶层及 4 项外围硬件边界模块分别运行严格
+        # Verilator -Wall Lint 与 sv2v + yowasp-yosys 通用展开，确认 0 警告、0 锁存器。
+        # [不改动冻结包] 新模块均位于 rtl/sar_core/ 与 rtl/top/，避免破坏 218 文件 SHA-256。
+        shell: bash
+        run: |
+          work="$SAR_CI_RUN_ROOT/silicon-closure"
+          mkdir -p "$work"
+          # 逐顶层执行静态代码规则、Verilator -Wall 及 Yosys 零锁存展开
+          python - <<'PY'
+          import subprocess
+          from pathlib import Path
+          import os
+          root = Path(os.environ["GITHUB_WORKSPACE"])
+          work = Path(os.environ["SAR_CI_RUN_ROOT"]) / "silicon-closure"
+          def read_fl(rel):
+              return [str(root / l.strip()) for l in (root / rel).read_text().splitlines()
+                      if l.strip() and not l.lstrip().startswith("//")]
+          cases = [
+              ("adc_digital_ip_v21_40msps", read_fl("rtl/filelists/files_adc_v21_40msps.f")),
+              ("ad4080_crc24_service", [str(root / "rtl/top/ad4080_crc24_service.sv")]),
+              ("ad4080_otp_macro_adapter", [str(root / "rtl/top/ad4080_otp_macro_adapter.sv")]),
+              ("ad4080_result_store_foundry", [
+                  str(root / "rtl/top/ad4080_sram_bank_foundry_wrap.sv"),
+                  str(root / "rtl/top/ad4080_result_store_foundry.sv"),
+              ]),
+              ("ad4080_lvds_phy_wrapper", [str(root / "rtl/top/ad4080_lvds_phy_wrapper.sv")]),
+          ]
+          # 复用生产 RTL 源码文本规则检查，拒绝四态比较与混用复位风格
+          import sys
+          sys.path.insert(0, str(root / "tools"))
+          import verify_rtl_quality as vrq
+          all_srcs = [Path(s) for _, srcs in cases for s in srcs]
+          vrq.check_code(all_srcs)
+          for top, srcs in cases:
+              d = work / top
+              d.mkdir(parents=True, exist_ok=True)
+              subprocess.run(
+                  ["verilator", "--lint-only", "-Wall", "-Werror-LATCH", "-Werror-WIDTH",
+                   "-Werror-PINMISSING", "-Werror-SELRANGE", "--top-module", top, *srcs],
+                  check=True, cwd=d,
+              )
+              with (d / "net.v").open("w") as out:
+                  subprocess.run(["sv2v", "-D", "SYNTHESIS", *srcs], check=True, cwd=d, stdout=out)
+              script = (f"read_verilog -sv net.v; hierarchy -check -top {top}; proc; opt; "
+                        "check -assert; select -assert-none t:$dlatch t:$adlatch")
+              subprocess.run(["yowasp-yosys", "-Q", "-T", "-p", script], check=True, cwd=d)
+              print(f"SILICON_CLOSURE_GATE PASS top={top} warnings=0 latches=0")
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -201,6 +298,7 @@ jobs:
             ${{ env.SAR_CI_RUN_ROOT }}/mutations
             ${{ env.SAR_CI_RUN_ROOT }}/four-state
             ${{ env.SAR_CI_RUN_ROOT }}/safety
+            ${{ env.SAR_CI_RUN_ROOT }}/silicon-closure
 
   # 3. 语法门禁与全量风格报告
   # 在同一文件范围检查解析和名称。

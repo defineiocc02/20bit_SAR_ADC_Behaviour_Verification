@@ -64,12 +64,18 @@
 
 ---
 
-## 四、清楚区分边界：数字外围已齐全，哪些物理硬宏留成公开端口？
+## 四、流片边界硬件闭环层与物理硬宏分界线
 
-为了保证综合干净且架构解耦，[ad4080_chip_top.sv](../../../rtl/top/ad4080_chip_top.sv) 将所有模拟与工艺厂硬宏都以清晰端口留在芯片边界之外，后续流片接入时需要补齐：
-1. **片上模拟硬宏**：LDO1/LDO2、POR 与参考掉压检测器、400 MHz LVDS PHY 模拟收发器（含 100 Ω 端接与 Pad/ESD），以及 40 nm ADC 模拟核心（前端/AUXIN、双 SADC + Flash、18 片 RDAC、共享 RA、动态参考）。
-2. **工艺厂存储硬宏**：将 16K×20 结果存储与 OTP 替换为目标工艺厂 Compiler 生成的真实 SRAM / OTP 硬宏（附真实 LEF/Liberty）。
-3. **评估板实测对齐项**：商用 CRC24 参数、真实 `DCLK/DCO` 与 `CNV` 首发相位、`CTRL` 分区（0.0264 mm²）在目标工艺库下的最终综合面积复核。
+为了保持冻结交付包 `rtl/ad4080_periph/`（218 文件 SHA-256）完整无损，同时把 [ad4080_chip_top.sv](../../../rtl/top/ad4080_chip_top.sv) 的芯片外围接口真正推到可综合流片边界，仓库在 `rtl/top/` 额外补齐了四套可综合硬件边界模块（清单 [files_ad4080_silicon_shell.f](../../../rtl/filelists/files_ad4080_silicon_shell.f)，端到端台架 [tb_ad4080_silicon_periph_closure.sv](../../../tb/v21/tb_ad4080_silicon_periph_closure.sv)）：
+- **可编程 2-bit/beat 硬件 CRC-24 服务**（[ad4080_crc24_service.sv](../../../rtl/top/ad4080_crc24_service.sv)）：运行期/OTP 可配置 `poly / init / xorout / include_header / refout / wire_order`，与 `io/adi_crc/crc24.py` 5 组黄金向量逐位一致，末载荷拍零等待输出；未绑定合法配置时 `format_bound_o=0` 绝不输出伪造零尾。
+- **工艺厂 OTP 宏适配 + 硬件 `ROM_CRC_ERR` 校验器**（[ad4080_otp_macro_adapter.sv](../../../rtl/top/ad4080_otp_macro_adapter.sv)）：直连 `otp_shadow_loader` 全部 14 根握手线，预留 `USE_FOUNDRY_OTP_MACRO` 硬宏接缝，逐字计算整像 CRC-24 并在 1-bit 篡改时阻断发布且锁存真实 `rom_crc_err_o`（供手册 `0x11` 寄存器诊断）。
+- **4×4096×20 1RW 工艺厂 SRAM 封装**（[ad4080_sram_bank_foundry_wrap.sv](../../../rtl/top/ad4080_sram_bank_foundry_wrap.sv) + [ad4080_result_store_foundry.sv](../../../rtl/top/ad4080_result_store_foundry.sv)）：完整映射 `CEB / WEB / BWEB / SLP / SD / RTSEL / WTSEL` 编译宏引脚与睡眠钳位保护，定义 `USE_FOUNDRY_SRAM_MACRO` 即可零改逻辑替换为工艺厂 SRAM Compiler 硬宏。
+- **400 MHz DDR LVDS ODDR + 0°/90°/180° DCO 相位 PHY 封装与单芯片 IO 约束**（[ad4080_lvds_phy_wrapper.sv](../../../rtl/top/ad4080_lvds_phy_wrapper.sv) + [ad4080_chip_io_timing.sdc](../../../flow/synth/ad4080_chip_io_timing.sdc)）：收口 `ODDR`、三档 DCO 相位、`self/echo` 真三态 OE 与 `lvds_vod_control_io_o[2:0]`，并给出 AON/CORE/IO 三时钟域 + 50 MHz SPI 表 2 + 1.25 ns UI DDR LVDS 的完整 SDC 模板。
+
+**仍属目标工艺厂与评估板实测的物理边界**：
+1. **片上模拟硬宏与 Pad**：LDO1/LDO2、POR 与参考掉压检测器、模拟 LVDS TX 100 Ω 端接/ESD Pad，以及 40 nm ADC 模拟核心（前端/AUXIN、双 SADC + Flash、18 片 RDAC、共享 RA、动态参考）。
+2. **工艺厂物理数据库与签核**：绑定目标工艺厂真实 SRAM/OTP `.lib/.lef` 网表并完成全芯片多角 STA、DRC/LVS、IR/EM 物理签核。
+3. **评估板实测标定项**：商用 AD4080 评估板抓包唯一辨识 `crc24` 实际多项式（随后仅需写入 OTP 配置寄存器绑定）及实测 `DCLK/DCO` 首发相位复核。
 
 ---
 

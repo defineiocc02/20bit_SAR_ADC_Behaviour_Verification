@@ -76,6 +76,7 @@ rtl/sar_core/acq_conv_ctx.sv
 rtl/sar_core/adc2_capture.sv
 rtl/sar_core/adc2_node_macro.sv
 rtl/sar_core/adc_digital_ip_v21.sv
+rtl/sar_core/adc_digital_ip_v21_40msps.sv
 rtl/sar_core/dem_mask_v3.sv
 rtl/sar_core/dither_pre.sv
 rtl/sar_core/recip_q60.sv
@@ -85,4 +86,9 @@ rtl/sar_core/sar_evt_v21.sv
 rtl/sar_core/sched18.sv
 rtl/sar_core/wsum_v21.sv
 rtl/top/ad4080_chip_top.sv
+rtl/top/ad4080_crc24_service.sv
+rtl/top/ad4080_lvds_phy_wrapper.sv
+rtl/top/ad4080_otp_macro_adapter.sv
+rtl/top/ad4080_result_store_foundry.sv
+rtl/top/ad4080_sram_bank_foundry_wrap.sv
 rtl/top/sadc_enc.sv

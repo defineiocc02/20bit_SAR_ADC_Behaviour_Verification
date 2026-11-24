@@ -1,0 +1,58 @@
+# Synopsys Formality W-2024.09-SP3 RTL-vs-28HPC+ Gate Equivalence (ad4080-silicon-shell-r1)
+
+========================================================================
+MODULE: ad4080_crc24_service
+========================================================================
+1
+--
+********************************* Verification Results *********************************
+Verification SUCCEEDED
+----------------------
+ Reference design: r:/WORK/ad4080_crc24_service
+ Implementation design: i:/WORK/ad4080_crc24_service
+ 107 Passing compare points
+----------------------------------------------------------------------------------------
+Matched Compare Points     BBPin    Loop   BBNet     Cut    Port     DFF     LAT   TOTAL
+----------------------------------------------------------------------------------------
+Passing (equivalent)           0       0       0       0      28      79       0     107
+Failing (not equivalent)       0       0       0       0       0       0       0       0
+****************************************************************************************
+1
+
+========================================================================
+MODULE: ad4080_otp_macro_adapter
+========================================================================
+1
+--
+********************************* Verification Results *********************************
+Verification SUCCEEDED
+----------------------
+ Reference design: r:/WORK/ad4080_otp_macro_adapter
+ Implementation design: i:/WORK/ad4080_otp_macro_adapter
+ 355 Passing compare points
+----------------------------------------------------------------------------------------
+Matched Compare Points     BBPin    Loop   BBNet     Cut    Port     DFF     LAT   TOTAL
+----------------------------------------------------------------------------------------
+Passing (equivalent)           0       0       0       0      40     315       0     355
+Failing (not equivalent)       0       0       0       0       0       0       0       0
+****************************************************************************************
+1
+
+========================================================================
+MODULE: ad4080_lvds_phy_wrapper
+========================================================================
+1
+--
+********************************* Verification Results *********************************
+Verification SUCCEEDED
+----------------------
+ Reference design: r:/WORK/ad4080_lvds_phy_wrapper
+ Implementation design: i:/WORK/ad4080_lvds_phy_wrapper
+ 20 Passing compare points
+----------------------------------------------------------------------------------------
+Matched Compare Points     BBPin    Loop   BBNet     Cut    Port     DFF     LAT   TOTAL
+----------------------------------------------------------------------------------------
+Passing (equivalent)           0       0       0       0      12       8       0      20
+Failing (not equivalent)       0       0       0       0       0       0       0       0
+****************************************************************************************
+1

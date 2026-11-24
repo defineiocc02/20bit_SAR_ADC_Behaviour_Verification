@@ -1,0 +1,11 @@
+Notice: timing checks disabled with +notimingcheck at compile-time
+Chronologic VCS simulator copyright 1991-2024
+Contains Synopsys proprietary information.
+Compiler version W-2024.09-SP1_Full64; Runtime version W-2024.09-SP1_Full64;  Nov 24 18:54 2026
+DUALRATE_40MSPS_PASS clk_fs_mhz=40 samples=192 cadence_ns=25.0 quiet_ra_window=0_toggles
+$finish called from file "/tmp/ad4080_eda_verify/tb/v21/tb_40msps_dualrate.sv", line 605.
+$finish at simulation time             46631000
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 46631000 ps
+CPU Time:      1.060 seconds;       Data structure size:  11.4Mb
+Tue Nov 24 18:54:50 2026

@@ -1,0 +1,80 @@
+Loading db file '/home/yian/workspace/technology/PDK/tsmc28/digital_technology/TSMCHOME/digital/Front_End/timing_power_noise/CCS/tcbn28hpcplusbwp7t40p140_180a/tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs.db'
+Information: Propagating switching activity (low effort zero delay simulation). (PWR-6)
+Warning: Design has unannotated primary inputs. (PWR-414)
+Warning: Design has unannotated sequential cell outputs. (PWR-415)
+ 
+****************************************
+Report : power
+        -hier
+        -analysis_effort low
+Design : adc_digital_ip_v21_40msps
+Version: W-2024.09-SP3
+Date   : Tue Nov 24 18:53:29 2026
+****************************************
+
+
+Library(s) Used:
+
+    tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs (File: /home/yian/workspace/technology/PDK/tsmc28/digital_technology/TSMCHOME/digital/Front_End/timing_power_noise/CCS/tcbn28hpcplusbwp7t40p140_180a/tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs.db)
+
+
+Operating Conditions: ssg0p81vm40c   Library: tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+Wire Load Model Mode: segmented
+
+Design        Wire Load Model            Library
+------------------------------------------------
+adc_digital_ip_v21_40msps
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+dither_pre             ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+sched18                ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+sar_evt_v21            ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+dem_mask_v3            ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+wsum_v21               ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+adc2_capture           ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recon_v21_1            ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recip_rnd_v21          ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recip_q60              ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recon_v21_1_DW01_sub_0_DW01_sub_26
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recon_v21_1_DW01_inc_0_DW01_inc_10
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recon_v21_1_DW01_cmp2_4_DW01_cmp2_32
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recon_v21_1_DW01_add_1_DW01_add_12
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recip_rnd_v21_DW01_add_0_DW01_add_13
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recip_rnd_v21_DW01_cmp2_2_DW01_cmp2_38
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recip_rnd_v21_DW01_inc_0_DW01_inc_11
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recip_rnd_v21_DW01_inc_1_DW01_inc_12
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recip_rnd_v21_DW01_sub_0_DW01_sub_27
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recip_q60_DW01_ash_0   ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recip_q60_DW_rash_0    ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recip_q60_DW01_sub_2_DW01_sub_30
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recip_q60_DW01_sub_3_DW01_sub_31
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recip_q60_DW_rash_1    ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recip_q60_DW01_ash_1   ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+sched18_DW01_ash_0_DW01_ash_3
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+sched18_DW01_ash_1_DW01_ash_4
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recon_v21_1_DW02_mult_0
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recon_v21_1_DW01_sub_1_DW01_sub_34
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recon_v21_1_DW01_add_3_DW01_add_19
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recon_v21_1_DW01_add_4_DW01_add_20
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recon_v21_1_DW02_mult_1
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recon_v21_1_DW01_add_5_DW01_add_21
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+recon_v21_1_DW02_mult_2
+                       ZeroWireload      tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs

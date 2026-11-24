@@ -1,0 +1,14 @@
+Chronologic VCS simulator copyright 1991-2024
+Contains Synopsys proprietary information.
+Compiler version W-2024.09-SP1_Full64; Runtime version W-2024.09-SP1_Full64;  Nov 24 17:42 2026
+CHECK_CRC24_SERVICE PASS cases=5 negative_controls=2
+CHECK_OTP_MACRO_ADAPTER PASS valid_commit=1 tamper_rom_crc_err=1 rd_err=1
+CHECK_SRAM_FOUNDRY_WRAP PASS banks=4 sleep_retention=1
+CHECK_LVDS_PHY_WRAPPER PASS oddr=1 dco_phases=0_90_180 oe_shutdown=1
+AD4080_SILICON_PERIPH_CLOSURE_PASS checks=4
+$finish called from file "/tmp/ad4080_eda_verify/tb/v21/tb_ad4080_silicon_periph_closure.sv", line 439.
+$finish at simulation time               894950
+           V C S   S i m u l a t i o n   R e p o r t 
+Time: 894950 ps
+CPU Time:      0.110 seconds;       Data structure size:   0.1Mb
+Tue Nov 24 17:42:41 2026

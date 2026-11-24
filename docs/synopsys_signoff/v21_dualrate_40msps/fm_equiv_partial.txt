@@ -1,0 +1,35 @@
+puts "STEP_FM_MATCH_OK"
+STEP_FM_MATCH_OK
+set _ok [verify]
+Reference design is 'r:/WORK/adc_digital_ip_v21_40msps'
+Implementation design is 'i:/WORK/adc_digital_ip_v21_40msps'
+    
+*********************************** Matching Results ***********************************    
+ 18079 Compare points matched by name    
+ 0 Compare points matched by signature analysis    
+ 0 Compare points matched by topology    
+ 215 Matched primary inputs, black-box outputs    
+ 0(0) Unmatched reference(implementation) compare points    
+ 0(0) Unmatched reference(implementation) primary inputs, black-box outputs    
+ 457(0) Unmatched reference(implementation) unread points    
+****************************************************************************************
+
+Status:  Verifying...
+.............................. 0F/0A/17815P/264U (98% Verification completed) 11/24/26 19:36 4456MB/2289sec (35.5 hrs until timeout)
+.............................. 0F/0A/17829P/250U (98% Verification completed) 11/24/26 21:30 10873MB/8871sec (33.6 hrs until timeout)
+.............................. 0F/0A/17846P/233U (98% Verification completed) 11/24/26 22:00 10873MB/10627sec (33.1 hrs until timeout)
+.............................. 0F/0A/17852P/227U (98% Verification completed) 11/24/26 22:30 10873MB/12372sec (32.6 hrs until timeout)
+......
+    
+-------- SIGTERM INFO --------
+    Signal Number   = '15'
+    Signal Code     = '0'
+    Signal ErrNo    = '0'
+    Sender PID      = '3229032'
+    Real Sender UID = '1000'
+    -------- ------------ --------
+    -------- ------------ --------
+
+
+Process terminated by kill.
+

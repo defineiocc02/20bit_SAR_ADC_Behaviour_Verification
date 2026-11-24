@@ -1,0 +1,142 @@
+# Synopsys PrimeTime W-2024.09-SP3 4-Corner STA (TSMC 28HPC+ CCS)
+# Design: adc_digital_ip_v21_40msps (v21-dualrate-40msps, ALPHA_UNIT_BYPASS=1)
+# Library: tcbn28hpcplusbwp7t40p140_180a
+
+corner=ssg0p81vm40c  clk_fs_arr=22.0043ns clk_fs_setup=[(MET) 2.7194]     ev_clk_arr=1.0202ns ev_clk_setup=[(VIOLATED) -0.1089] hold_fs=[(VIOLATED) -0.0722] hold_ev=[(MET) 0.0566]
+corner=ssg0p81v125c  clk_fs_arr=19.3579ns clk_fs_setup=[(MET) 5.3521]     ev_clk_arr=0.9462ns ev_clk_setup=[(VIOLATED) -0.0422] hold_fs=[(VIOLATED) -0.0789] hold_ev=[(MET) 0.0455]
+corner=ffg0p99vm40c  clk_fs_arr=10.3134ns clk_fs_setup=[(MET) 14.3962]    ev_clk_arr=0.4406ns ev_clk_setup=[(MET) 0.2794]       hold_fs=[(VIOLATED) -0.1109] hold_ev=[(MET) 0.0022]
+corner=ffg0p99v125c  clk_fs_arr=10.7180ns clk_fs_setup=[(MET) 13.9864]    ev_clk_arr=0.4532ns ev_clk_setup=[(MET) 0.2668]       hold_fs=[(VIOLATED) -0.1103] hold_ev=[(MET) 0.0043]
+
+=== Worst SS -40C clk_fs (25 ns) Path ===
+****************************************
+Report : timing
+	-path_type full
+	-delay_type max
+	-slack_lesser_than 1000.0000
+	-max_paths 10
+	-sort_by slack
+Design : adc_digital_ip_v21_40msps
+Version: W-2024.09-SP3
+Date   : Tue Nov 24 18:55:18 2026
+****************************************
+
+
+  Startpoint: u_recon_fs/u_recip_rnd/u_recip/u0_r_reg[29]
+               (rising edge-triggered flip-flop clocked by clk_fs)
+  Endpoint: u_recon_fs/u_recip_rnd/u_recip/inv_q60_reg[0]
+               (rising edge-triggered flip-flop clocked by clk_fs)
+  Path Group: clk_fs
+  Path Type: max
+
+  Point                                                   Incr       Path
+  ------------------------------------------------------------------------------
+  clock clk_fs (rise edge)                              0.0000     0.0000
+  clock network delay (ideal)                           0.0000     0.0000
+  u_recon_fs/u_recip_rnd/u_recip/u0_r_reg[29]/CP (DFCNQD1BWP7T40P140)
+                                                        0.0000     0.0000 r
+  u_recon_fs/u_recip_rnd/u_recip/u0_r_reg[29]/Q (DFCNQD1BWP7T40P140)
+                                                        0.1327     0.1327 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/U174/ZN (INVD1BWP7T40P140)
+                                                        0.0719     0.2046 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/U1140/ZN (NR2D0BWP7T40P140)
+                                                        0.0723     0.2769 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/U144/Z (XOR2D1BWP7T40P140)
+                                                        0.0780     0.3549 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_2_27/S (FA1D1BWP7T40P140)
+                                                        0.1199     0.4748 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_3_26/S (FA1D1BWP7T40P140)
+                                                        0.1179     0.5927 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_4_25/S (FA1D1BWP7T40P140)
+                                                        0.1061     0.6987 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_5_24/S (FA1D1BWP7T40P140)
+                                                        0.1179     0.8166 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_6_23/S (FA1D1BWP7T40P140)
+                                                        0.1061     0.9227 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_7_22/S (FA1D1BWP7T40P140)
+                                                        0.1179     1.0406 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_8_21/S (FA1D1BWP7T40P140)
+                                                        0.1061     1.1466 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_9_20/CO (FA1D1BWP7T40P140)
+                                                        0.0741     1.2207 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_10_20/S (FA1D1BWP7T40P140)
+                                                        0.1304     1.3511 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_11_19/S (FA1D1BWP7T40P140)
+                                                        0.1061     1.4572 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_12_18/S (FA1D1BWP7T40P140)
+                                                        0.1179     1.5751 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_13_17/S (FA1D1BWP7T40P140)
+                                                        0.1061     1.6811 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_14_16/S (FA1D1BWP7T40P140)
+                                                        0.1179     1.7990 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_15_15/S (FA1D1BWP7T40P140)
+                                                        0.1061     1.9051 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_16_14/S (FA1D1BWP7T40P140)
+                                                        0.1179     2.0230 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_17_13/S (FA1D1BWP7T40P140)
+
+=== Worst SS -40C ev_clk (1.0 ns) Path ===
+****************************************
+Report : timing
+	-path_type full
+	-delay_type max
+	-slack_lesser_than 1000.0000
+	-max_paths 10
+	-sort_by slack
+Design : adc_digital_ip_v21_40msps
+Version: W-2024.09-SP3
+Date   : Tue Nov 24 18:55:18 2026
+****************************************
+
+
+  Startpoint: u_evt_fast/exp_evt_q_reg[3]
+               (rising edge-triggered flip-flop clocked by ev_clk)
+  Endpoint: rdac_post_state_o_reg[336]
+               (rising edge-triggered flip-flop clocked by ev_clk)
+  Path Group: ev_clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  ------------------------------------------------------------------------------
+  clock ev_clk (rise edge)                              0.0000     0.0000
+  clock network delay (ideal)                           0.0000     0.0000
+  u_evt_fast/exp_evt_q_reg[3]/CP (DFCND4BWP7T40P140)    0.0000     0.0000 r
+  u_evt_fast/exp_evt_q_reg[3]/Q (DFCND4BWP7T40P140)     0.1068     0.1068 f
+  u_evt_fast/U278/ZN (IND4D4BWP7T40P140)                0.0666     0.1734 f
+  u_evt_fast/U108/ZN (CKND2BWP7T40P140)                 0.0266     0.2000 r
+  u_evt_fast/U13/ZN (CKND2D4BWP7T40P140)                0.0150     0.2150 f
+  u_evt_fast/U68/ZN (IND2D2BWP7T40P140)                 0.0139     0.2289 r
+  u_evt_fast/U22/ZN (INVD3BWP7T40P140)                  0.0124     0.2413 f
+  u_evt_fast/U80/ZN (CKND2D4BWP7T40P140)                0.0149     0.2562 r
+  u_evt_fast/U67/ZN (CKND2D3BWP7T40P140)                0.0163     0.2725 f
+  u_evt_fast/U4/Z (AO21D1BWP7T40P140)                   0.0401     0.3126 f
+  u_evt_fast/U72/ZN (AOI21D2BWP7T40P140)                0.0277     0.3403 r
+  u_evt_fast/U73/ZN (INVD2BWP7T40P140)                  0.0178     0.3581 f
+  u_evt_fast/U135/ZN (IND3D4BWP7T40P140)                0.0148     0.3729 r
+  u_evt_fast/U275/ZN (IND4D4BWP7T40P140)                0.0324     0.4052 f
+  u_evt_fast/U114/ZN (CKND4BWP7T40P140)                 0.0301     0.4353 r
+  u_evt_fast/U53/ZN (CKND2D4BWP7T40P140)                0.0202     0.4555 f
+  u_evt_fast/U90/ZN (XNR2OPTND4BWP7T40P140)             0.0325     0.4880 f
+  u_dem_fast/U74/ZN (INVD8BWP7T40P140)                  0.0196     0.5076 r
+  u_dem_fast/U128/Z (OR2D4BWP7T40P140)                  0.0259     0.5336 r
+  u_dem_fast/U210/ZN (ND3OPTPAD4BWP7T40P140)            0.0191     0.5527 f
+  u_dem_fast/U182/Z (AO211D1BWP7T40P140)                0.0660     0.6187 f
+  u_dem_fast/U135/Z (AO21D1BWP7T40P140)                 0.0457     0.6644 f
+  u_dem_fast/U131/ZN (AOI22D1BWP7T40P140)               0.0262     0.6906 r
+  u_dem_fast/U301/ZN (ND4D1BWP7T40P140)                 0.0447     0.7353 f
+  u_dem_fast/U281/ZN (ND2D1BWP7T40P140)                 0.0246     0.7599 r
+  u_dem_fast/U144/Z (AN3D1BWP7T40P140)                  0.0402     0.8001 r
+  u_dem_fast/U78/Z (AN4D1BWP7T40P140)                   0.0579     0.8580 r
+  u_dem_fast/U77/ZN (NR2OPTPAD4BWP7T40P140)             0.0209     0.8789 f
+  U4295/ZN (DCCKND4BWP7T40P140)                         0.0229     0.9018 r
+  U8110/Z (OA222D0BWP7T40P140)                          0.0835     0.9854 r
+  U8109/ZN (ND4D1BWP7T40P140)                           0.0349     1.0202 f
+  rdac_post_state_o_reg[336]/D (DFCNQD2BWP7T40P140)     0.0000     1.0202 f
+  data arrival time                                                1.0202
+
+  clock ev_clk (rise edge)                              1.0000     1.0000
+  clock network delay (ideal)                           0.0000     1.0000
+  rdac_post_state_o_reg[336]/CP (DFCNQD2BWP7T40P140)               1.0000 r
+  clock reconvergence pessimism                         0.0000     1.0000
+  clock uncertainty                                    -0.0800     0.9200
+  library setup time                                   -0.0087     0.9113
+  data required time                                               0.9113

@@ -35,7 +35,11 @@
 //   2026-11-15  初版。I4 阶段。
 //   2026-11-19  S3 用同一笔 X 检查符号扩展，修正负值污染后续标签。
 // =============================================================================
-module recon_v21 (
+module recon_v21 #(
+    // [编译期裁剪] 0=默认完整支持动态 alpha_q30 除法（保持 v21 基线与 tb_recon_stream 逐位一致）；
+    // 1=标称单位增益(2^30)直通，编译期剪除 64-bit rnd64 除法器以达成整核 40 MHz 时序与形式等价签核。
+    parameter bit ALPHA_FIXED_UNIT = 1'b0
+) (
     input  logic         clk,
     input  logic         rst_n,
 
@@ -255,25 +259,45 @@ module recon_v21 (
         end
     end
 
-    // S1b：alpha 除法（旁路时只打拍）
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            v1_q <= 1'b0; tag1_q <= 32'd0; err1_q <= 1'b0; z1_q <= 64'sd0;
-            G1b_q <= 64'd0; Wm1b_q <= 64'd0; Wp1b_q <= 64'd0;
-        end else begin
-            v1_q   <= v1a_q;
-            tag1_q <= tag1a_q;
-            err1_q <= err1a_q;
-            // 参数随 valid/tag 同步前进（S2a 用这一版）
-            G1b_q  <= G1a_q;
-            Wm1b_q <= Wm1a_q;
-            Wp1b_q <= Wp1a_q;
-            if (alpha_bypass)
-                z1_q <= d1a_q;
-            else
-                z1_q <= rnd64(d1a_q * 64'sd1073741824, {32'd0, alpha1a_q});
+    // S1b：alpha 除法（ALPHA_FIXED_UNIT=1 时编译期直通，彻底消除 64-bit DW_div 死路径）
+    generate
+        if (ALPHA_FIXED_UNIT) begin : g_s1b_unit_alpha
+            always_ff @(posedge clk or negedge rst_n) begin
+                if (!rst_n) begin
+                    v1_q <= 1'b0; tag1_q <= 32'd0; err1_q <= 1'b0; z1_q <= 64'sd0;
+                    G1b_q <= 64'd0; Wm1b_q <= 64'd0; Wp1b_q <= 64'd0;
+                end else begin
+                    v1_q   <= v1a_q;
+                    tag1_q <= tag1a_q;
+                    err1_q <= err1a_q;
+                    G1b_q  <= G1a_q;
+                    Wm1b_q <= Wm1a_q;
+                    Wp1b_q <= Wp1a_q;
+                    z1_q   <= d1a_q;
+                end
+            end
+            wire unused_alpha_bypass = alpha_bypass;
+        end else begin : g_s1b_var_alpha
+            always_ff @(posedge clk or negedge rst_n) begin
+                if (!rst_n) begin
+                    v1_q <= 1'b0; tag1_q <= 32'd0; err1_q <= 1'b0; z1_q <= 64'sd0;
+                    G1b_q <= 64'd0; Wm1b_q <= 64'd0; Wp1b_q <= 64'd0;
+                end else begin
+                    v1_q   <= v1a_q;
+                    tag1_q <= tag1a_q;
+                    err1_q <= err1a_q;
+                    // 参数随 valid/tag 同步前进（S2a 用这一版）
+                    G1b_q  <= G1a_q;
+                    Wm1b_q <= Wm1a_q;
+                    Wp1b_q <= Wp1a_q;
+                    if (alpha_bypass)
+                        z1_q <= d1a_q;
+                    else
+                        z1_q <= rnd64(d1a_q * 64'sd1073741824, {32'd0, alpha1a_q});
+                end
+            end
         end
-    end
+    endgenerate
 
     // ---------------------------------------------------------------- S2：N 与 I
     //

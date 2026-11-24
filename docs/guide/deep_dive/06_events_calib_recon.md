@@ -77,6 +77,10 @@ code = sat_20(Q + 524288)                     // 限幅到 [0, 1048575] 输出 2
 
 > **代码里的防呆设计**：`recon_v21` 随每笔样本检查 `in_epoch == cfg_epoch`（防止后台更新校准表时新旧系数混用）；旁路标志 `alpha_bypass` 必须读锁存寄存器 `alpha1a_q` 而非实时端口（修复过连续多笔时的跨笔串扰 Bug）；S3 用本笔 `X` 单独校验 32 位有符号截断，修复过“负数后紧接中点码误报错误”的缺陷。
 
+> **真实 40 MHz 双时钟域架构升级（避免 640 MHz 假时钟）**：单时钟顶层 `adc_digital_ip_v21.sv` 每笔需要 13 拍才能闭环，因此在仿真中必须用 640 MHz / 1.6 GHz 理想时钟驱动整个数字核。为了贴近真实 40 nm 流片物理时序，仓库新增了双时钟域转换核 [adc_digital_ip_v21_40msps.sv](../../../rtl/sar_core/adc_digital_ip_v21_40msps.sv)（配套 [sdc_dualrate_40msps.sdc](../../../flow/synth/v21/sdc_dualrate_40msps.sdc)、[dc_synth_dualrate_40msps.tcl](../../../flow/synth/v21/dc_synth_dualrate_40msps.tcl) 与 40 MHz 台架 [tb_40msps_dualrate.sv](../../../tb/v21/tb_40msps_dualrate.sv)）：
+> - **>95% 重逻辑跑真实 40 MHz（25 ns）`clk_fs`**：`sched18`、`dither_pre`、`wsum_v21`、`adc2_capture`、`recon_v21` 全部享受充裕的 25 ns 周期，零负沿时钟；
+> - **仅 ~1k 门事件跟随器走自定时 `ev_clk_i` 突发**：仅在每帧前 `[0.2..6.2 ns]` 随比较判决翻转 5–8 次，完成时回写 1-bit 帧令牌并关闭 `post_wr_o`，在 `[6.2..25.0 ns]` 的 18.8 ns RA 建立窗内绝对零翻转（若误收毛刺触发 `quiet_evt_err_o`，漏事件触发 `missed_evt_err_o`）。
+
 ---
 
 ## 四、看看整套闭环的 4 张硬核实测效果图

@@ -1,0 +1,80 @@
+ 
+****************************************
+Report : area
+Design : adc_digital_ip_v21_40msps
+Version: W-2024.09-SP3
+Date   : Tue Nov 24 18:53:11 2026
+****************************************
+
+Library(s) Used:
+
+    tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs (File: /home/yian/workspace/technology/PDK/tsmc28/digital_technology/TSMCHOME/digital/Front_End/timing_power_noise/CCS/tcbn28hpcplusbwp7t40p140_180a/tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs.db)
+
+Number of ports:                        86150
+Number of nets:                        264260
+Number of cells:                       180224
+Number of combinational cells:         162124
+Number of sequential cells:             17532
+Number of macros/black boxes:               0
+Number of buf/inv:                      27195
+Number of references:                     112
+
+Combinational area:             105197.218077
+Buf/Inv area:                     7688.099974
+Noncombinational area:           30282.098246
+Macro/Black Box area:                0.000000
+Net Interconnect area:      undefined  (Wire load has zero net area)
+
+Total cell area:                135479.316323
+Total area:                 undefined
+
+Hierarchical area distribution
+------------------------------
+
+                                  Global cell area              Local cell area
+                                  --------------------  ------------------------------- 
+Hierarchical cell                 Absolute     Percent  Combi-       Noncombi-   Black-
+                                  Total        Total    national     national    boxes   Design
+--------------------------------  -----------  -------  -----------  ----------  ------  ---------------------------------------
+adc_digital_ip_v21_40msps         135479.3163    100.0    2502.0380   1851.4160  0.0000  adc_digital_ip_v21_40msps
+u_adc2_fs                            620.4380      0.5     181.0060    439.4320  0.0000  adc2_capture
+u_dem_fast                           329.7700      0.2     329.7700      0.0000  0.0000  dem_mask_v3
+u_evt_fast                           303.6040      0.2     175.3220    128.2820  0.0000  sar_evt_v21
+u_pd                                  40.4740      0.0      40.4740      0.0000  0.0000  dither_pre
+u_recon_fs                         25986.5620     19.2     455.0140   2081.7160  0.0000  recon_v21_1
+u_recon_fs/add_111                    27.7340      0.0      27.7340      0.0000  0.0000  recon_v21_1_DW01_add_1_DW01_add_12
+u_recon_fs/add_148_C419               39.1020      0.0      39.1020      0.0000  0.0000  recon_v21_1_DW01_inc_0_DW01_inc_10
+u_recon_fs/add_153_C419               28.0280      0.0      28.0280      0.0000  0.0000  recon_v21_1_DW01_add_10_DW01_add_348
+u_recon_fs/add_1_root_sub_342_2      109.8580      0.1     109.8580      0.0000  0.0000  recon_v21_1_DW01_add_3_DW01_add_19
+u_recon_fs/add_2_root_sub_342_2      105.4480      0.1     105.4480      0.0000  0.0000  recon_v21_1_DW01_add_4_DW01_add_20
+u_recon_fs/gt_111                     62.4260      0.0      62.4260      0.0000  0.0000  recon_v21_1_DW01_cmp2_4_DW01_cmp2_32
+u_recon_fs/mult_149_C419             871.9060      0.6     820.5540      0.0000  0.0000  recon_v21_1_DW02_mult_6_DW02_mult_198
+u_recon_fs/mult_149_C419/FS_1         51.3520      0.0      51.3520      0.0000  0.0000  recon_v21_1_DW01_add_12_DW01_add_350
+u_recon_fs/mult_151_C419              40.8660      0.0      40.8660      0.0000  0.0000  recon_v21_1_DW02_mult_5_DW02_mult_197
+u_recon_fs/mult_342_2                372.5960      0.3     202.8600      0.0000  0.0000  recon_v21_1_DW02_mult_3
+u_recon_fs/mult_342_2/FS_1           169.7360      0.1     169.7360      0.0000  0.0000  recon_v21_1_DW01_add_7_DW01_add_23
+u_recon_fs/mult_342_3                239.2180      0.2      68.1100      0.0000  0.0000  recon_v21_1_DW02_mult_2
+u_recon_fs/mult_342_3/FS_4           171.1080      0.1     171.1080      0.0000  0.0000  recon_v21_1_DW01_add_6_DW01_add_22
+u_recon_fs/mult_342_4                372.5960      0.3     202.8600      0.0000  0.0000  recon_v21_1_DW02_mult_1
+u_recon_fs/mult_342_4/FS_1           169.7360      0.1     169.7360      0.0000  0.0000  recon_v21_1_DW01_add_5_DW01_add_21
+u_recon_fs/mult_380                 4306.8060      3.2    4306.8060      0.0000  0.0000  recon_v21_1_DW02_mult_0
+u_recon_fs/sub_0_root_sub_252         45.3740      0.0      45.3740      0.0000  0.0000  recon_v21_1_DW01_sub_2_DW01_sub_35
+u_recon_fs/sub_0_root_sub_342_2      130.6340      0.1     130.6340      0.0000  0.0000  recon_v21_1_DW01_sub_1_DW01_sub_34
+u_recon_fs/sub_151_C419               47.6280      0.0      47.6280      0.0000  0.0000  recon_v21_1_DW01_sub_3_DW01_sub_36
+u_recon_fs/sub_154_C419               33.2220      0.0      33.2220      0.0000  0.0000  recon_v21_1_DW01_sub_0_DW01_sub_26
+u_recon_fs/u_recip_rnd             16616.3900     12.3      63.5040     53.9980  0.0000  recip_rnd_v21
+u_recon_fs/u_recip_rnd/add_86         32.7320      0.0      32.7320      0.0000  0.0000  recip_rnd_v21_DW01_inc_1_DW01_inc_12
+u_recon_fs/u_recip_rnd/add_87         32.7320      0.0      32.7320      0.0000  0.0000  recip_rnd_v21_DW01_inc_0_DW01_inc_11
+u_recon_fs/u_recip_rnd/add_93         28.7140      0.0      28.7140      0.0000  0.0000  recip_rnd_v21_DW01_add_0_DW01_add_13
+u_recon_fs/u_recip_rnd/gte_93         46.0600      0.0      46.0600      0.0000  0.0000  recip_rnd_v21_DW01_cmp2_2_DW01_cmp2_38
+u_recon_fs/u_recip_rnd/mult_82      2336.7120      1.7    2247.0420      0.0000  0.0000  recip_rnd_v21_DW02_mult_2_DW02_mult_201
+u_recon_fs/u_recip_rnd/mult_82/FS_1
+                                      89.6700      0.1      89.6700      0.0000  0.0000  recip_rnd_v21_DW01_add_3_DW01_add_353
+u_recon_fs/u_recip_rnd/mult_86      2336.7120      1.7    2247.0420      0.0000  0.0000  recip_rnd_v21_DW02_mult_1_DW02_mult_200
+u_recon_fs/u_recip_rnd/mult_86/FS_1
+                                      89.6700      0.1      89.6700      0.0000  0.0000  recip_rnd_v21_DW01_add_2_DW01_add_352
+u_recon_fs/u_recip_rnd/mult_90      2334.1640      1.7    2247.0420      0.0000  0.0000  recip_rnd_v21_DW02_mult_0_DW02_mult_199
+u_recon_fs/u_recip_rnd/mult_90/FS_1
+                                      87.1220      0.1      87.1220      0.0000  0.0000  recip_rnd_v21_DW01_add_1_DW01_add_351
+u_recon_fs/u_recip_rnd/sub_83_aco     28.8120      0.0      28.8120      0.0000  0.0000  recip_rnd_v21_DW01_sub_0_DW01_sub_27
+u_recon_fs/u_recip_rnd/sub_91         78.7920      0.1      78.7920      0.0000  0.0000  recip_rnd_v21_DW01_sub_1_DW01_sub_37

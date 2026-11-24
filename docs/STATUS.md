@@ -32,9 +32,12 @@
 
 | 内部数字时钟 | 要求的公共采样间隔 | 顶层实测 | 从采样到本笔最后一次数字开关写入，最慢值 |
 | --- | --- | --- | --- |
-| 25 ns（40 MHz，当前约束） | 25 ns | 第一笔余差到捕获时仍未获授权 | — |
-| 1.5625 ns（640 MHz，理想时钟） | 25 ns | 192/192 笔，码与标志全部正确 | 17.1875 ns |
-| 0.625 ns（1.6 GHz，理想时钟） | 25 ns | 192/192 笔，码与标志全部正确 | 6.875 ns |
+| 25 ns（40 MHz，单时钟核 `adc_digital_ip_v21`） | 25 ns | 第一笔余差到捕获时仍未获授权 | — |
+| 1.5625 ns（640 MHz，单时钟理想时钟） | 25 ns | 192/192 笔，码与标志全部正确 | 17.1875 ns |
+| 0.625 ns（1.6 GHz，单时钟理想时钟） | 25 ns | 192/192 笔，码与标志全部正确 | 6.875 ns |
+| **25 ns（40 MHz 主帧）+ 自定时 `ev_clk_i`（双域核 `adc_digital_ip_v21_40msps`）** | **25 ns** | **192/192 笔 40.000 MSPS 连续出码、三路径全覆盖、校准归零与安静窗零翻转** | **≤ 6.2 ns（含 18.8 ns RA 安静窗）** |
+
+**双域 40 MSPS 真实时钟架构与外围流片边界闭环（TSMC 28 nm HPC+ Synopsys 全链条实测）。** 针对单时钟顶层需 13 拍/样本的问题，新增双时钟域转换核 [adc_digital_ip_v21_40msps.sv](../rtl/sar_core/adc_digital_ip_v21_40msps.sv)（清单 [files_adc_v21_40msps.f](../rtl/filelists/files_adc_v21_40msps.f)），将占面积 >95% 的 `sched18`、`dither_pre`、`wsum_v21`、`adc2_capture` 与 `recon_v21` 全部收敛在真实 **40 MHz（25 ns）** `clk_fs` 域，仅将 ~1k 门的已决事件跟随环路放在自定时 `ev_clk_i` 突发域（1-bit 帧令牌交接、纯上升沿流水、零负沿时钟）。整核已在 **TSMC 28 nm HPC+** 完成 VCS 四态 RTL、DC 综合（179,656 单元 / `135,479 µm²` / `clk_fs` 0 违规 `+2.72 ns` MET）、PrimeTime 四角点 STA 与 179k 单元 VCS 门级网表仿真（`DUALRATE_40MSPS_PASS`）。外围侧在不改动 `rtl/ad4080_periph/` 218 文件 SHA-256 交付包的前提下，于 `rtl/top/` 补齐四项可综合流片边界封装（清单 [files_ad4080_silicon_shell.f](../rtl/filelists/files_ad4080_silicon_shell.f)），同样完成 TSMC 28HPC+ VCS / DC / Formality（107/107、355/355、20/20）/ PrimeTime 四角点 / VCS 门级网表仿真；完整报告、多版本边界及 **28 nm → 40 nm 迁移注意事项** 见独立目录 [docs/synopsys_signoff/README.md](synopsys_signoff/README.md)。
 
 **片内扰动闭环。** 正常端口 `dither_force_i=0`，实际受理字依次为 45、7、17、40。1,024 笔片内序列覆盖所有 64 个字，固定输入全部返回 410304。强制全字 192 笔及生产/强制混合 192 笔均逐标签正确。混合场景的受扰输入还跨越 Flash 分区和 512 门限。只断开理想 SADC 的低段，96/192 笔 ADC2 越窗。单一已知物理子权重的纠正使同批细码原有的 24 笔 ±32 码误差归零。顶层仿真使用真实数字输出引脚驱动理想 SADC 与 ADC2，宏的模拟建立和芯片实测仍需另行检验。[顶层试验](../tb/v21/sample_cadence.cpp)
 

@@ -1,0 +1,120 @@
+ 
+****************************************
+Report : timing
+        -path full
+        -delay max
+        -group GRP_CLK_FS
+        -max_paths 15
+Design : adc_digital_ip_v21_40msps
+Version: W-2024.09-SP3
+Date   : Tue Nov 24 18:53:31 2026
+****************************************
+
+ # A fanout number of 1000 was used for high fanout net computations.
+
+Operating Conditions: ssg0p81vm40c   Library: tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+Wire Load Model Mode: segmented
+
+  Startpoint: u_recon_fs/u_recip_rnd/u_recip/u0_r_reg[29]/CP
+              (internal path startpoint clocked by clk_fs)
+  Endpoint: u_recon_fs/u_recip_rnd/u_recip/inv_q60_reg[0]
+            (rising edge-triggered flip-flop clocked by clk_fs)
+  Path Group: GRP_CLK_FS
+  Path Type: max
+
+  Des/Clust/Port     Wire Load Model       Library
+  ------------------------------------------------
+  recip_q60          ZeroWireload          tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+  recip_rnd_v21      ZeroWireload          tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+  recon_v21_1        ZeroWireload          tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+  adc2_capture       ZeroWireload          tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+  wsum_v21           ZeroWireload          tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+  adc_digital_ip_v21_40msps
+                     ZeroWireload          tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+  sched18            ZeroWireload          tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+  recip_q60_DW02_mult_3_DW02_mult_205
+                     ZeroWireload          tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+  recip_q60_DW01_add_4_DW01_add_358
+                     ZeroWireload          tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+  recip_q60_DW02_mult_2_DW02_mult_204
+                     ZeroWireload          tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+  recip_q60_DW01_add_3_DW01_add_357
+                     ZeroWireload          tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+  recip_q60_DW01_sub_3_DW01_sub_31
+                     ZeroWireload          tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+  recip_q60_DW01_add_5_DW01_add_359
+                     ZeroWireload          tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+  recip_q60_DW01_add_2_DW01_add_356
+                     ZeroWireload          tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+  recip_q60_DW02_mult_1_DW02_mult_203
+                     ZeroWireload          tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+  recip_q60_DW02_mult_0_DW02_mult_202
+                     ZeroWireload          tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+  recip_q60_DW01_add_0_DW01_add_354
+                     ZeroWireload          tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+  recip_q60_DW01_sub_2_DW01_sub_30
+                     ZeroWireload          tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+  recip_q60_DW01_add_1_DW01_add_355
+                     ZeroWireload          tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+  recip_q60_DW_rash_0
+                     ZeroWireload          tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk_fs (rise edge)                                0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  input external delay                                    0.00       0.00 r
+  u_recon_fs/u_recip_rnd/u_recip/u0_r_reg[29]/CP (DFCNQD1BWP7T40P140)
+                                                          0.00 #     0.00 r
+  u_recon_fs/u_recip_rnd/u_recip/u0_r_reg[29]/Q (DFCNQD1BWP7T40P140)
+                                                          0.13       0.13 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/B[29] (recip_q60_DW02_mult_2_DW02_mult_204)
+                                                          0.00       0.13 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/U174/ZN (INVD1BWP7T40P140)
+                                                          0.07       0.20 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/U1140/ZN (NR2D0BWP7T40P140)
+                                                          0.07       0.28 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/U144/Z (XOR2D1BWP7T40P140)
+                                                          0.08       0.35 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_2_27/S (FA1D1BWP7T40P140)
+                                                          0.12       0.47 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_3_26/S (FA1D1BWP7T40P140)
+                                                          0.12       0.59 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_4_25/S (FA1D1BWP7T40P140)
+                                                          0.11       0.70 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_5_24/S (FA1D1BWP7T40P140)
+                                                          0.12       0.82 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_6_23/S (FA1D1BWP7T40P140)
+                                                          0.11       0.92 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_7_22/S (FA1D1BWP7T40P140)
+                                                          0.12       1.04 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_8_21/S (FA1D1BWP7T40P140)
+                                                          0.11       1.15 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_9_20/CO (FA1D1BWP7T40P140)
+                                                          0.07       1.22 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_10_20/S (FA1D1BWP7T40P140)
+                                                          0.13       1.35 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_11_19/S (FA1D1BWP7T40P140)
+                                                          0.11       1.46 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_12_18/S (FA1D1BWP7T40P140)
+                                                          0.12       1.58 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_13_17/S (FA1D1BWP7T40P140)
+                                                          0.11       1.68 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_14_16/S (FA1D1BWP7T40P140)
+                                                          0.12       1.80 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_15_15/S (FA1D1BWP7T40P140)
+                                                          0.11       1.91 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_16_14/CO (FA1D1BWP7T40P140)
+                                                          0.07       1.98 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_17_14/S (FA1D1BWP7T40P140)
+                                                          0.13       2.11 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_18_13/S (FA1D1BWP7T40P140)
+                                                          0.11       2.22 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_19_12/S (FA1D1BWP7T40P140)
+                                                          0.12       2.33 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_20_11/S (FA1D1BWP7T40P140)
+                                                          0.11       2.44 f
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_21_10/S (FA1D1BWP7T40P140)
+                                                          0.12       2.56 r
+  u_recon_fs/u_recip_rnd/u_recip/mult_186/S2_22_9/S (FA1D1BWP7T40P140)
+                                                          0.11       2.66 f

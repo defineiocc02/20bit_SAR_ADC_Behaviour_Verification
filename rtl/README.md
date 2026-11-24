@@ -1,6 +1,16 @@
 # RTL 导航
 
-单芯片数字顶层是 [ad4080_chip_top](top/ad4080_chip_top.sv)。它连接 [ADC 转换核](sar_core/adc_digital_ip_v21.sv)、[DSP](ad4080_dsp/README.md) 与[外围](ad4080_periph/README.md)，共用一份四银行结果 SRAM。转换核的 ADC2 输入为 **13 位**，窗口为 **0.75 V**。接口和位宽见[工程合同](../docs/CONTRACT_CURRENT.md)，回归与后端状态见[项目状态](../docs/STATUS.md)。
+## 多版本分层与使用边界（清晰区分，互不混淆）
+
+本仓库按职责严格划分为 **三层独立 RTL 版本**，各有专属编译清单与验证链条，禁止跨版本混用清单：
+
+| 版本代号 | 顶层 / 关键模块 | 专属编译清单 | 定位与验证范围 |
+| --- | --- | --- | --- |
+| **`v21`（单时钟参考基准）** | [adc_digital_ip_v21.sv](sar_core/adc_digital_ip_v21.sv) · [ad4080_chip_top.sv](top/ad4080_chip_top.sv) | [files_adc_v21.f](filelists/files_adc_v21.f)（11 文件）· [ad4080_chip.f](filelists/ad4080_chip.f) · 冻结 [ad4080_periph/](ad4080_periph/README.md)（218 文件 SHA-256 锁定） | 与 Python `adi_model` (`9.0.1+adi.repro`) 逐位对拍、算法图册、单芯片功能联调与原厂手册追溯的**唯一冻结基准**（单时钟需 13 拍/样本）。 |
+| **`v21-dualrate-40msps`（双域 40 MSPS 物理实现核）** | [adc_digital_ip_v21_40msps.sv](sar_core/adc_digital_ip_v21_40msps.sv) | [files_adc_v21_40msps.f](filelists/files_adc_v21_40msps.f) | 复用 `v21` 全部 D1–D5 叶子，将 >95% 重逻辑收口至真实 **40 MHz（25 ns）`clk_fs`**、仅 ~1k 门事件跟随器走自定时 `ev_clk_i` 突发（6 ns 粗窗 + 18 ns RA 安静窗零翻转），配套完整 **TSMC 28 nm HPC+ Synopsys（VCS / DC / Formality / PrimeTime / GLS）** 签核脚本与报告。 |
+| **`ad4080-silicon-shell-r1`（外围流片边界外壳）** | [ad4080_crc24_service.sv](top/ad4080_crc24_service.sv) · [ad4080_otp_macro_adapter.sv](top/ad4080_otp_macro_adapter.sv) · [ad4080_result_store_foundry.sv](top/ad4080_result_store_foundry.sv) · [ad4080_lvds_phy_wrapper.sv](top/ad4080_lvds_phy_wrapper.sv) | [files_ad4080_silicon_shell.f](filelists/files_ad4080_silicon_shell.f) | 零改动冻结 `ad4080_periph/` 的前提下，将 `ad4080_chip_top` 的 4 项外围开放端口闭环为可综合工艺厂硬宏替换接缝（`` `ifdef USE_FOUNDRY_*_MACRO ``），完成全套 **TSMC 28 nm HPC+ Synopsys** 签核。 |
+
+单芯片参考数字顶层是 [ad4080_chip_top](top/ad4080_chip_top.sv)。它连接 [ADC 转换核](sar_core/adc_digital_ip_v21.sv)、[DSP](ad4080_dsp/README.md) 与[外围](ad4080_periph/README.md)，共用一份四银行结果 SRAM。转换核的 ADC2 输入为 **13 位**，窗口为 **0.75 V**。接口和位宽见[工程合同](../docs/CONTRACT_CURRENT.md)，回归与后端状态见[项目状态](../docs/STATUS.md)。
 
 整核综合、物理实验和 Formality 参考端共用 [files_adc_v21.f](filelists/files_adc_v21.f)。仿真入口见 [verify_v21.sh](../tools/verify_v21.sh) 和 [files_adc_v21_sim.f](filelists/files_adc_v21_sim.f)。[rtl_sources.f](rtl_sources.f) 用于核对全树源码覆盖，整链编译按 v21 专用清单选源。
 

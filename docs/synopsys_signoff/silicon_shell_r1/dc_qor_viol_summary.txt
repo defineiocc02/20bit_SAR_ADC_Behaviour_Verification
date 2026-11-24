@@ -1,0 +1,455 @@
+# TSMC 28HPC+ Design Compiler Summary (ad4080-silicon-shell-r1)
+# Library: tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs.db (SS 0.81V -40C)
+
+========================================================================
+MODULE: ad4080_crc24_service
+========================================================================
+Information: Updating design information... (UID-85)
+ 
+****************************************
+Report : qor
+Design : ad4080_crc24_service
+Version: W-2024.09-SP3
+Date   : Tue Nov 24 13:55:59 2026
+****************************************
+
+
+  Timing Path Group 'clk_main'
+  -----------------------------------
+  Levels of Logic:              13.00
+  Critical Path Length:          0.89
+  Critical Path Slack:           0.74
+  Critical Path Clk Period:      2.50
+  Total Negative Slack:          0.00
+  No. of Violating Paths:        0.00
+  Worst Hold Violation:          0.00
+  Total Hold Violation:          0.00
+  No. of Hold Violations:        0.00
+  -----------------------------------
+
+
+  Cell Count
+  -----------------------------------
+  Hierarchical Cell Count:          0
+  Hierarchical Port Count:          0
+  Leaf Cell Count:                467
+  Buf/Inv Cell Count:              73
+  Buf Cell Count:                  17
+  Inv Cell Count:                  56
+  CT Buf/Inv Cell Count:            0
+  Combinational Cell Count:       388
+  Sequential Cell Count:           79
+  Macro Count:                      0
+  -----------------------------------
+
+
+  Area
+  -----------------------------------
+  Combinational Area:      212.855999
+  Noncombinational Area:   148.568000
+  Buf/Inv Area:             15.974000
+  Total Buffer Area:             5.00
+  Total Inverter Area:          10.98
+  Macro/Black Box Area:      0.000000
+  Net Area:                  0.000000
+  -----------------------------------
+  Cell Area:               361.423999
+  Design Area:             361.423999
+
+
+  Design Rules
+  -----------------------------------
+  Total Number of Nets:           570
+  Nets With Violations:             0
+  Max Trans Violations:             0
+  Max Cap Violations:               0
+  -----------------------------------
+
+
+  Hostname: songmingjun
+
+  Compile CPU Statistics
+  -----------------------------------------
+  Resource Sharing:                    0.08
+  Logic Optimization:                 18.67
+  Mapping Optimization:               17.94
+  -----------------------------------------
+  Overall Compile Time:               39.79
+  Overall Compile Wall Clock Time:    14.70
+
+  --------------------------------------------------------------------
+
+  Design  WNS: 0.00  TNS: 0.00  Number of Violating Paths: 0
+
+
+  Design (Hold)  WNS: 0.00  TNS: 0.00  Number of Violating Paths: 0
+
+  --------------------------------------------------------------------
+
+
+1
+--- VIOLATORS ---
+ 
+****************************************
+Report : constraint
+        -all_violators
+Design : ad4080_crc24_service
+Version: W-2024.09-SP3
+Date   : Tue Nov 24 13:56:10 2026
+****************************************
+
+This design has no violated constraints.
+
+1
+
+========================================================================
+MODULE: ad4080_otp_macro_adapter
+========================================================================
+Information: Updating design information... (UID-85)
+ 
+****************************************
+Report : qor
+Design : ad4080_otp_macro_adapter
+Version: W-2024.09-SP3
+Date   : Tue Nov 24 13:56:40 2026
+****************************************
+
+
+  Timing Path Group 'clk_main'
+  -----------------------------------
+  Levels of Logic:               1.00
+  Critical Path Length:          0.26
+  Critical Path Slack:           6.62
+  Critical Path Clk Period:     10.00
+  Total Negative Slack:          0.00
+  No. of Violating Paths:        0.00
+  Worst Hold Violation:          0.00
+  Total Hold Violation:          0.00
+  No. of Hold Violations:        0.00
+  -----------------------------------
+
+
+  Cell Count
+  -----------------------------------
+  Hierarchical Cell Count:          0
+  Hierarchical Port Count:          0
+  Leaf Cell Count:               1146
+  Buf/Inv Cell Count:             191
+  Buf Cell Count:                  75
+  Inv Cell Count:                 116
+  CT Buf/Inv Cell Count:            0
+  Combinational Cell Count:       831
+  Sequential Cell Count:          315
+  Macro Count:                      0
+  -----------------------------------
+
+
+  Area
+  -----------------------------------
+  Combinational Area:      466.676000
+  Noncombinational Area:   573.692005
+  Buf/Inv Area:             44.785999
+  Total Buffer Area:            22.05
+  Total Inverter Area:          22.74
+  Macro/Black Box Area:      0.000000
+  Net Area:                  0.000000
+  -----------------------------------
+  Cell Area:              1040.368005
+  Design Area:            1040.368005
+
+
+  Design Rules
+  -----------------------------------
+  Total Number of Nets:          1323
+  Nets With Violations:             0
+  Max Trans Violations:             0
+  Max Cap Violations:               0
+  -----------------------------------
+
+
+  Hostname: songmingjun
+
+  Compile CPU Statistics
+  -----------------------------------------
+  Resource Sharing:                    3.77
+  Logic Optimization:                 19.93
+  Mapping Optimization:               18.58
+  -----------------------------------------
+  Overall Compile Time:               47.00
+  Overall Compile Wall Clock Time:    18.50
+
+  --------------------------------------------------------------------
+
+  Design  WNS: 0.00  TNS: 0.00  Number of Violating Paths: 0
+
+
+  Design (Hold)  WNS: 0.00  TNS: 0.00  Number of Violating Paths: 0
+
+  --------------------------------------------------------------------
+
+
+1
+--- VIOLATORS ---
+ 
+****************************************
+Report : constraint
+        -all_violators
+Design : ad4080_otp_macro_adapter
+Version: W-2024.09-SP3
+Date   : Tue Nov 24 13:56:52 2026
+****************************************
+
+This design has no violated constraints.
+
+1
+
+========================================================================
+MODULE: ad4080_lvds_phy_wrapper
+========================================================================
+Information: Updating design information... (UID-85)
+Warning: A non-unate path in clock network for clock 'clk_main' from pin 'U7/Z' is detected. (TIM-052)
+ 
+****************************************
+Report : qor
+Design : ad4080_lvds_phy_wrapper
+Version: W-2024.09-SP3
+Date   : Tue Nov 24 17:43:31 2026
+****************************************
+
+
+  Timing Path Group 'clk_main'
+  -----------------------------------
+  Levels of Logic:               6.00
+  Critical Path Length:          0.13
+  Critical Path Slack:           0.00
+  Critical Path Clk Period:      2.50
+  Total Negative Slack:          0.00
+  No. of Violating Paths:        0.00
+  Worst Hold Violation:          0.00
+  Total Hold Violation:          0.00
+  No. of Hold Violations:        0.00
+  -----------------------------------
+
+
+  Cell Count
+  -----------------------------------
+  Hierarchical Cell Count:          0
+  Hierarchical Port Count:          0
+  Leaf Cell Count:                 27
+  Buf/Inv Cell Count:               4
+  Buf Cell Count:                   2
+  Inv Cell Count:                   2
+  CT Buf/Inv Cell Count:            0
+  Combinational Cell Count:        19
+  Sequential Cell Count:            8
+  Macro Count:                      0
+  -----------------------------------
+
+
+  Area
+  -----------------------------------
+  Combinational Area:       16.268000
+  Noncombinational Area:    15.190000
+  Buf/Inv Area:              4.704000
+  Total Buffer Area:             4.31
+  Total Inverter Area:           0.39
+  Macro/Black Box Area:      0.000000
+  Net Area:                  0.000000
+  -----------------------------------
+  Cell Area:                31.458000
+  Design Area:              31.458000
+
+
+  Design Rules
+  -----------------------------------
+  Total Number of Nets:            43
+  Nets With Violations:             0
+  Max Trans Violations:             0
+  Max Cap Violations:               0
+  -----------------------------------
+
+
+  Hostname: songmingjun
+
+  Compile CPU Statistics
+  -----------------------------------------
+  Resource Sharing:                    0.01
+  Logic Optimization:                  0.19
+  Mapping Optimization:                0.29
+  -----------------------------------------
+  Overall Compile Time:                1.46
+  Overall Compile Wall Clock Time:     1.51
+
+  --------------------------------------------------------------------
+
+  Design  WNS: 0.00  TNS: 0.00  Number of Violating Paths: 0
+
+
+  Design (Hold)  WNS: 0.00  TNS: 0.00  Number of Violating Paths: 0
+
+  --------------------------------------------------------------------
+
+
+1
+--- VIOLATORS ---
+ 
+****************************************
+Report : constraint
+        -all_violators
+Design : ad4080_lvds_phy_wrapper
+Version: W-2024.09-SP3
+Date   : Tue Nov 24 17:43:31 2026
+****************************************
+
+This design has no violated constraints.
+
+1
+
+========================================================================
+MODULE: ad4080_result_store_foundry
+========================================================================
+Information: Updating design information... (UID-85)
+ 
+****************************************
+Report : qor
+Design : ad4080_result_store_foundry
+Version: W-2024.09-SP3
+Date   : Tue Nov 24 13:57:36 2026
+****************************************
+
+
+  Timing Path Group 'clk_main'
+  -----------------------------------
+  Levels of Logic:               3.00
+  Critical Path Length:          0.40
+  Critical Path Slack:           1.23
+  Critical Path Clk Period:      2.50
+  Total Negative Slack:          0.00
+  No. of Violating Paths:        0.00
+  Worst Hold Violation:          0.00
+  Total Hold Violation:          0.00
+  No. of Hold Violations:        0.00
+  -----------------------------------
+
+
+  Cell Count
+  -----------------------------------
+  Hierarchical Cell Count:          4
+  Hierarchical Port Count:        324
+  Leaf Cell Count:                192
+  Buf/Inv Cell Count:               7
+  Buf Cell Count:                   1
+  Inv Cell Count:                   6
+  CT Buf/Inv Cell Count:            0
+  Combinational Cell Count:       189
+  Sequential Cell Count:            3
+  Macro Count:                      0
+  -----------------------------------
+
+
+  Area
+  -----------------------------------
+  Combinational Area:       74.872000
+  Noncombinational Area:     5.586000
+  Buf/Inv Area:              1.470000
+  Total Buffer Area:             0.29
+  Total Inverter Area:           1.18
+  Macro/Black Box Area:      0.000000
+  Net Area:                  0.000000
+  -----------------------------------
+  Cell Area:                80.458000
+  Design Area:              80.458000
+
+
+  Design Rules
+  -----------------------------------
+  Total Number of Nets:           312
+  Nets With Violations:             0
+  Max Trans Violations:             0
+  Max Cap Violations:               0
+  -----------------------------------
+
+
+  Hostname: songmingjun
+
+  Compile CPU Statistics
+  -----------------------------------------
+  Resource Sharing:                    0.42
+  Logic Optimization:                  2.05
+  Mapping Optimization:                2.00
+  -----------------------------------------
+  Overall Compile Time:                6.69
+  Overall Compile Wall Clock Time:     4.54
+
+  --------------------------------------------------------------------
+
+  Design  WNS: 0.00  TNS: 0.00  Number of Violating Paths: 0
+
+
+  Design (Hold)  WNS: 0.00  TNS: 0.00  Number of Violating Paths: 0
+
+  --------------------------------------------------------------------
+
+
+1
+--- VIOLATORS ---
+ 
+****************************************
+Report : constraint
+        -all_violators
+Design : ad4080_result_store_foundry
+Version: W-2024.09-SP3
+Date   : Tue Nov 24 13:57:44 2026
+****************************************
+
+
+   min_capacitance
+
+                             Required        Actual
+   Net                      Capacitance    Capacitance       Slack
+   -----------------------------------------------------------------
+   addr_i[0]                    0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   addr_i[1]                    0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   addr_i[2]                    0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   addr_i[3]                    0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   addr_i[4]                    0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   addr_i[5]                    0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   addr_i[6]                    0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   addr_i[7]                    0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   addr_i[8]                    0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   addr_i[9]                    0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   addr_i[10]                   0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   addr_i[11]                   0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   data_i[0]                    0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   data_i[1]                    0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   data_i[2]                    0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   data_i[3]                    0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   data_i[4]                    0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   data_i[5]                    0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   data_i[6]                    0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   data_i[7]                    0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   data_i[8]                    0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   data_i[9]                    0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   data_i[10]                   0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   data_i[11]                   0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   data_i[12]                   0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   data_i[13]                   0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   data_i[14]                   0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   data_i[15]                   0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   data_i[16]                   0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   data_i[17]                   0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   data_i[18]                   0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   data_i[19]                   0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   n9                           0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   n10                          0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   n11                          0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   n12                          0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   rtsel_i[0]                   0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   rtsel_i[1]                   0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   wtsel_i[0]                   0.00           0.00           0.00  (VIOLATED: increase significant digits)
+   wtsel_i[1]                   0.00           0.00           0.00  (VIOLATED: increase significant digits)
+
+   -----------------------------------------------------------------
+   Total                      40                 -0.01  
+
+1

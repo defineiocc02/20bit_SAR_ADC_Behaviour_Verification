@@ -1,0 +1,19 @@
+# Synopsys PrimeTime W-2024.09-SP3 4-Corner STA (TSMC 28HPC+ CCS, ad4080-silicon-shell-r1)
+=== ad4080_crc24_service ===
+  ssg0p81vm40c   arrival=1.2627ns setup=(MET) 0.7423       hold=(MET) 0.0481
+  ssg0p81v125c   arrival=1.1962ns setup=(MET) 0.8088       hold=(MET) 0.0383
+  ffg0p99vm40c   arrival=0.8296ns setup=(MET) 1.1754       hold=(VIOLATED) -0.0064
+  ffg0p99v125c   arrival=0.8606ns setup=(MET) 1.1444       hold=(VIOLATED) -0.0039
+
+=== ad4080_otp_macro_adapter ===
+  ssg0p81vm40c   arrival=1.7586ns setup=(MET) 6.6214       hold=(MET) 0.0365
+  ssg0p81v125c   arrival=1.7356ns setup=(MET) 6.6444       hold=(MET) 0.0298
+  ffg0p99vm40c   arrival=1.6311ns setup=(MET) 6.7489       hold=(VIOLATED) -0.0117
+  ffg0p99v125c   arrival=1.6416ns setup=(MET) 6.7384       hold=(VIOLATED) -0.0086
+
+=== ad4080_lvds_phy_wrapper ===
+  ssg0p81vm40c   arrival=2.0045ns setup=(MET) 0.0005       hold=(VIOLATED) -1.2105
+  ssg0p81v125c   arrival=1.9940ns setup=(MET) 0.0110       hold=(VIOLATED) -1.2251
+  ffg0p99vm40c   arrival=1.9448ns setup=(MET) 0.0602       hold=(VIOLATED) -1.2578
+  ffg0p99v125c   arrival=1.9476ns setup=(MET) 0.0574       hold=(VIOLATED) -1.2597
+

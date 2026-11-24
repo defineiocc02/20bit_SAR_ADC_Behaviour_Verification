@@ -6,7 +6,9 @@
 #   * 整核入口只使用 v21 生产清单。独立部件的结果限定在其接口。
 #   * 源文件、输入、结果绑定于同一提交和运行目录。
 #   * 工具失败不能被格式报告替代。来源保留未评估状态。
-# 变更记录   : 整核入口收口至 v21，退役旧链回放。
+# 变更记录   :
+#   - 整核入口收口至 v21，退役旧链回放。
+#   - 2026-11-24: 补全 CAAZ 独立回归的 PYTHONPATH（追加 experiments 目录）。
 # =============================================================================
 name: CI
 
@@ -129,10 +131,12 @@ jobs:
               sys_error_corr_contract_tb sinc5_decim_tb \
             --out "$SAR_CI_RUN_ROOT/dsp-leaf"
       - name: Standalone CAAZ behavior contracts
-        # CAAZ 独立模型保留偶奇配对检查。主核的基础绑定位不声明模拟自归零。
-        # flow 是共享测试夹具的导入根，环境仅对本步骤生效。
+        # [CAAZ隔离] 独立模型保留偶奇配对检查；主核基础绑定位不声明模拟自归零。
+        # [路径约定] flow 提供 tests.conftest 夹具，experiments 提供 extensions.caaz 模块根；
+        #            2026-11 迁入 experiments/ 后若漏掉 experiments，pytest 采集会报 ModuleNotFoundError。
+        #            该 PYTHONPATH 仅作用于本步骤，避免主核反向依赖实验扩展。
         env:
-          PYTHONPATH: src:flow
+          PYTHONPATH: src:flow:experiments
         run: python -m pytest experiments/extensions/caaz/tests -q
       - uses: actions/upload-artifact@v4
         if: always()
@@ -271,6 +275,8 @@ jobs:
         run: |
           make audit
       - name: Check index structure without relabeling unbuilt mechanisms
+        # [退出码约定] inventory_gate 返回 0 表示全就绪，返回 2 表示静态引用全通但仍有
+        # 未实现/未运行义务；任何真正 FAIL 记录仍由下方断言阻塞。
         run: |
           mkdir -p "$SAR_CI_RUN_ROOT"
           set +e
@@ -334,6 +340,8 @@ jobs:
         # 外部工具慢测与 Python 兼容性分开，当前数字组件在 RTL job 检查。
         run: python -m pytest flow/tests -m "not slow" -q --cov --cov-report=xml
       - name: Actual default and explicit-override CLI runs
+        # [正反例校验] default 验默认零噪底交易参考；explicit 故意注入 3.5 V 超满量程幅度，
+        # 验证模拟越界标志 analog_overflow 如实置位且不被静默过滤。
         run: |
           mkdir -p "$SAR_CI_RUN_ROOT"
           adi-simulate --samples 64 --output "$SAR_CI_RUN_ROOT/default"

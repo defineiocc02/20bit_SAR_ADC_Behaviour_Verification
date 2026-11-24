@@ -63,7 +63,7 @@ $$e[n] = x_\mathrm{cal}[n] - \bigl(D_0(c[n]) + r_f[n]\bigr) \approx b + \mathbf 
 - **`Wp`**：本笔采样预置开关 `pre` 的加权和；
 - **`G`**：本笔 8 片主阵列的实际总权重和（名义值 `32 * 2^30`）。
 
-接着进入 [rtl/sar_core/recon_v21.sv](../../../rtl/sar_core/recon_v21.sv) 的 **7 级流水线（S1a → S1b → S2a → S2b → S2c → S3 → S4，延迟 6 拍）**，逐字执行合同规定的纯整数公式（无任何浮点）：
+接着进入 [rtl/sar_core/recon_v21.sv](../../../rtl/sar_core/recon_v21.sv) 的 **7 级流水线（S1a → S1b → S2a → S2b → S2c → S3 → S4，共 7 个寄存级，`t` 沿受理 → `t+6` 沿出码）**，逐字执行合同规定的纯整数公式（无任何浮点）：
 
 ```text
 Y = -3145728 + 1536 * adc2_raw + 768          // 13-bit 细码转 Q24 码箱中心
@@ -93,9 +93,9 @@ code = sat_20(Q + 524288)                     // 限幅到 [0, 1048575] 输出 2
 
 ![行为模型动态频谱 PSD 对照：开启 DEM 与冻结权重表后 SNDR 达 94.63 dB、SFDR 达 118.97 dB](../../figures/behavioral/F04_psd.png)
 
-4. **定点整数 RTL vs 浮点数学参考对照 + 单芯片权重表泛化检验**：前者确认整条 7 级定点流水线没有引入多余量化/舍入劣化，后者验证了每颗芯片的权重 LUT 必须匹配其自身真实失配（Same-chip LUT 大幅收敛 INL，不能拿别片芯片的 LUT 混用）：
+4. **定点整数 RTL vs 浮点数学参考对照 + 单芯片权重表泛化检验**：前者确认整条 7 级定点流水线与浮点参考之差严格落在 **`±0.5 LSB20`** 舍入包络内（无系统漂移），后者验证了每颗芯片的权重 LUT 必须匹配其自身真实失配（Same-chip LUT 大幅收敛 INL，不能拿别片芯片的 LUT 混用）：
 
-![定点整数重构与浮点参考误差对照](../../figures/behavioral/F12_fixed_vs_float.png)
+![定点整数重构与浮点参考误差对照：残差严格落在 ±0.5 LSB20 舍入包络内](../../figures/behavioral/F12_fixed_vs_float.png)
 
 ![同片校准表（Same-chip LUT）与跨片表（Other-chip LUT）的 INL 泛化对比](../../figures/behavioral/F11_calibration_generalization.png)
 

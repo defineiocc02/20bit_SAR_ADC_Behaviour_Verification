@@ -39,9 +39,9 @@
 
 **代价在哪？** 讲稿 p.34 诚实标出了代价：**`noise penalty (-1.6 dB)`**——因为 `S1` 断开瞬间会把自动调零相位采样到的宽带热噪声也叠加进信号路径，导致总热噪声略微变差 1.6 dB。
 
-先看本仓行为模型对 Auto-Zero 抑制低频噪声与失调的仿真对照，再看 ISSCC 2024 实测低频噪声谱（左图 `1/f corner ≈ 40 Hz`、`NSD = 8.8 nV/√Hz`、右图 10 颗芯片 `DR = 94.6 dB` 均值）：
+先看本仓行为模型对 Auto-Zero 残余直流注入响应（左图：1,000 µV 注入时的配对输出分布）与保持电容随刷新后保持时间的跌落建模（右图：100 ns 处 100 µV，25 ns 满速刷新下保持误差极小），再看 ISSCC 2024 实测低频噪声谱（左图 `1/f corner ≈ 40 Hz`、`NSD = 8.8 nV/√Hz`、右图 10 颗芯片 `DR = 94.6 dB` 均值）：
 
-![RA 自动调零（Auto-Zero）抑制低频 1/f 噪声与失调对比（本仓行为模型）](../../figures/behavioral/F08_az.png)
+![RA 自动调零行为模型验证：(a) 1,000 µV 直流残余注入输出响应与 (b) 保持时间跌落曲线（100 ns 处 100 µV）](../../figures/behavioral/F08_az.png)
 
 ![ISSCC 2024 实测低频噪声谱（1/f 拐点约 40 Hz，NSD = 8.8 nV/√Hz）与 10 颗芯片 DR 一致性（讲稿 p.37）](figures/isscc_slide37_lowfreq_1f.png)
 
@@ -80,7 +80,7 @@ AD4080 在 RA 输出和 ADC2 采样电容 `C_ADC2` 之间放了**两副开关**�
 仓库里对应 RA 与自动调零的行为模型位于：
 - [src/adi_model/behavioral/ra.py](../../../src/adi_model/behavioral/ra.py)：闭环增益、有限带宽建立、宽/窄带两段切换及饱和窗口建模；
 - [src/adi_model/behavioral/ra_az.py](../../../src/adi_model/behavioral/ra_az.py)：Auto-Zero 失调/1/f 抑制与采样热噪声折算。
-- **延伸研究 · 斩波辅助自动调零（CAAZ）**：本仓 [docs/caaz/](../../caaz/README.md) 还额外研究了把偶数周期的 Auto-Zero 采样噪声保持到奇数周期并在配对求和中正负相消的进阶方案（40 MS/s 原始 → 20 MS/s 配对输出，A–D 四子图展示噪声保持、重构对比与保持系数敏感度）：
+- **延伸研究 · 斩波辅助自动调零（CAAZ，非 AD4080 原厂特性）**：本仓 [docs/caaz/](../../caaz/README.md) 另基于 VLSI 2025 C32-1（Wang et al.）机制进行了可选延伸研究——把偶数周期的 Auto-Zero 采样噪声保持到奇数周期并在配对求和中正负相消（40 MS/s 原始 → 20 MS/s 配对输出，A–D 四子图展示噪声保持、重构对比与保持系数敏感度，详见 [NOTICE](../../meta/NOTICE)）：
 
 ![本仓延伸研究 CAAZ（Chopping-Assisted Auto-Zero）：偶采奇保配对相消 Auto-Zero 采样噪声的机制与敏感度分析](../../caaz/fig/caaz_mechanism_results.png)
 

@@ -89,6 +89,8 @@ exclude = [
   # SdistBuilder 配置实测：paper_p1.png excluded=False），加 /** 后为 True。
   "docs/robustness_review_2026/**",
   "docs/robustness_review_2026",
+  # 精讲配图含第三方讲稿/专利原图裁切，仅作仓库文档展示，不随 Python sdist 分发。
+  "docs/guide/deep_dive/figures/**",
   "**/*.pdf",
   "**/*.ppt",
   "**/*.pptx",

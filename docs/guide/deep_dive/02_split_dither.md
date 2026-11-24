@@ -86,22 +86,24 @@ $$d = d_\mathrm{int}\cdot \Delta_1 + d_\mathrm{frac}, \qquad d_\mathrm{int}\in\m
 
 ![dither_pre.sv 采样预置 RTL 数据流图](../../algorithms/figures/digital-pre-flow.svg)
 
-打开生产文件 [rtl/sar_core/dither_pre.sv](../../../rtl/sar_core/dither_pre.sv)（仅 75 行，极其优雅）：
+打开生产文件 [rtl/sar_core/dither_pre.sv](../../../rtl/sar_core/dither_pre.sv)（仅 78 行，极其优雅）：
 
 ```systemverilog
-// 第 35-41 行：同一 6-bit 随机字硬连线切出 U、J、f 和 SADC 7 路子开关
+// 第 36-42 行：同一 6-bit 随机字硬连线切出 U、J、f 和 SADC 7 路子开关
 assign U_o        = {1'b0, word_i[5]} * 3'd4 + {2'b0, word_i[3]};
 assign d5         = {2'b0, word_i[4]};
 assign f_o        = {1'b0, word_i[2], word_i[1], word_i[0]};
-assign J          = U_o + {d5, 1'b0};            // U + 2*D5
+assign J          = U_o + 3'({d5, 1'b0});                       // U + 2*D5 最大为 7
 assign sadc_pre_o = {1'b0, word_i[4], 1'b0, word_i[2:0], 1'b0}; // 只给 SADC 2*D5 + f/8
 
-// 第 46-61 行：8 片轮转分配，f 片预置 J+1、其余片预置 J（值 8 用 4'b1111 全选）
+// 第 47-65 行：8 片轮转分配，f 片预置 J+1、其余片预置 J（值 8 用 4'b1111 全选）
 for (int s = 0; s < 8; s++) begin
-    val = {1'b0, J} + (((s - v_phase_i) & 3'd7) < f_o ? 4'd1 : 4'd0);
-    pre_v[s][3] = val[2];   // 4Cu
-    pre_v[s][2] = val[1];   // 2Cu
-    pre_v[s][1] = val[0];   // 1Cu
+    logic [2:0] relative_slot;
+    relative_slot = 3'(s) - v_phase_i; // 三位模减法先回绕，再与四位 f 比较
+    val = {1'b0, J} + ({1'b0, relative_slot} < f_o ? 4'd1 : 4'd0);
+    pre_v[s][3] = val[2];   // b2 (4Cu)
+    pre_v[s][2] = val[1];   // b1 (2Cu)
+    pre_v[s][1] = val[0];   // b0 (1Cu)
     pre_v[s][0] = 1'b0;     // bal
     if (val >= 4'd8) pre_v[s] = 4'b1111;
 end

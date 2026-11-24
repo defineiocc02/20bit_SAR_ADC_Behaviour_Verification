@@ -111,31 +111,31 @@ $$k = 64 H + 8 V + L \qquad (H, V, L \in \{0..7\})$$
 
 ![dem_mask_v3.sv 50% 半格跨界桥接 RTL 数据流图](../../algorithms/figures/digital-bridge-flow.svg)
 
-打开生产文件 [rtl/sar_core/dem_mask_v3.sv](../../../rtl/sar_core/dem_mask_v3.sv)（仅 93 行纯组合逻辑）：
+打开生产文件 [rtl/sar_core/dem_mask_v3.sv](../../../rtl/sar_core/dem_mask_v3.sv)（仅 108 行纯组合逻辑）：
 
 ```systemverilog
-// 第 36-50 行：拆 H/V/L、计算保留列与横纵 8 路循环移位
-assign guard = (k_i >= 10'd512);           // 512..520 满量程保护区
+// 第 45-62 行：拆 H/V/L、计算保留列与横纵 8 路循环移位
+assign guard = (k_i >= 10'd512);              // 512..520 满量程保护区
 assign H     = guard ? 3'd0 : k_i[8:6];
 assign V     = guard ? 3'd0 : k_i[5:3];
 assign L     = k_i[2:0];
-assign res   = (3'd7 + h_phase_i);         // 保留列随 h_phase 自然回绕
-assign j_sel = {res, acq_seq_i[3]};        // 选中保留列的哪一个半单元 (2*res + half)
+assign res   = (3'd7 + h_phase_i);            // 保留列随 h_phase 自然回绕
+assign j_sel = {1'b0, res, acq_seq_i[3]};     // 5 位物理索引：选中保留列的哪一个半单元
 
 for (i = 0; i < 8; i++) begin : g_h
-    assign hw[i] = (((i - h_phase_i) & 3'd7) < H);
-    assign yw[i] = (((i - v_phase_i) & 3'd7) < V);
+    assign hw[i] = ((3'(i) - h_phase_i) < H); // 3 位模减环绕，同宽比较
+    assign yw[i] = ((3'(i) - v_phase_i) < V);
 end
 
-// 第 61-63 行：每个主大格展开成两个 4Cu 半单元
+// 第 75-77 行：每个主大格展开成两个 4Cu 半单元
 b = guard ? 1'b1 : ((u[2:0] == res) ? yw[s] : hw[u[2:0]]);
 mask_v[s][2*u]   = b;
 mask_v[s][2*u+1] = b;
 
-// 第 74-80 行：50% 跨界桥接，直接交叉换线！
+// 第 89-95 行：50% 跨界桥接，直接交叉换线！
 if (coin_i) begin
-    sw_a  = mask_v[v_phase_i][j_sel];      // 选中的主半单元 (4Cu)
-    sw_b4 = mask_v[0][16];                 // 8 片子阵列最高位 (8 × 0.5Cu = 4Cu)
+    sw_a  = mask_v[v_phase_i][j_sel];         // 选中的主半单元 (4Cu)
+    sw_b4 = mask_v[0][16];                    // 8 片子阵列最高位 (8 × 0.5Cu = 4Cu)
     mask_v[v_phase_i][j_sel] = sw_b4;
     for (int s = 0; s < 8; s++)
         mask_v[s][16] = sw_a;

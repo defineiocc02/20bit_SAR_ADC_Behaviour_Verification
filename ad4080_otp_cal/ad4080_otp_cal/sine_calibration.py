@@ -99,18 +99,30 @@ def calibrate_360_weights_sine(
     cond_val = float("inf")
 
     # 2. 两轮 Gauss-Newton 迭代求解 Δw 与 (c_cos, c_sin, b_off)
+    # 预先构造主阵片激活指示矩阵 M_main (N×360)：当物理片 s 在第 n 笔激活且 j<16 时为 1
+    m_main = np.zeros((n_samples, TOTAL_WEIGHTS), dtype=np.float64)
+    row_idx = np.repeat(np.arange(n_samples), dataset.active_ids.shape[1])
+    sids_flat = dataset.active_ids.reshape(-1)
+    main_cols = (sids_flat * WEIGHTS_PER_SLICE)[:, None] + np.arange(MAIN_PER_SLICE)[None, :]
+    m_main[row_idx[:, None], main_cols] = 1.0
+
     for _ in range(max(1, n_iters)):
         w_2d = w_cur.reshape(NUM_SLICES, WEIGHTS_PER_SLICE)
         g_row = np.sum(w_2d[:, :MAIN_PER_SLICE], axis=1)
         g_n = np.sum(g_row[dataset.active_ids], axis=1)  # (N,)
 
-        # 当前权重下的初步估计值 y_cur = (A @ w_cur)/G + adc2_residue
-        y_cur = (a_mat @ w_cur) / g_n + dataset.adc2_residue
+        # 当前权重下的 DAC 贡献与初步估计值 y_cur = y_dac + adc2_residue
+        y_dac = (a_mat @ w_cur) / g_n
+        y_cur = y_dac + dataset.adc2_residue
 
-        # 线性模型：c_cos*cos + c_sin*sin + b_off - (A / G) @ dw ≈ y_cur
+        # [完整商法则雅可比] d/dw (A@w / G(w)) = (A - y_dac * M_main) / G(w)
+        # 必须包含分母 G(w) 的偏导项，才能彻底消去跨 18 片梯度导致的分母增益调制误差。
+        j_w = (a_mat - y_dac[:, None] * m_main) / g_n[:, None]
+
+        # 线性模型：c_cos*cos + c_sin*sin + b_off - J_w @ dw ≈ y_cur
         # 其中 dw 仅针对物理权重偏移，[cos, sin, 1] 不施加正则惩罚
         x_full = np.empty((n_samples, TOTAL_WEIGHTS + 3), dtype=np.float64)
-        x_full[:, :TOTAL_WEIGHTS] = -(a_mat / g_n[:, None])
+        x_full[:, :TOTAL_WEIGHTS] = -j_w
         x_full[:, TOTAL_WEIGHTS] = cos_vec
         x_full[:, TOTAL_WEIGHTS + 1] = sin_vec
         x_full[:, TOTAL_WEIGHTS + 2] = ones_vec

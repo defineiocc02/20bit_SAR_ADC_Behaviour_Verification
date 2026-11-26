@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ad4080-otp-cal"
+version = "1.0.0"
+description = "AD4080 18-slice (360-weight) SAR ADC sine-wave foreground calibration, ADCToolbox-compatible spectrum evaluation, and Q30 OTP packing toolkit"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+adctoolbox = ["adctoolbox>=0.1.0"]
+plot = ["matplotlib>=3.7"]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+ad4080-otp-cal = "ad4080_otp_cal.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ad4080_otp_cal*"]
